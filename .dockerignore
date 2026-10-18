@@ -1,0 +1,15 @@
+.git
+.venv
+node_modules
+dist
+models
+*.pt
+*.onnx
+*.log
+.env
+.env.*
+**/__pycache__
+**/.pytest_cache
+tests
+.playwright
+*.tsbuildinfo

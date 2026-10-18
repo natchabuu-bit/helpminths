@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: helpminths
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: false
+    healthCheckPath: /api/health
+    envVars:
+      - key: HELPMINTHS_SERVE_WEB
+        value: "1"
+      - key: PORT
+        value: "8000"
