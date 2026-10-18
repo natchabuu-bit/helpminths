@@ -50,7 +50,7 @@ docker run --rm -p 8080:8000 helpminths
 
 Dockerfile ไม่รวมไฟล์โมเดล รหัสลับ หรือภาพของผู้ใช้ การตรวจ AI จริงยังต้องติดตั้ง runtime ของโมเดลและเชื่อม trained weights แยกต่างหาก Dockerfile เป็น configuration สำหรับ deployment; อ่านรายงานการทดสอบปัจจุบันก่อนถือว่า image ได้ build ในเครื่องใดแล้ว
 
-สถานะตรวจสอบ: production แบบรันตรงผ่าน browser tests 6/6 และ backend tests 15/15 ส่วน Docker image ยัง build ไม่สำเร็จในคลาวด์นี้ เนื่องจากเครือข่ายของ build container resolve ชื่อ PyPI/proxy ไม่ได้ แม้ลองส่ง proxy ที่มีอยู่ผ่าน build args แล้ว ต้องทดสอบ image อีกครั้งบนโฮสต์ปลายทาง การบันทึกโค้ดบน GitHub ยังไม่ใช่การ deploy หรือเผยแพร่เว็บไซต์สาธารณะ
+สถานะตรวจสอบ: production แบบรันตรงผ่าน browser tests 6/6 และ backend tests 15/15 และ build Docker image พร้อมทดสอบ HTML, JS/CSS, API health และการจัดการไฟล์อัปโหลดผ่านแล้ว ในคลาวด์นี้ใช้การตั้งค่า proxy DNS และ CA ของแพลตฟอร์มชั่วคราวระหว่าง build โดยยังตรวจ TLS และไม่เก็บ credentials หรือ CA secret ใน image ส่วน Dockerfile สำหรับ Render ไม่ต้องใช้การตั้งค่าเฉพาะคลาวด์นี้ การบันทึกโค้ดบน GitHub ยังไม่ใช่การสร้างบริการหรือยืนยันว่าเว็บไซต์บน Render เป็น Live แล้ว
 
 การสมัครบัญชี Render ไม่ได้สร้างบริการหรือเชื่อมบัญชีกับเครื่องมือในแชตโดยอัตโนมัติ ใช้ลิงก์ Blueprint ด้านบนเพื่อสร้างบริการในบัญชีของคุณ แล้วใช้ URL ที่ Render ออกให้ ไม่ต้องซื้อโดเมนหรือส่งรหัสผ่านและ access token ในแชต
 
