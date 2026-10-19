@@ -4,10 +4,11 @@ import Scan from './components/Scan'
 import type { AnalysisRecord } from './components/Scan'
 import EggIllustration from './components/EggIllustration'
 import OfflinePanel from './components/OfflinePanel'
-import { groupLabels, matchSpeciesLabel, species } from './data/species'
+import { getSpeciesById, groupLabels, matchSpeciesLabel, species } from './data/species'
 
 const Atlas = lazy(() => import('./components/Atlas'))
 type Page = 'home' | 'scan' | 'atlas' | 'history'
+const featuredSpecies = ['opisthorchis', 'ascaris', 'hookworm'].map(getSpeciesById)
 const pageNames: Record<Page, string> = { home: 'ภาพรวม', scan: 'ตรวจวิเคราะห์', atlas: 'Atlas 3D', history: 'ประวัติการตรวจ' }
 
 function Brand({ small = false }: { small?: boolean }) {
@@ -85,7 +86,7 @@ export default function App() {
     setDemo(showDemo); setSelectedRecord(record); setScanKey(key => key + 1); navigate('scan')
   }
   const openAtlas = (id?: string) => {
-    const match = matchSpeciesLabel(id)
+    const match = species.find(item => item.id === id) ?? matchSpeciesLabel(id)
     setInitialSpecies(match?.id); navigate('atlas')
   }
   const saveRecord = (record: AnalysisRecord) => setRecords(old => [record, ...old.filter(item => item.id !== record.id)])
@@ -118,7 +119,7 @@ export default function App() {
 
           <section className="workflow-section"><div className="section-heading"><div><h2>จากภาพ สู่การค้นพบ</h2><p>เริ่มต้นได้ง่าย ๆ ใน 3 ขั้นตอน</p></div><span className="small-caption">DESIGNED FOR A CLEARER VIEW</span></div><div className="workflow-grid">{[{ n: '01', icon: Upload, title: 'เพิ่มภาพที่ต้องการตรวจ', detail: 'เลือกภาพจากคลัง หรือถ่ายภาพผ่านกล้องมือถือ', link: 'อัปโหลดภาพ', action: () => openScan() }, { n: '02', icon: ScanLine, title: 'สำรวจผลวิเคราะห์', detail: 'ดูกรอบตำแหน่ง ชนิด และค่าความมั่นใจของโมเดล', link: 'ลองดูตัวอย่าง', action: () => openScan(true) }, { n: '03', icon: BookOpen, title: 'ต่อยอดความเข้าใจ', detail: 'เปรียบเทียบลักษณะสำคัญกับไข่พยาธิใน Atlas 3D', link: 'เปิด Atlas 3D', action: () => openAtlas() }].map(step => <article className="workflow-card" key={step.n}><div className="workflow-top"><step.icon size={22}/><span>{step.n}</span></div><h3>{step.title}</h3><p>{step.detail}</p><button onClick={step.action}>{step.link}<ArrowUpRight size={15}/></button></article>)}</div></section>
 
-          <section className="atlas-preview"><div className="section-heading"><div><div className="section-kicker">THE MORPHOLOGY COLLECTION</div><h2>รู้จักให้ลึก มองเห็นให้ชัด</h2><p>สำรวจจุดสังเกตของไข่พยาธิผ่านคอลเลกชัน Atlas</p></div><button className="text-button" onClick={() => openAtlas()}>สำรวจทั้ง {species.length} ชนิด <ArrowRight size={16}/></button></div><div className="specimen-grid">{species.slice(0, 3).map((item, i) => <button className="specimen-card" key={item.id} onClick={() => openAtlas(item.id)}><div className={`specimen-art specimen-art-${i}`}><EggIllustration speciesId={item.id}/><span className="specimen-number">SPECIMEN 0{i + 1}</span><span className="view-3d"><Box size={12}/> 3D</span></div><div className="specimen-info"><span>{groupLabels[item.group]}</span><h3>{item.name}</h3><div><p>{item.thaiName}</p><ArrowUpRight size={17}/></div></div></button>)}</div></section>
+          <section className="atlas-preview"><div className="section-heading"><div><div className="section-kicker">THE MORPHOLOGY COLLECTION</div><h2>รู้จักให้ลึก มองเห็นให้ชัด</h2><p>คัดกลุ่มอ้างอิงสำหรับการเรียนรู้ในบริบทไทย</p></div><button className="text-button" onClick={() => openAtlas()}>สำรวจทั้ง {species.length} กลุ่ม <ArrowRight size={16}/></button></div><div className="specimen-grid">{featuredSpecies.map((item, i) => <button className="specimen-card" key={item.id} onClick={() => openAtlas(item.id)}><div className={`specimen-art specimen-art-${i}`}><EggIllustration speciesId={item.id}/><span className="specimen-number">SPECIMEN 0{i + 1}</span><span className="view-3d"><Box size={12}/> 3D</span></div><div className="specimen-info"><span>{groupLabels[item.group]}</span><h3>{item.name}</h3><div><p>{item.thaiName}</p><ArrowUpRight size={17}/></div></div></button>)}</div></section>
 
           <div className="research-note"><div><ShieldCheck size={20}/><p><strong>ออกแบบเพื่อการเรียนรู้และช่วยคัดกรอง</strong><span>ผลจาก AI ต้องได้รับการทบทวนโดยผู้เชี่ยวชาญ และไม่ใช้แทนการวินิจฉัยทางคลินิก</span></p></div><button onClick={() => setHelpOpen(true)}>เรียนรู้เพิ่มเติม <ArrowUpRight size={15}/></button></div>
         </>}

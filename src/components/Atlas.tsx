@@ -29,10 +29,9 @@ class ModelBoundary extends Component<{ children: ReactNode; fallback: ReactNode
 
 function dimensions(id: string): [number, number, number] {
   if (id === 'taenia') return [1, 1, 1];
-  if (id === 'schistosoma-japonicum') return [1.16, .94, .87];
   if (id === 'trichuris') return [1.5, .62, .62];
   if (id === 'enterobius') return [1.55, .74, .64];
-  if (id.startsWith('schistosoma-')) return [1.55, .68, .65];
+  if (id === 'opisthorchis') return [1.35, .68, .62];
   return [1.4, .86, .79];
 }
 
@@ -50,7 +49,7 @@ function eggGeometry(id: string, cutaway: boolean) {
       const endShape = .88 + .12 * (1 - x * x);
       positions.setXYZ(i, x * scale[0], nextY * scale[1] * endShape, z * scale[2] * endShape);
     } else {
-      const asymmetry = id.startsWith('schistosoma-') ? 1 + x * .055 : 1;
+      const asymmetry = id === 'opisthorchis' ? 1 + x * .12 : 1;
       positions.setXYZ(i, x * scale[0], nextY * scale[1] * asymmetry, z * scale[2] * asymmetry);
     }
   }
@@ -101,7 +100,7 @@ function Egg({ item, cutaway }: { item: ParasiteSpecies; cutaway: boolean }) {
   useEffect(() => () => shellGeometry.dispose(), [shellGeometry]);
   const scale = dimensions(item.id);
   const shell = new Color(item.color);
-  const isSchisto = item.id.startsWith('schistosoma-');
+  const isOV = item.id === 'opisthorchis';
   const bumps = useMemo(() => Array.from({ length: 105 }, (_, i) => {
     const y = 1 - (i / 104) * 2;
     const r = Math.sqrt(1 - y * y);
@@ -115,7 +114,7 @@ function Egg({ item, cutaway }: { item: ParasiteSpecies; cutaway: boolean }) {
     const y = Math.sin(t * Math.PI) * .12;
     return new Vector3(Math.cos(a) * x - Math.sin(a) * y, Math.sin(a) * x + Math.cos(a) * y, .24);
   })), []);
-  const internalColor = '#8d996b';
+  const internalColor = isOV ? '#a39754' : '#8d996b';
   return (
     <group rotation={[.09, -.08, -.18]}>
       <mesh geometry={shellGeometry} renderOrder={3}>
@@ -126,14 +125,17 @@ function Egg({ item, cutaway }: { item: ParasiteSpecies; cutaway: boolean }) {
       {item.id === 'trichuris' && [-1, 1].map((direction) => <group key={direction} position={[direction * 1.46, 0, 0]} rotation={[0, 0, Math.PI / 2]}><mesh scale={[.18, .24, .18]}><sphereGeometry args={[1, 24, 20]} /><meshPhysicalMaterial color="#ead6ad" roughness={.3} transparent opacity={.9} /></mesh><mesh rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[.18, .035, 10, 32]} /><meshStandardMaterial color="#c49a61" /></mesh></group>)}
       {item.id === 'hookworm' && [[-.48, .15, .02], [0, .25, -.06], [.45, .08, .01], [-.33, -.26, .12], [.18, -.21, .15], [.12, .03, -.25]].map((position, i) => <mesh key={i} position={position as [number, number, number]} scale={[1, .91, .85]}><sphereGeometry args={[.31, 28, 22]} /><meshPhysicalMaterial color={i % 2 ? '#aab487' : '#8e9c74'} roughness={.7} clearcoat={.2} /></mesh>)}
       {item.id === 'enterobius' && <Larva />}
-      {item.id !== 'hookworm' && item.id !== 'enterobius' && <mesh scale={item.id === 'taenia' ? [.5, .5, .48] : isSchisto ? [.89, .42, .37] : [.77, .51, .45]}><sphereGeometry args={[1, 44, 30]} /><meshStandardMaterial color={internalColor} roughness={.64} /></mesh>}
-      {isSchisto && Array.from({ length: 24 }, (_, i) => {
+      {item.id !== 'hookworm' && item.id !== 'enterobius' && <mesh scale={item.id === 'taenia' ? [.5, .5, .48] : isOV ? [.81, .34, .29] : [.77, .51, .45]}><sphereGeometry args={[1, 44, 30]} /><meshStandardMaterial color={internalColor} roughness={.64} /></mesh>}
+      {isOV && Array.from({ length: 24 }, (_, i) => {
         const a = i / 24 * Math.PI * 2;
-        return <mesh key={i} position={[Math.cos(a) * .84, Math.sin(a) * .41, .025]} rotation={[0, 0, a - Math.PI / 2]}><coneGeometry args={[.024, .13, 6]} /><meshStandardMaterial color="#c2c69c" /></mesh>;
+        return <mesh key={i} position={[Math.cos(a) * .76, Math.sin(a) * .33, .025]} rotation={[0, 0, a - Math.PI / 2]}><coneGeometry args={[.018, .1, 6]} /><meshStandardMaterial color="#d8ce8f" /></mesh>;
       })}
-      {item.id === 'schistosoma-mansoni' && <mesh position={[-.6, .82, 0]} rotation={[0, 0, .58]}><coneGeometry args={[.18, .77, 32]} /><meshStandardMaterial color={item.color} roughness={.4} /></mesh>}
-      {item.id === 'schistosoma-haematobium' && <mesh position={[1.68, -.015, 0]} rotation={[0, 0, -Math.PI / 2]}><coneGeometry args={[.12, .59, 32]} /><meshStandardMaterial color={item.color} roughness={.4} /></mesh>}
-      {item.id === 'schistosoma-japonicum' && <mesh position={[-.72, .72, 0]} scale={[.16, .2, .13]}><sphereGeometry args={[1, 20, 16]} /><meshStandardMaterial color={item.color} roughness={.5} /></mesh>}
+      {isOV && <>
+        {/* A cap seated on a raised collar at one pole; the opposite knob is small. */}
+        <mesh position={[-1.18, 0, 0]} scale={[.23, .35, .32]}><sphereGeometry args={[1, 32, 24]} /><meshPhysicalMaterial color="#dfbc72" roughness={.4} transparent opacity={.86} /></mesh>
+        <mesh position={[-1.12, 0, 0]} rotation={[0, Math.PI / 2, 0]} scale={[.91, 1, 1]}><torusGeometry args={[.355, .035, 12, 48]} /><meshStandardMaterial color="#91662e" roughness={.6} /></mesh>
+        <mesh position={[1.36, 0, 0]} scale={[.1, .075, .075]}><sphereGeometry args={[1, 24, 18]} /><meshStandardMaterial color="#dfbd72" roughness={.5} /></mesh>
+      </>}
       {item.id === 'taenia' && <>
         {Array.from({ length: 42 }, (_, i) => {
           const angle = i / 42 * Math.PI * 2;
@@ -188,8 +190,8 @@ function ModelViewer({ item, cutaway, autoRotate, resetKey }: { item: ParasiteSp
 
 /** DOM callouts stay in the application root, separate from the WebGL scene lifecycle. */
 function ModelAnnotations({ item, cutaway }: { item: ParasiteSpecies; cutaway: boolean }) {
-  const outerLabel = item.id === 'trichuris' ? 'จุกสองขั้ว' : item.id === 'enterobius' ? 'ด้านหนึ่งแบน' : item.id === 'taenia' ? 'ผนังลายรัศมี' : item.id === 'schistosoma-mansoni' ? 'หนามด้านข้าง' : item.id === 'schistosoma-haematobium' ? 'หนามปลายขั้ว' : item.id === 'schistosoma-japonicum' ? 'ปุ่มด้านข้าง' : item.id === 'hookworm' ? 'เปลือกบางใส' : 'ผิวนอกขรุขระ';
-  const innerLabel = item.id === 'hookworm' ? 'ตัวอ่อนแบ่งเซลล์' : item.id === 'enterobius' ? 'ตัวอ่อน' : item.id === 'taenia' ? 'ตะขอ 3 คู่' : item.id.startsWith('schistosoma-') ? 'Miracidium' : 'เซลล์ไข่';
+  const outerLabel = item.id === 'trichuris' ? 'จุกสองขั้ว' : item.id === 'enterobius' ? 'ด้านหนึ่งแบน' : item.id === 'taenia' ? 'ผนังลายรัศมี' : item.id === 'opisthorchis' ? 'ฝาปิดและบ่า · ปุ่มขั้วตรงข้าม' : item.id === 'hookworm' ? 'เปลือกบางใส' : 'ผิวนอกขรุขระ';
+  const innerLabel = item.id === 'hookworm' ? 'ตัวอ่อนแบ่งเซลล์' : item.id === 'enterobius' ? 'ตัวอ่อน' : item.id === 'taenia' ? 'ตะขอ 3 คู่' : item.id === 'opisthorchis' ? 'Miracidium' : 'เซลล์ไข่';
   return <div className="atlas-annotations" aria-label="จุดสังเกตของแบบจำลอง">
     <div className="atlas-callout atlas-callout-outer"><div className="atlas-model-label"><span />{outerLabel}</div><small>ลักษณะภายนอก</small></div>
     {cutaway && <div className="atlas-callout atlas-callout-inner"><small>โครงสร้างภายใน</small><div className="atlas-model-label"><span />{innerLabel}</div></div>}

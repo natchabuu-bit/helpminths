@@ -40,15 +40,8 @@ const MAX_SIZE = 20 * 1024 * 1024;
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 function thaiName(label: string) {
-  const name = label.toLowerCase();
-  if (name.includes('ascaris')) return 'ไข่พยาธิไส้เดือน';
-  if (name.includes('trichuris')) return 'ไข่พยาธิแส้ม้า';
-  if (name.includes('hookworm') || name.includes('ancylostoma') || name.includes('necator')) return 'ไข่พยาธิปากขอ';
-  if (name.includes('schistosoma')) return 'ไข่พยาธิใบไม้เลือด';
-  if (name.includes('enterobius')) return 'ไข่พยาธิเส้นด้าย';
-  if (name.includes('taenia')) return 'ไข่พยาธิตัวตืด';
-  if (name.includes('opisthorchis')) return 'ไข่พยาธิใบไม้ตับ';
-  return 'ผลการจำแนกชนิด';
+  const match = matchSpeciesLabel(label);
+  return match ? `ไข่${match.thaiName}` : 'ผลการจำแนกชนิด';
 }
 
 function sampleImage() {
@@ -376,6 +369,7 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
                 {detections.map((detection, index) => <button key={detection.id} type="button" className={`scan-detection-item ${detection.id === selectedId ? 'scan-detection-item--selected' : ''}`} onClick={() => setSelectedId(detection.id)} style={{ '--detection-color': COLORS[Math.abs(detection.class_id || 0) % COLORS.length] } as React.CSSProperties}><span className="scan-detection-number">{String(index + 1).padStart(2, '0')}</span><span className="scan-detection-name"><strong>{detection.label}</strong><span>{thaiName(detection.label)}</span></span><span className="scan-detection-confidence">{Math.round(detection.confidence * 100)}<small>%</small></span></button>)}
                 {detections.length === 0 && <div className="scan-no-results"><Crosshair size={26} /><strong>{record.detections.length > 0 ? 'ไม่มีกรอบที่ผ่านเกณฑ์นี้' : 'ไม่พบไข่พยาธิจากการวิเคราะห์'}</strong><p>{record.detections.length > 0 ? 'ลองลดเกณฑ์ความเชื่อมั่นเพื่อดูผลเพิ่มเติม' : 'การไม่ตรวจพบไม่ยืนยันว่าไม่มีพยาธิ ควรให้ผู้เชี่ยวชาญตรวจสอบภาพร่วมด้วย'}</p>{record.detections.length > 0 && <button type="button" onClick={() => setThreshold(15)}>ปรับเกณฑ์เป็น 15%</button>}</div>}
               </div>
+              {selectedAtlasSpecies?.id === 'opisthorchis' && <div className="scan-model-note scan-ov-note"><Info size={15} /><p><strong>ลักษณะไข่คล้าย OV ต้องตรวจยืนยัน</strong><span>ไข่พยาธิใบไม้ตับอาจคล้ายไข่พยาธิใบไม้ลำไส้ขนาดเล็กและ Clonorchis ผลจากภาพเพียงอย่างเดียวยังไม่ยืนยันชนิด ควรให้ผู้เชี่ยวชาญทบทวน</span></p></div>}
               {selected && selectedAtlasSpecies && openAtlas && <button type="button" className="scan-atlas-link" onClick={() => openAtlas(selectedAtlasSpecies.id)}><span className="scan-atlas-link-icon"><Microscope size={18} /></span><span><strong>รู้จัก {selectedAtlasSpecies.name.split(' ')[0]} ให้มากขึ้น</strong><small>สำรวจลักษณะไข่ใน Morphology Atlas</small></span><ArrowRight size={16} /></button>}
               <div className="scan-results-footer"><div><span className="scan-mini-dot" />{demo ? 'ค่าจำลองเพื่อสาธิตการแสดงผล' : `ความเชื่อมั่นเฉลี่ย ${meanConfidence}% · ${(record.duration_ms / 1000).toFixed(1)} วินาที`}</div><button type="button" className="scan-export-button" onClick={exportReport}>{exported ? <Check size={16} /> : <ArrowDownToLine size={16} />}{exported ? 'ดาวน์โหลดแล้ว' : 'ส่งออกรายงาน JSON'}<ArrowRight size={15} /></button></div>
             </>

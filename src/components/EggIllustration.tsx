@@ -11,14 +11,17 @@ export interface EggIllustrationProps {
 export default function EggIllustration({ speciesId, className, showInternal = true }: EggIllustrationProps) {
   const item = getSpeciesById(speciesId);
   const uid = useId().replace(/:/g, '');
-  const isRound = speciesId === 'taenia' || speciesId === 'schistosoma-japonicum';
+  const isRound = speciesId === 'taenia';
+  const isOV = speciesId === 'opisthorchis';
   const rx = isRound ? 58 : speciesId === 'trichuris' ? 83 : 88;
   const ry = speciesId === 'trichuris' ? 35 : isRound ? 55 : 48;
   const eggPath = speciesId === 'enterobius'
     ? 'M 40 134 C 40 52 208 52 208 134 Q 124 142 40 134 Z'
     : speciesId === 'trichuris'
       ? 'M 45 94 Q 61 65 125 65 Q 189 65 205 94 L 205 106 Q 189 135 125 135 Q 61 135 45 106 Z'
-      : null;
+      : isOV
+        ? 'M 56 79 C 76 48 166 42 199 76 C 222 101 205 133 173 143 C 121 158 74 145 56 121 Z'
+        : null;
   return (
     <svg className={className} viewBox="0 0 250 200" role="img" aria-label={`ภาพวาดจำลองไข่ ${item.name}`}>
       <defs>
@@ -28,8 +31,8 @@ export default function EggIllustration({ speciesId, className, showInternal = t
           <stop offset="1" stopColor="#6e492d" stopOpacity=".8" />
         </radialGradient>
         <radialGradient id={`${uid}-core`}>
-          <stop offset="0" stopColor="#a8b58c" />
-          <stop offset="1" stopColor="#727c58" />
+          <stop offset="0" stopColor={isOV ? '#c4b777' : '#a8b58c'} />
+          <stop offset="1" stopColor={isOV ? '#94834b' : '#727c58'} />
         </radialGradient>
         <filter id={`${uid}-shadow`}><feGaussianBlur stdDeviation="5" /></filter>
       </defs>
@@ -42,9 +45,13 @@ export default function EggIllustration({ speciesId, className, showInternal = t
         ? <path d={eggPath} fill={`url(#${uid}-shell)`} stroke={item.color} strokeWidth="3" />
         : <ellipse cx="125" cy="100" rx={rx} ry={ry} fill={`url(#${uid}-shell)`} stroke={item.color} strokeWidth={speciesId === 'taenia' ? 9 : 2} />}
       {speciesId === 'trichuris' && <g fill="#e7d3a9" stroke="#a57447" strokeWidth="2"><ellipse cx="44" cy="100" rx="10" ry="13" /><ellipse cx="206" cy="100" rx="10" ry="13" /></g>}
-      {speciesId === 'schistosoma-mansoni' && <path d="M 90 58 L 68 26 L 108 53" fill="#d8b57c" stroke="#c19b64" strokeWidth="2" />}
-      {speciesId === 'schistosoma-haematobium' && <path d="M 209 88 L 239 100 L 209 111" fill="#d4b985" stroke="#c0a36c" strokeWidth="2" />}
-      {speciesId === 'schistosoma-japonicum' && <path d="M 87 58 Q 69 43 80 67" fill="#d1bf91" stroke="#c1ac7a" strokeWidth="2" />}
+      {isOV && <>
+        <g role="group" aria-label="ฝาปิดและบ่าของไข่ OV" fill="#dfbc72" stroke="#91662e" strokeWidth="2.5">
+          <path d="M 56 79 Q 35 100 56 121 Q 60 100 56 79 Z" />
+          <path d="M 56 79 L 65 74 M 56 121 L 65 126" fill="none" strokeWidth="3.5" strokeLinecap="round" />
+        </g>
+        <g role="group" aria-label="ปุ่มเล็กที่ขั้วตรงข้ามฝา (abopercular knob)"><ellipse cx="209" cy="100" rx="6" ry="4" fill="#dfbd72" stroke="#a47937" strokeWidth="1.5" /></g>
+      </>}
       {speciesId === 'taenia' && Array.from({ length: 36 }, (_, n) => {
         const a = n / 36 * Math.PI * 2;
         return <line key={n} x1={125 + Math.cos(a) * 48} y1={100 + Math.sin(a) * 45} x2={125 + Math.cos(a) * 61} y2={100 + Math.sin(a) * 58} stroke="#68452f" strokeWidth="2.5" />;
@@ -59,6 +66,10 @@ export default function EggIllustration({ speciesId, className, showInternal = t
           const a = n / 6 * Math.PI * 2;
           return <path key={n} d="M 0 7 Q 6 -3 0 -15" transform={`translate(${125 + Math.cos(a) * 10} ${100 + Math.sin(a) * 10}) rotate(${n * 60})`} fill="none" stroke="#e0d1a1" strokeWidth="2" />;
         })}
+        {isOV && <g role="group" aria-label="ตัวอ่อน miracidium ของไข่ OV" stroke="#e0d6a1" strokeWidth="1.5">{Array.from({ length: 20 }, (_, n) => {
+          const a = n / 20 * Math.PI * 2;
+          return <line key={n} x1={125 + Math.cos(a) * 45} y1={100 + Math.sin(a) * 26} x2={125 + Math.cos(a) * 50} y2={100 + Math.sin(a) * 31} />;
+        })}</g>}
       </g>}
       <ellipse cx="104" cy="77" rx={isRound ? 22 : 33} ry="11" fill="#fff5db" opacity=".13" transform="rotate(-16 104 77)" />
     </svg>

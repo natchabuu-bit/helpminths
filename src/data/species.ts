@@ -36,24 +36,11 @@ export const species: ParasiteSpecies[] = [
     clinicalNote: 'ไข่ของ Ancylostoma และ Necator แยกชนิดจากลักษณะไข่เพียงอย่างเดียวได้ไม่แน่นอน',
   },
   {
-    id: 'schistosoma-mansoni', name: 'Schistosoma mansoni', thaiName: 'พยาธิใบไม้เลือดแมนโซไน', group: 'trematode',
-    size: '114–180 × 45–70 µm', shape: 'รูปรียาว · หนามด้านข้าง', color: '#d8b57c',
-    description: 'ไข่รูปรียาว ไม่มีฝาปิด มีหนามด้านข้างที่เด่นชัด ภายในไข่ที่เจริญเต็มที่จะมีตัวอ่อน miracidium',
-    features: ['หนามใหญ่ด้านข้าง (lateral spine)', 'ไม่มีฝาปิด (non-operculate)', 'มีตัวอ่อน miracidium'],
-    clinicalNote: 'ตำแหน่งของหนามช่วยแยกจาก S. haematobium แต่ต้องพิจารณาภาพและบริบททางคลินิกร่วมด้วย',
-  },
-  {
-    id: 'schistosoma-haematobium', name: 'Schistosoma haematobium', thaiName: 'พยาธิใบไม้เลือดฮีมาโทเบียม', group: 'trematode',
-    size: '110–170 × 40–70 µm', shape: 'รูปรียาว · หนามปลายขั้ว', color: '#d4b985',
-    description: 'ไข่รูปรียาว มีหนามแหลมที่ปลายขั้ว ไม่มีฝาปิด และอาจเห็นตัวอ่อน miracidium อยู่ภายใน',
-    features: ['หนามที่ปลายขั้ว (terminal spine)', 'ไม่มีฝาปิด', 'ตัวอ่อนอยู่ในเปลือกใส'],
-    clinicalNote: 'มักตรวจหาไข่ในปัสสาวะ ควรอ้างอิงชนิดสิ่งส่งตรวจและประวัติการสัมผัสโรคร่วมด้วย',
-  },
-  {
-    id: 'schistosoma-japonicum', name: 'Schistosoma japonicum', thaiName: 'พยาธิใบไม้เลือดจาโปนิคุม', group: 'trematode',
-    size: '70–100 × 55–64 µm', shape: 'กลมรี · ปุ่มเล็กด้านข้าง', color: '#d1bf91',
-    description: 'ไข่ค่อนข้างกลมถึงรี มีปุ่มหรือหนามเล็กด้านข้างซึ่งอาจเห็นได้ยาก ต่างจากหนามขนาดใหญ่ของ S. mansoni',
-    features: ['ปุ่มด้านข้างขนาดเล็ก', 'รูปร่างค่อนข้างกลม', 'ไม่มีฝาปิด'],
+    id: 'opisthorchis', name: 'Opisthorchis viverrini', thaiName: 'พยาธิใบไม้ตับ (OV)', group: 'trematode',
+    size: '19–30 × 10–20 µm', shape: 'รูปรีขนาดเล็ก · มีฝาปิดและบ่า', color: '#c89b43',
+    description: 'ไข่ขนาดเล็กสีน้ำตาลเหลือง มีฝาปิด (operculum) ที่ขั้วหนึ่งและบ่ารองรับฝา ปลายตรงข้ามอาจเห็นปุ่มเล็ก (abopercular knob) ภายในมีตัวอ่อน miracidium เมื่อขับออกมากับอุจจาระ',
+    features: ['ฝาปิดและบ่า (operculum and shoulders)', 'ปุ่มเล็กที่ขั้วตรงข้ามฝา (abopercular knob)', 'ไข่สีน้ำตาลเหลือง มีตัวอ่อน miracidium'],
+    clinicalNote: 'ไข่ของ OV คล้ายไข่พยาธิใบไม้ลำไส้ขนาดเล็กและ Clonorchis จึงไม่ควรยืนยันชนิดจากภาพไข่เพียงอย่างเดียว ต้องพิจารณาบริบทและวิธีตรวจยืนยันร่วมด้วย',
   },
   {
     id: 'taenia', name: 'Taenia spp.', thaiName: 'พยาธิตืด', group: 'cestode',
@@ -82,16 +69,19 @@ export function getSpeciesById(id?: string): ParasiteSpecies {
 /** Unknown model labels must not silently open an unrelated Atlas specimen. */
 export function matchSpeciesLabel(label?: string): ParasiteSpecies | undefined {
   if (!label) return undefined;
-  const normalized = label.toLowerCase().replace(/[_-]+/g, ' ');
-  const direct = species.find((item) => item.id === label || normalized.includes(item.name.toLowerCase()));
+  const normalized = label.toLowerCase().replace(/[_-]+/g, ' ').trim();
+  // OV is a species, not the whole Opisthorchis genus. Preserve the source label
+  // elsewhere; recognize the historical Chula spelling only for Atlas lookup.
+  const ovLabel = normalized.replace(/\./g, '').replace(/\s+/g, ' ');
+  if (['ov', 'o viverrini', 'opisthorchis viverrini', 'opisthorchis viverrine'].includes(ovLabel)) {
+    return species.find((item) => item.id === 'opisthorchis');
+  }
+  const direct = species.find((item) => item.id !== 'opisthorchis' && (item.id === label || normalized.includes(item.name.toLowerCase())));
   if (direct) return direct;
   const aliases: [string[], string][] = [
     [['ascaris', 'a. lumbricoides'], 'ascaris'],
     [['trichuris', 't. trichiura'], 'trichuris'],
     [['hookworm', 'ancylostoma', 'necator'], 'hookworm'],
-    [['mansoni'], 'schistosoma-mansoni'],
-    [['haematobium'], 'schistosoma-haematobium'],
-    [['japonicum'], 'schistosoma-japonicum'],
     [['taenia'], 'taenia'],
     [['enterobius', 'e. vermicularis'], 'enterobius'],
   ];

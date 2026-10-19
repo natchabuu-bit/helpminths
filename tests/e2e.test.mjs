@@ -80,15 +80,18 @@ test('upload stays available without a model, and unsupported files are rejected
   } finally { await page.close() }
 })
 
-test('mocked inference contract renders server boxes without inventing an Atlas match', async () => {
+test('mocked inference preserves model labels and links only supported species to the correct Atlas entry', async () => {
   const page = await browser.newPage()
   let receivedMultipart = false
+  const unrelatedLabels = ['Uncatalogued helminth egg', 'Schistosoma mansoni', 'Schistosoma haematobium', 'Schistosoma japonicum', 'Opisthorchis felineus', 'Clonorchis sinensis', 'Opisthorchis spp.']
+  const ovLabels = ['Opisthorchis viverrine', 'OV', 'O. viverrini', 'Opisthorchis viverrini']
+  const labels = [...unrelatedLabels, ...ovLabels]
   await page.route('**/api/health', route => route.fulfill({ json: { status: 'ok', model_ready: true, model_name: 'contract-test-only.pt', message: 'Test fixture' } }))
   await page.route('**/api/analyze', async route => {
     const request = route.request()
     const body = request.postDataBuffer()?.toString('latin1') || ''
     receivedMultipart = request.method() === 'POST' && request.headers()['content-type'].includes('multipart/form-data') && body.includes('name="image"') && body.includes('name="confidence"') && body.includes('0.15')
-    await route.fulfill({ json: { id: 'contract-test', filename: 'fixture.png', width: 100, height: 80, model: 'contract-test-only.pt', duration_ms: 12, detections: [{ id: 'box-1', class_id: 9, label: 'Uncatalogued helminth egg', confidence: 0.91, bbox: [8, 7, 45, 50] }] } })
+    await route.fulfill({ json: { id: 'contract-test', filename: 'fixture.png', width: 100, height: 80, model: 'contract-test-only.pt', duration_ms: 12, detections: labels.map((label, index) => ({ id: `box-${index}`, class_id: index, label, confidence: 0.91, bbox: [8, 7, 45, 50] })) } })
   })
   try {
     await page.goto(baseURL, { waitUntil: 'networkidle' })
@@ -104,13 +107,28 @@ test('mocked inference contract renders server boxes without inventing an Atlas 
     const analyze = page.getByRole('button', { name: 'เริ่มวิเคราะห์ภาพ' })
     await analyze.waitFor()
     await analyze.click()
-    await page.locator('.scan-detection-box').waitFor()
+    await page.locator('.scan-detection-box').first().waitFor()
     assert.equal(receivedMultipart, true)
     assert.equal(await page.locator('.scan-detection-box > rect').first().getAttribute('x'), '8')
     assert.equal(await page.locator('.scan-detection-box > rect').first().getAttribute('width'), '37')
-    assert.match(await page.locator('.scan-detection-item').innerText(), /Uncatalogued helminth egg/)
-    assert.equal(await page.locator('.scan-atlas-link').count(), 0)
+    assert.equal(await page.locator('.scan-detection-item').count(), labels.length)
+    for (let index = 0; index < labels.length; index++) {
+      const item = page.locator('.scan-detection-item').nth(index)
+      assert.ok((await item.innerText()).includes(labels[index]), 'Inference labels must retain the exact model-provided spelling')
+      await item.click()
+      assert.equal(await page.locator('.scan-atlas-link').count(), index < unrelatedLabels.length ? 0 : 1, `${labels[index]} must only link to an Atlas entry when the species is supported`)
+      assert.equal(await page.locator('.scan-ov-note').count(), index < unrelatedLabels.length ? 0 : 1, 'Only an OV match must display the OV-specific microscopy limitation')
+    }
+    assert.match(await page.locator('.scan-ov-note').innerText(), /Clonorchis/)
+    assert.match(await page.locator('.scan-ov-note').innerText(), /ยังไม่ยืนยันชนิด/)
     assert.equal(await page.locator('.scan-demo-banner').count(), 0)
+    const downloadPromise = page.waitForEvent('download')
+    await page.getByRole('button', { name: 'ส่งออกรายงาน JSON' }).click()
+    const report = JSON.parse(await readFile(await (await downloadPromise).path(), 'utf8'))
+    assert.deepEqual(report.detections.map(item => item.label), labels, 'Atlas aliases must not rewrite exported model labels')
+    await page.locator('.scan-atlas-link').click()
+    await page.locator('.atlas-specimen-caption h2').waitFor()
+    assert.equal(await page.locator('.atlas-specimen-caption h2').innerText(), 'Opisthorchis viverrini', 'An OV alias must open the OV specimen using the correct scientific spelling')
   } finally { await page.close() }
 })
 
@@ -121,7 +139,7 @@ test('Atlas renders WebGL, updates structures, toggles labels without React erro
   try {
     await page.getByRole('button', { name: 'Atlas 3D', exact: true }).click()
     await page.locator('.atlas-model-stage canvas').waitFor()
-    assert.equal(await page.locator('.atlas-species-item').count(), 8)
+    assert.deepEqual(await page.locator('.atlas-species-item strong').allTextContents(), ['Ascaris lumbricoides', 'Trichuris trichiura', 'Hookworm', 'Opisthorchis viverrini', 'Taenia spp.', 'Enterobius vermicularis'])
     await page.getByRole('button', { name: 'หยุดหมุนอัตโนมัติ' }).click()
     await page.getByRole('button', { name: 'ภาพตัดภายใน', exact: true }).click()
     await page.getByRole('button', { name: 'จุดสังเกต', exact: true }).click()
@@ -131,9 +149,29 @@ test('Atlas renders WebGL, updates structures, toggles labels without React erro
     await page.locator('.atlas-species-item').click()
     assert.match(await page.locator('.atlas-specimen-caption').innerText(), /Trichuris trichiura/)
     assert.equal(await page.locator('.atlas-model-stage canvas').count(), 1)
+    await page.getByLabel('ค้นหาชื่อพยาธิ').fill('OV')
+    assert.equal(await page.locator('.atlas-species-item').count(), 1, 'The familiar Thai OV abbreviation must find the liver fluke')
+    await page.locator('.atlas-species-item').click()
+    assert.equal(await page.locator('.atlas-specimen-caption h2').innerText(), 'Opisthorchis viverrini')
+    assert.match(await page.locator('.atlas-feature-section').innerText(), /operculum and shoulders/)
+    assert.match(await page.locator('.atlas-feature-section').innerText(), /abopercular knob/)
+    assert.match(await page.locator('.atlas-clinical-note').innerText(), /Clonorchis/)
+    assert.match(await page.locator('.atlas-clinical-note').innerText(), /ไม่ควรยืนยันชนิดจากภาพไข่เพียงอย่างเดียว/)
+    assert.match(await page.locator('.atlas-annotations').innerText(), /Miracidium/i)
+    const canvas = page.locator('.atlas-model-stage canvas')
+    const bounds = await canvas.boundingBox()
+    await page.mouse.move(bounds.x + bounds.width * .45, bounds.y + bounds.height * .5)
+    await page.mouse.down()
+    await page.mouse.move(bounds.x + bounds.width * .65, bounds.y + bounds.height * .6, { steps: 8 })
+    await page.mouse.up()
+    await page.getByRole('button', { name: 'เริ่มมุมมองใหม่' }).click()
+    await page.getByRole('button', { name: 'หมุนอัตโนมัติ', exact: true }).click()
+    await page.getByRole('button', { name: 'จุดสังเกต', exact: true }).click()
+    assert.equal(await page.locator('.atlas-annotations').count(), 0)
+    await page.getByRole('button', { name: 'จุดสังเกต', exact: true }).click()
     await page.getByLabel('ค้นหาชื่อพยาธิ').fill('')
     await page.locator('.atlas-model-stage canvas').evaluate(canvas => { canvas.dataset.testPersistence = 'original' })
-    for (let index = 0; index < 8; index++) {
+    for (let index = 0; index < 6; index++) {
       await page.locator('.atlas-species-item').nth(index).click()
       assert.equal(await page.locator('.atlas-model-stage canvas').getAttribute('data-test-persistence'), 'original')
       // Canvas keeps fallback markup in its DOM even when WebGL is active.
@@ -144,6 +182,9 @@ test('Atlas renders WebGL, updates structures, toggles labels without React erro
     await page.keyboard.press('Escape')
     assert.equal(await page.getByRole('dialog').count(), 0)
     await page.getByRole('button', { name: 'ภาพรวม', exact: true }).click()
+    await page.locator('.specimen-card').filter({ hasText: 'Opisthorchis viverrini' }).click()
+    await page.locator('.atlas-model-stage canvas').waitFor()
+    assert.equal(await page.locator('.atlas-specimen-caption h2').innerText(), 'Opisthorchis viverrini', 'The featured OV home card must remount the Atlas at OV rather than the fallback specimen')
     await page.waitForTimeout(150)
     assert.deepEqual(errors, [])
   } finally { await page.close() }
@@ -168,6 +209,16 @@ test('mobile navigation offers rear camera capture; Atlas falls back without Web
     await page.getByRole('button', { name: 'Atlas 3D', exact: true }).click()
     await page.locator('.atlas-svg-fallback').waitFor()
     assert.match(await page.locator('.atlas-svg-fallback').innerText(), /ไม่รองรับ WebGL/)
+    await page.getByLabel('ค้นหาชื่อพยาธิ').fill('OV')
+    assert.equal(await page.locator('.atlas-species-item').count(), 1)
+    await page.locator('.atlas-species-item').click()
+    const fallback = page.locator('.atlas-svg-fallback')
+    await fallback.getByRole('img', { name: 'ภาพวาดจำลองไข่ Opisthorchis viverrini', exact: true }).waitFor()
+    assert.equal(await fallback.getByRole('group', { name: 'ฝาปิดและบ่าของไข่ OV', exact: true }).count(), 1)
+    assert.equal(await fallback.getByRole('group', { name: 'ปุ่มเล็กที่ขั้วตรงข้ามฝา (abopercular knob)', exact: true }).count(), 1)
+    assert.equal(await fallback.getByRole('group', { name: 'ตัวอ่อน miracidium ของไข่ OV', exact: true }).count(), 0)
+    await page.getByRole('button', { name: 'ภาพตัดภายใน', exact: true }).click()
+    assert.equal(await fallback.getByRole('group', { name: 'ตัวอ่อน miracidium ของไข่ OV', exact: true }).count(), 1)
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
   } finally { await page.close() }
 })
