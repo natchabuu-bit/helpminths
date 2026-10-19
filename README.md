@@ -80,6 +80,8 @@ Dockerfile ไม่รวมไฟล์โมเดล รหัสลับ �
 
 ## สถานะโมเดลและ dataset
 
+รายการแหล่งข้อมูลสำหรับฝึกโมเดล ความครอบคลุมทั้ง 8 กลุ่ม สิทธิ์ใช้ และแผนทดสอบกับภาพจริงอยู่ใน [รายงานคัดเลือก dataset](docs/datasets/README.th.md) และ [ทะเบียนแหล่งข้อมูล CSV](docs/datasets/dataset_catalog.csv) ตรวจสอบเมื่อ 19 ตุลาคม 2026
+
 แหล่งอ้างอิงที่ผู้ใช้ให้: [Kaggle notebook](https://www.kaggle.com/code/mohaliy2016/ai4ntd-kk2-0-p1-5-sth-schm-v2-notebook)
 
 **ยังไม่มี trained weights ใน repository นี้** ไฟล์ notebook ที่แนบมีขนาดเกินขีดจำกัด 32 MiB ของเครื่องมือ และการอ่าน Kaggle จากเครื่องคลาวด์ถูก network proxy ปฏิเสธในรอบสร้าง จึงยังยืนยันสถาปัตยกรรม รายชื่อคลาส dataset หรือประสิทธิภาพของโมเดลต้นฉบับไม่ได้ Atlas เป็นคลังอ้างอิงแยกจากคลาสของโมเดล
