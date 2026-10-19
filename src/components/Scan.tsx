@@ -100,25 +100,47 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
   const imageFile = useRef<File | null>(null);
   const demoStarted = useRef(false);
   const requestController = useRef<AbortController | null>(null);
+  const healthController = useRef<AbortController | null>(null);
 
   const checkHealth = useCallback(async () => {
-    setHealth('checking');
+    healthController.current?.abort();
+    const controller = new AbortController();
+    healthController.current = controller;
+    setHealth(navigator.onLine ? 'checking' : 'offline');
+    setHealthMessage('เชื่อมบริการวิเคราะห์ไม่ได้ ยังเลือกภาพบนเครื่อง ดูตัวอย่าง และเปิด Atlas ได้');
+    const timeout = window.setTimeout(() => controller.abort(), 10000);
     try {
-      const response = await fetch('/api/health', { signal: AbortSignal.timeout(10000) });
+      // Probe the actual service, including a local server with no internet uplink.
+      const response = await fetch('/api/health', { cache: 'no-store', signal: controller.signal });
       if (!response.ok) throw new Error('health');
       const data = await response.json();
+      if (controller.signal.aborted) return;
       const ready = data.model_ready === true || data.model_loaded === true || data.ready === true;
       setHealth(ready ? 'ready' : 'unavailable');
       setHealthMessage(ready ? String(data.model_name || data.model || 'โมเดลตรวจจับพร้อมใช้งาน') : 'ต้องติดตั้งไฟล์โมเดลที่ฝึกแล้ว จึงจะวิเคราะห์ภาพจริงได้');
     } catch {
+      if (healthController.current !== controller) return;
       setHealth('offline');
-      setHealthMessage('ยังเชื่อมต่อบริการวิเคราะห์ไม่ได้ สามารถเลือกภาพไว้หรือสำรวจตัวอย่างสาธิตได้');
+      setHealthMessage('เชื่อมบริการวิเคราะห์ไม่ได้ ยังเลือกภาพบนเครื่อง ดูตัวอย่าง และเปิด Atlas ได้ ภาพจะไม่ถูกส่งตรวจอัตโนมัติ');
+    } finally {
+      window.clearTimeout(timeout);
     }
   }, []);
 
   useEffect(() => {
     void checkHealth();
-    return () => requestController.current?.abort();
+    const networkChanged = () => { void checkHealth(); };
+    window.addEventListener('online', networkChanged);
+    window.addEventListener('offline', networkChanged);
+    const timer = window.setInterval(networkChanged, 30000);
+    return () => {
+      healthController.current?.abort();
+      healthController.current = null;
+      requestController.current?.abort();
+      window.clearInterval(timer);
+      window.removeEventListener('online', networkChanged);
+      window.removeEventListener('offline', networkChanged);
+    };
   }, [checkHealth]);
 
   useEffect(() => {
@@ -232,7 +254,13 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
       setSelectedId(result.detections[0]?.id ?? null);
       onResult?.(result);
     } catch (cause) {
-      setError(cause instanceof Error && cause.name === 'AbortError' ? 'การวิเคราะห์ใช้เวลานานเกินไป ภาพยังอยู่ สามารถลองใหม่ได้' : cause instanceof Error ? cause.message : 'วิเคราะห์ภาพไม่สำเร็จ กรุณาลองอีกครั้ง');
+      if (cause instanceof TypeError) {
+        setHealth('offline');
+        setHealthMessage('เชื่อมบริการวิเคราะห์ไม่ได้ กรุณาเชื่อมต่อแล้วตรวจสอบบริการอีกครั้ง');
+        setError('เชื่อมบริการวิเคราะห์ไม่ได้ ภาพยังอยู่ในหน้านี้ และจะไม่ส่งตรวจอัตโนมัติ กรุณาเชื่อมต่อแล้วกดวิเคราะห์อีกครั้ง');
+      } else {
+        setError(cause instanceof Error && cause.name === 'AbortError' ? 'การวิเคราะห์ใช้เวลานานเกินไป ภาพยังอยู่ สามารถลองใหม่ได้' : cause instanceof Error ? cause.message : 'วิเคราะห์ภาพไม่สำเร็จ กรุณาลองอีกครั้ง');
+      }
     } finally {
       clearTimeout(timeout);
       requestController.current = null;

@@ -3,6 +3,7 @@ import { ArrowDownToLine, ArrowRight, ArrowUpRight, BookOpen, Box, Camera, Check
 import Scan from './components/Scan'
 import type { AnalysisRecord } from './components/Scan'
 import EggIllustration from './components/EggIllustration'
+import OfflinePanel from './components/OfflinePanel'
 import { groupLabels, matchSpeciesLabel, species } from './data/species'
 
 const Atlas = lazy(() => import('./components/Atlas'))
@@ -24,6 +25,7 @@ export default function App() {
   const [scanKey, setScanKey] = useState(0)
   const [modelReady, setModelReady] = useState(false)
   const [backendReady, setBackendReady] = useState(false)
+  const [backendChecked, setBackendChecked] = useState(false)
   const mainRef = useRef<HTMLElement>(null)
   const helpRef = useRef<HTMLElement>(null)
 
@@ -52,17 +54,26 @@ export default function App() {
 
   useEffect(() => {
     let active = true
+    let requestId = 0
     const health = async () => {
+      const currentRequest = ++requestId
       try {
-        const response = await fetch('/api/health')
+        const response = await fetch('/api/health', { cache: 'no-store', signal: AbortSignal.timeout(10_000) })
         if (!response.ok) throw new Error('health')
         const body = await response.json()
-        if (active) { setBackendReady(true); setModelReady(body.model_ready === true) }
-      } catch { if (active) { setBackendReady(false); setModelReady(false) } }
+        if (active && currentRequest === requestId) { setBackendReady(true); setModelReady(body.model_ready === true) }
+      } catch { if (active && currentRequest === requestId) { setBackendReady(false); setModelReady(false) } }
+      finally { if (active && currentRequest === requestId) setBackendChecked(true) }
     }
     void health()
+    const networkChanged = () => {
+      setBackendReady(false); setModelReady(false)
+      void health()
+    }
+    window.addEventListener('online', networkChanged)
+    window.addEventListener('offline', networkChanged)
     const timer = window.setInterval(health, 30_000)
-    return () => { active = false; clearInterval(timer) }
+    return () => { active = false; clearInterval(timer); window.removeEventListener('online', networkChanged); window.removeEventListener('offline', networkChanged) }
   }, [])
 
   const navigate = (next: Page) => {
@@ -94,15 +105,16 @@ export default function App() {
     <div className="main-layout">
       <header className="topbar"><div className="breadcrumb"><button className="mobile-menu icon-button" onClick={() => setMenuOpen(true)} aria-label="เปิดเมนู"><Menu size={21}/></button><span>พื้นที่ทำงาน</span><ChevronRight size={14}/><strong>{pageNames[page]}</strong></div><div className="topbar-right"><span className="education-badge"><ShieldCheck size={14}/> เพื่อการศึกษาและวิจัย</span><button className="topbar-help icon-button" onClick={() => setHelpOpen(true)} aria-label="คู่มือการใช้งาน"><CircleHelp size={19}/></button><div className="topbar-avatar">HM</div></div></header>
       <main ref={mainRef} className={`main-content page-${page}`}>
+        <OfflinePanel />
         {page === 'home' && <>
-          <div className="page-heading"><div><div className="section-kicker"><span/> YOUR MICROSCOPIC COMPANION</div><h1>มองเห็น เข้าใจ <span>เรียนรู้</span></h1><p>ผู้ช่วยสำรวจโลกของไข่พยาธิ ตั้งแต่ภาพใต้กล้องสู่ความเข้าใจที่ลึกขึ้น</p></div><div className={`connection-status ${modelReady ? 'ready' : ''}`} title={backendReady ? 'API พร้อมใช้งาน รอไฟล์โมเดลที่ฝึกแล้ว' : 'กำลังตรวจสอบบริการ API'}><span/>{modelReady ? 'โมเดล AI พร้อมใช้งาน' : backendReady ? 'API พร้อม · รอเชื่อมโมเดล' : 'กำลังเชื่อมต่อบริการ'}</div></div>
+          <div className="page-heading"><div><div className="section-kicker"><span/> YOUR MICROSCOPIC COMPANION</div><h1>มองเห็น เข้าใจ <span>เรียนรู้</span></h1><p>ผู้ช่วยสำรวจโลกของไข่พยาธิ ตั้งแต่ภาพใต้กล้องสู่ความเข้าใจที่ลึกขึ้น</p></div><div className={`connection-status ${modelReady ? 'ready' : ''}`} title={backendReady ? modelReady ? 'โมเดลพร้อมใช้งานผ่านบริการวิเคราะห์' : 'API พร้อมใช้งาน รอไฟล์โมเดลที่ฝึกแล้ว' : 'การตรวจ AI ต้องเชื่อมบริการวิเคราะห์'}><span/>{modelReady ? 'โมเดล AI พร้อมใช้งาน' : backendReady ? 'API พร้อม · รอเชื่อมโมเดล' : backendChecked ? 'ยังเชื่อมบริการตรวจภาพไม่ได้' : 'กำลังเชื่อมต่อบริการ'}</div></div>
 
           <section className="hero-card">
             <div className="hero-copy"><span className="hero-badge"><Sparkles size={14}/> A NEW PERSPECTIVE ON PARASITOLOGY</span><h2>เรื่องเล็กที่มองเห็น<br/>สร้างความเข้าใจ<span>ที่ยิ่งใหญ่</span></h2><p>อัปโหลดภาพจากกล้องจุลทรรศน์ เพื่อระบุตำแหน่ง<br className="desktop-break"/>และชนิดไข่พยาธิด้วยโมเดล AI ที่เชื่อมต่อไว้</p><div className="hero-actions"><button className="button-primary" onClick={() => openScan()}><ScanLine size={18}/> เริ่มตรวจวิเคราะห์ <ArrowRight size={17}/></button><button className="button-quiet" onClick={() => openScan(true)}>ดูตัวอย่าง <ArrowUpRight size={16}/></button></div><div className="hero-notes"><span><Check size={13}/> อัปโหลดหรือถ่ายภาพ</span><span><Check size={13}/> แสดงกรอบและชนิดไข่</span></div></div>
             <div className="hero-visual" aria-label="ภาพจำลองโครงสร้างไข่พยาธิเพื่อการศึกษา"><div className="orbital orbital-one"/><div className="orbital orbital-two"/><div className="orbital orbital-three"/><span className="visual-cross cross-one">+</span><span className="visual-cross cross-two">+</span><span className="visual-coordinate">MORPHOLOGY / 01</span><div className="hero-egg egg-main"><EggIllustration speciesId="ascaris"/></div><div className="hero-egg egg-secondary"><EggIllustration speciesId="trichuris"/></div><div className="hero-egg egg-tertiary"><EggIllustration speciesId="hookworm"/></div><div className="specimen-label"><span className="specimen-dot"/><div><strong>Ascaris lumbricoides</strong><span>ไข่พยาธิไส้เดือน · ภาพจำลอง</span></div><Focus size={19}/></div><div className="visual-scale"><span/>EXPLORE EVERY DETAIL</div></div>
           </section>
 
-          <div className="capability-strip"><div><div className="capability-icon"><Focus size={21}/></div><span><strong>ตรวจจับเป็นรายฟอง</strong><small>ระบุตำแหน่งด้วย Bounding box</small></span></div><div><div className="capability-icon"><Box size={21}/></div><span><strong>เรียนรู้ในมุมมอง 3D</strong><small>หมุน ซูม และสำรวจโครงสร้าง</small></span></div><div><div className="capability-icon"><ShieldCheck size={21}/></div><span><strong>ภาพอยู่ในเซสชันของคุณ</strong><small>บริการไม่บันทึกภาพลงเซิร์ฟเวอร์</small></span></div></div>
+          <div className="capability-strip"><div><div className="capability-icon"><Focus size={21}/></div><span><strong>ตรวจจับเป็นรายฟอง</strong><small>ระบุตำแหน่งด้วย Bounding box</small></span></div><div><div className="capability-icon"><Box size={21}/></div><span><strong>เรียนรู้ในมุมมอง 3D</strong><small>หมุน ซูม และสำรวจโครงสร้าง</small></span></div><div><div className="capability-icon"><ShieldCheck size={21}/></div><span><strong>ภาพอยู่ในเซสชันของคุณ</strong><small>บริการไม่จัดเก็บภาพถาวร</small></span></div></div>
 
           <section className="workflow-section"><div className="section-heading"><div><h2>จากภาพ สู่การค้นพบ</h2><p>เริ่มต้นได้ง่าย ๆ ใน 3 ขั้นตอน</p></div><span className="small-caption">DESIGNED FOR A CLEARER VIEW</span></div><div className="workflow-grid">{[{ n: '01', icon: Upload, title: 'เพิ่มภาพที่ต้องการตรวจ', detail: 'เลือกภาพจากคลัง หรือถ่ายภาพผ่านกล้องมือถือ', link: 'อัปโหลดภาพ', action: () => openScan() }, { n: '02', icon: ScanLine, title: 'สำรวจผลวิเคราะห์', detail: 'ดูกรอบตำแหน่ง ชนิด และค่าความมั่นใจของโมเดล', link: 'ลองดูตัวอย่าง', action: () => openScan(true) }, { n: '03', icon: BookOpen, title: 'ต่อยอดความเข้าใจ', detail: 'เปรียบเทียบลักษณะสำคัญกับไข่พยาธิใน Atlas 3D', link: 'เปิด Atlas 3D', action: () => openAtlas() }].map(step => <article className="workflow-card" key={step.n}><div className="workflow-top"><step.icon size={22}/><span>{step.n}</span></div><h3>{step.title}</h3><p>{step.detail}</p><button onClick={step.action}>{step.link}<ArrowUpRight size={15}/></button></article>)}</div></section>
 
