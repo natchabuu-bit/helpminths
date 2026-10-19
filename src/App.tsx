@@ -8,7 +8,7 @@ import { getSpeciesById, groupLabels, matchSpeciesLabel, species } from './data/
 
 const Atlas = lazy(() => import('./components/Atlas'))
 type Page = 'home' | 'scan' | 'atlas' | 'history'
-const featuredSpecies = ['opisthorchis', 'ascaris', 'hookworm'].map(getSpeciesById)
+const featuredSpecies = ['opisthorchis', 'mif', 'hymenolepis-nana'].map(getSpeciesById)
 const pageNames: Record<Page, string> = { home: 'ภาพรวม', scan: 'ตรวจวิเคราะห์', atlas: 'Atlas 3D', history: 'ประวัติการตรวจ' }
 
 function Brand({ small = false }: { small?: boolean }) {

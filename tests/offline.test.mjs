@@ -119,7 +119,7 @@ test('a first home visit prepares unvisited Atlas, fonts, local images and expli
     await page.locator('.offline-panel strong').filter({ hasText: /^กำลังใช้งานออฟไลน์$/ }).waitFor()
     await nav(page, 'Atlas 3D').click()
     await page.locator('.atlas-model-stage canvas').waitFor()
-    assert.equal(await page.locator('.atlas-species-item').count(), 6)
+    assert.equal(await page.locator('.atlas-species-item').count(), 11)
     await page.getByRole('button', { name: 'ภาพตัดภายใน', exact: true }).click()
     await page.getByLabel('ค้นหาชื่อพยาธิ').fill('OV')
     assert.equal(await page.locator('.atlas-species-item').count(), 1)
@@ -128,6 +128,23 @@ test('a first home visit prepares unvisited Atlas, fonts, local images and expli
     assert.match(await page.locator('.atlas-feature-section').innerText(), /operculum and shoulders/)
     assert.match(await page.locator('.atlas-feature-section').innerText(), /abopercular knob/)
     assert.match(await page.locator('.atlas-clinical-note').innerText(), /Clonorchis/)
+    const addedOfflineReferences = [
+      { query: 'MIF', name: 'Minute intestinal flukes (MIF)', feature: /miracidium/, note: /OV.*Clonorchis/ },
+      { query: 'ตืดแคระ', name: 'Hymenolepis nana', feature: /polar filaments/, note: /ภาพเดียว/ },
+      { query: 'ตืดหนู', name: 'Hymenolepis diminuta', feature: /no polar filaments/, note: /สเกล/ },
+      { query: 'ขนาดกลาง', name: 'Echinostoma spp.', feature: /ยังไม่เป็นตัวอ่อน/, note: /Fasciola/ },
+      { query: 'ขนาดใหญ่', name: 'Fasciolopsis buski', feature: /ยังไม่เป็นตัวอ่อน/, note: /Fasciola/ },
+    ]
+    for (const expected of addedOfflineReferences) {
+      await page.getByLabel('ค้นหาชื่อพยาธิ').fill(expected.query)
+      assert.equal(await page.locator('.atlas-species-item').count(), 1)
+      await page.locator('.atlas-species-item').click()
+      assert.equal(await page.locator('.atlas-specimen-caption h2').innerText(), expected.name, 'Each new reference must load without ever having been opened online')
+      assert.match(await page.locator('.atlas-feature-section').innerText(), expected.feature)
+      assert.match(await page.locator('.atlas-clinical-note').innerText(), expected.note)
+      assert.equal(await page.locator('.atlas-model-stage canvas').count(), 1)
+      assert.equal(await page.locator('.atlas-svg-fallback').isVisible(), false, 'The new 3D specimen must render offline')
+    }
     const fonts = await page.evaluate(async () => {
       await document.fonts.load('500 16px "Noto Sans Thai Variable"', 'ไข่พยาธิ')
       await document.fonts.load('500 16px "Inter Variable"', 'HelpMinths')

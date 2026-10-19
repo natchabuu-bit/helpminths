@@ -1,9 +1,9 @@
 import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef, type ErrorInfo, type ReactNode } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, SphereGeometry, Vector3 } from 'three';
+import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, PerspectiveCamera, SphereGeometry, Vector3 } from 'three';
 import { ArrowUpRight, BookOpen, Box, Check, ChevronRight, Eye, Info, Layers3, Maximize2, Pause, Play, RotateCcw, Search, SlidersHorizontal, Sparkles, X } from 'lucide-react';
-import { getSpeciesById, groupLabels, species, type ParasiteSpecies, type SpeciesGroup } from '../data/species';
+import { getSpeciesById, groupLabels, matchSpeciesLabel, species, type ParasiteSpecies, type SpeciesGroup } from '../data/species';
 import EggIllustration from './EggIllustration';
 import '../styles/atlas.css';
 
@@ -32,6 +32,11 @@ function dimensions(id: string): [number, number, number] {
   if (id === 'trichuris') return [1.5, .62, .62];
   if (id === 'enterobius') return [1.55, .74, .64];
   if (id === 'opisthorchis') return [1.35, .68, .62];
+  if (id === 'mif') return [1.27, .69, .62];
+  if (id === 'hymenolepis-nana') return [.98, .94, .9];
+  if (id === 'hymenolepis-diminuta') return [1.1, .95, .87];
+  if (id === 'echinostoma') return [1.4, .8, .75];
+  if (id === 'fasciolopsis') return [1.65, .76, .7];
   return [1.4, .86, .79];
 }
 
@@ -49,7 +54,7 @@ function eggGeometry(id: string, cutaway: boolean) {
       const endShape = .88 + .12 * (1 - x * x);
       positions.setXYZ(i, x * scale[0], nextY * scale[1] * endShape, z * scale[2] * endShape);
     } else {
-      const asymmetry = id === 'opisthorchis' ? 1 + x * .12 : 1;
+      const asymmetry = id === 'opisthorchis' ? 1 + x * .12 : id === 'mif' ? 1 + x * .08 : 1;
       positions.setXYZ(i, x * scale[0], nextY * scale[1] * asymmetry, z * scale[2] * asymmetry);
     }
   }
@@ -95,26 +100,82 @@ function Larva() {
   return <CurveTube points={points} color="#9ba875" radius={.075} />;
 }
 
+/** The simple cap represents an operculum; a raised shoulder is specific to the OV model. */
+function Operculum({ scale, color, shoulder = false }: { scale: [number, number, number]; color: string; shoulder?: boolean }) {
+  const position: [number, number, number] = [-scale[0] * .88, 0, 0];
+  return <group position={position}>
+    <mesh scale={[scale[0] * .15, scale[1] * .49, scale[2] * .49]}><sphereGeometry args={[1, 32, 24]} /><meshPhysicalMaterial color={color} roughness={.4} transparent opacity={.87} /></mesh>
+    <mesh rotation={[0, Math.PI / 2, 0]} scale={[scale[2] / scale[1], 1, 1]}><torusGeometry args={[scale[1] * .49, shoulder ? .035 : .017, 12, 48]} /><meshStandardMaterial color={shoulder ? '#91662e' : '#a58b56'} roughness={.6} /></mesh>
+  </group>;
+}
+
+function Miracidium({ small = false }: { small?: boolean }) {
+  return <group scale={small ? [.92, 1, 1] : [1, 1, 1]}>
+    <mesh scale={[.81, .34, .29]}><sphereGeometry args={[1, 44, 30]} /><meshStandardMaterial color="#a39754" roughness={.64} /></mesh>
+    {Array.from({ length: 24 }, (_, i) => {
+      const a = i / 24 * Math.PI * 2;
+      return <mesh key={i} position={[Math.cos(a) * .76, Math.sin(a) * .33, .025]} rotation={[0, 0, a - Math.PI / 2]}><coneGeometry args={[.018, .1, 6]} /><meshStandardMaterial color="#d8ce8f" /></mesh>;
+    })}
+    {small && <mesh position={[.1, 0, .26]} scale={[.23, .15, .08]}><sphereGeometry args={[1, 24, 18]} /><meshStandardMaterial color="#c2b879" roughness={.75} /></mesh>}
+  </group>;
+}
+
+/** Freshly passed large intestinal fluke eggs contain yolk cells, not a developed miracidium. */
+function YolkCells({ scale }: { scale: [number, number, number] }) {
+  const cells = useMemo(() => Array.from({ length: 68 }, (_, i) => {
+    const angle = i * Math.PI * (3 - Math.sqrt(5));
+    const distance = Math.sqrt((i + .5) / 68);
+    return [Math.cos(angle) * distance * scale[0] * .68, Math.sin(angle) * distance * scale[1] * .7, .2 + Math.sin(i * 1.71) * .12] as [number, number, number];
+  }), [scale]);
+  return <group>
+    <mesh scale={[scale[0] * .73, scale[1] * .76, scale[2] * .48]}><sphereGeometry args={[1, 44, 30]} /><meshStandardMaterial color="#ad9864" roughness={.8} /></mesh>
+    {cells.map((position, i) => <mesh key={i} position={position} scale={[1.12, .9, .8]}><sphereGeometry args={[.075 + i % 3 * .009, 12, 10]} /><meshStandardMaterial color={['#d7c18b', '#bba36c', '#9d8b58'][i % 3]} roughness={.9} /></mesh>)}
+  </group>;
+}
+
+function Oncosphere({ taenia = false }: { taenia?: boolean }) {
+  const hooks = useMemo(() => Array.from({ length: 6 }, (_, n) => Array.from({ length: 16 }, (_, j) => {
+    const t = j / 15;
+    const a = n / 6 * Math.PI * 2;
+    const x = .1 + t * .18;
+    const y = Math.sin(t * Math.PI) * .12;
+    return new Vector3(Math.cos(a) * x - Math.sin(a) * y, Math.sin(a) * x + Math.cos(a) * y, .49);
+  })), []);
+  return <group scale={taenia ? 1 : .86}>
+    <mesh scale={[.5, .5, .46]}><sphereGeometry args={[1, 44, 30]} /><meshStandardMaterial color="#8d996b" roughness={.64} /></mesh>
+    {hooks.map((points, i) => <CurveTube key={i} points={points} color="#f2e4b6" radius={.024} />)}
+  </group>;
+}
+
+function PolarFilaments() {
+  const filaments = useMemo(() => [-1, 1].flatMap((direction) => Array.from({ length: 4 }, (_, n) => Array.from({ length: 56 }, (_, j) => {
+    const t = j / 55;
+    const angle = t * Math.PI * (1.7 + n * .14) + n * .72;
+    return new Vector3(direction * (.59 + Math.sin(t * Math.PI) * .19 + Math.sin(angle) * .065), Math.sin(angle) * (.16 + t * .17), .15 + n * .025);
+  }))), []);
+  return <group>
+    {[-1, 1].map((direction) => <mesh key={direction} position={[direction * .59, 0, .1]} scale={[.055, .14, .1]}><sphereGeometry args={[1, 24, 18]} /><meshStandardMaterial color="#e8dcb6" roughness={.6} /></mesh>)}
+    {filaments.map((points, i) => <CurveTube key={i} points={points} color="#f0e4bd" radius={.013} />)}
+  </group>;
+}
+
 function Egg({ item, cutaway }: { item: ParasiteSpecies; cutaway: boolean }) {
   const shellGeometry = useMemo(() => eggGeometry(item.id, cutaway), [item.id, cutaway]);
   useEffect(() => () => shellGeometry.dispose(), [shellGeometry]);
   const scale = dimensions(item.id);
   const shell = new Color(item.color);
   const isOV = item.id === 'opisthorchis';
+  const isMIF = item.id === 'mif';
+  const isNana = item.id === 'hymenolepis-nana';
+  const isDiminuta = item.id === 'hymenolepis-diminuta';
+  const isHymenolepis = isNana || isDiminuta;
+  const isLargeFluke = item.id === 'echinostoma' || item.id === 'fasciolopsis';
   const bumps = useMemo(() => Array.from({ length: 105 }, (_, i) => {
     const y = 1 - (i / 104) * 2;
     const r = Math.sqrt(1 - y * y);
     const theta = Math.PI * (3 - Math.sqrt(5)) * i;
     return new Vector3(Math.cos(theta) * r * 1.4, y * .86, Math.sin(theta) * r * .79);
   }), []);
-  const hooks = useMemo(() => Array.from({ length: 6 }, (_, n) => Array.from({ length: 16 }, (_, j) => {
-    const t = j / 15;
-    const a = n / 6 * Math.PI * 2;
-    const x = .1 + t * .18;
-    const y = Math.sin(t * Math.PI) * .12;
-    return new Vector3(Math.cos(a) * x - Math.sin(a) * y, Math.sin(a) * x + Math.cos(a) * y, .24);
-  })), []);
-  const internalColor = isOV ? '#a39754' : '#8d996b';
   return (
     <group rotation={[.09, -.08, -.18]}>
       <mesh geometry={shellGeometry} renderOrder={3}>
@@ -125,15 +186,19 @@ function Egg({ item, cutaway }: { item: ParasiteSpecies; cutaway: boolean }) {
       {item.id === 'trichuris' && [-1, 1].map((direction) => <group key={direction} position={[direction * 1.46, 0, 0]} rotation={[0, 0, Math.PI / 2]}><mesh scale={[.18, .24, .18]}><sphereGeometry args={[1, 24, 20]} /><meshPhysicalMaterial color="#ead6ad" roughness={.3} transparent opacity={.9} /></mesh><mesh rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[.18, .035, 10, 32]} /><meshStandardMaterial color="#c49a61" /></mesh></group>)}
       {item.id === 'hookworm' && [[-.48, .15, .02], [0, .25, -.06], [.45, .08, .01], [-.33, -.26, .12], [.18, -.21, .15], [.12, .03, -.25]].map((position, i) => <mesh key={i} position={position as [number, number, number]} scale={[1, .91, .85]}><sphereGeometry args={[.31, 28, 22]} /><meshPhysicalMaterial color={i % 2 ? '#aab487' : '#8e9c74'} roughness={.7} clearcoat={.2} /></mesh>)}
       {item.id === 'enterobius' && <Larva />}
-      {item.id !== 'hookworm' && item.id !== 'enterobius' && <mesh scale={item.id === 'taenia' ? [.5, .5, .48] : isOV ? [.81, .34, .29] : [.77, .51, .45]}><sphereGeometry args={[1, 44, 30]} /><meshStandardMaterial color={internalColor} roughness={.64} /></mesh>}
-      {isOV && Array.from({ length: 24 }, (_, i) => {
-        const a = i / 24 * Math.PI * 2;
-        return <mesh key={i} position={[Math.cos(a) * .76, Math.sin(a) * .33, .025]} rotation={[0, 0, a - Math.PI / 2]}><coneGeometry args={[.018, .1, 6]} /><meshStandardMaterial color="#d8ce8f" /></mesh>;
-      })}
+      {(item.id === 'ascaris' || item.id === 'trichuris') && <mesh scale={[.77, .51, .45]}><sphereGeometry args={[1, 44, 30]} /><meshStandardMaterial color="#8d996b" roughness={.64} /></mesh>}
+      {(isOV || isMIF) && <Miracidium small={isMIF} />}
+      {isLargeFluke && <YolkCells scale={scale} />}
+      {(item.id === 'taenia' || isHymenolepis) && <Oncosphere taenia={item.id === 'taenia'} />}
+      {isHymenolepis && <>
+        <mesh scale={isNana ? [.6, .65, .6] : [.66, .65, .59]} renderOrder={2}><sphereGeometry args={[1, 48, 32, cutaway ? Math.PI : 0, cutaway ? Math.PI : Math.PI * 2]} /><meshPhysicalMaterial color={isNana ? '#e1d7b3' : '#d8be7e'} roughness={.4} transparent opacity={isNana ? .29 : .46} depthWrite={false} side={DoubleSide} /></mesh>
+        {cutaway && <mesh scale={isNana ? [.6, .65, 1] : [.66, .65, 1]} position={[0, 0, .015]}><ringGeometry args={[.965, 1, 72]} /><meshStandardMaterial color="#e2ce9b" side={DoubleSide} /></mesh>}
+        {isDiminuta && <mesh scale={[scale[0] * .95, scale[1] * .95, scale[2] * .95]} renderOrder={2}><sphereGeometry args={[1, 48, 32, cutaway ? Math.PI : 0, cutaway ? Math.PI : Math.PI * 2]} /><meshPhysicalMaterial color="#e3c484" roughness={.5} transparent opacity={.28} depthWrite={false} side={DoubleSide} /></mesh>}
+        {isNana && <PolarFilaments />}
+      </>}
+      {(isMIF || isLargeFluke) && <Operculum scale={scale} color={isMIF ? '#e8cb88' : '#e3c993'} />}
       {isOV && <>
-        {/* A cap seated on a raised collar at one pole; the opposite knob is small. */}
-        <mesh position={[-1.18, 0, 0]} scale={[.23, .35, .32]}><sphereGeometry args={[1, 32, 24]} /><meshPhysicalMaterial color="#dfbc72" roughness={.4} transparent opacity={.86} /></mesh>
-        <mesh position={[-1.12, 0, 0]} rotation={[0, Math.PI / 2, 0]} scale={[.91, 1, 1]}><torusGeometry args={[.355, .035, 12, 48]} /><meshStandardMaterial color="#91662e" roughness={.6} /></mesh>
+        <Operculum scale={scale} color="#dfbc72" shoulder />
         <mesh position={[1.36, 0, 0]} scale={[.1, .075, .075]}><sphereGeometry args={[1, 24, 18]} /><meshStandardMaterial color="#dfbd72" roughness={.5} /></mesh>
       </>}
       {item.id === 'taenia' && <>
@@ -141,7 +206,6 @@ function Egg({ item, cutaway }: { item: ParasiteSpecies; cutaway: boolean }) {
           const angle = i / 42 * Math.PI * 2;
           return <mesh key={i} position={[Math.cos(angle) * .955, Math.sin(angle) * .955, 0]} rotation={[0, 0, angle]} scale={[.07, .024, cutaway ? .12 : .2]}><sphereGeometry args={[1, 10, 8]} /><meshStandardMaterial color={i % 3 ? '#d3a76d' : '#805831'} roughness={.8} /></mesh>;
         })}
-        {hooks.map((points, i) => <CurveTube key={i} points={points} color="#e7d1a0" radius={.024} />)}
       </>}
     </group>
   );
@@ -149,19 +213,26 @@ function Egg({ item, cutaway }: { item: ParasiteSpecies; cutaway: boolean }) {
 
 function Scene({ item, cutaway, autoRotate, resetKey }: { item: ParasiteSpecies; cutaway: boolean; autoRotate: boolean; resetKey: number }) {
   const controls = useRef<ComponentRef<typeof OrbitControls>>(null);
-  const { camera } = useThree();
+  const { camera, size } = useThree();
+  // Fit a sphere around the egg, cap and surface details. The narrower field of
+  // view matters in the tall desktop stage as well as a portrait phone screen.
+  const aspect = Math.max(size.width, 1) / Math.max(size.height, 1);
+  const halfFov = (camera instanceof PerspectiveCamera ? camera.getEffectiveFOV() : 38) * Math.PI / 360;
+  const limitingAngle = Math.atan(Math.tan(halfFov) * Math.min(aspect, 1));
+  const framedRadius = Math.max(...dimensions(item.id)) * 1.15;
+  const frameDistance = Math.max(5.3, framedRadius / Math.sin(limitingAngle) * 1.06);
   useEffect(() => {
-    camera.position.set(0, .15, 5.3);
+    camera.position.set(0, .15, frameDistance);
     controls.current?.target.set(0, 0, 0);
     controls.current?.update();
-  }, [resetKey, camera]);
+  }, [resetKey, camera, item.id, size.width, size.height, frameDistance]);
   return <>
     <ambientLight intensity={1.1} />
     <directionalLight position={[-3, 4, 5]} intensity={2.6} color="#fff1d9" />
     <directionalLight position={[4, 1, -2]} intensity={2.2} color="#9de9dc" />
     <pointLight position={[0, -3, 2]} intensity={8} color="#80aaa1" />
     <Egg item={item} cutaway={cutaway} />
-    <OrbitControls ref={controls} makeDefault enablePan={false} minDistance={3} maxDistance={8} autoRotate={autoRotate} autoRotateSpeed={.7} enableDamping dampingFactor={.07} />
+    <OrbitControls ref={controls} makeDefault enablePan={false} minDistance={3} maxDistance={Math.max(8, frameDistance * 1.6)} autoRotate={autoRotate} autoRotateSpeed={.7} enableDamping dampingFactor={.07} />
   </>;
 }
 
@@ -190,8 +261,20 @@ function ModelViewer({ item, cutaway, autoRotate, resetKey }: { item: ParasiteSp
 
 /** DOM callouts stay in the application root, separate from the WebGL scene lifecycle. */
 function ModelAnnotations({ item, cutaway }: { item: ParasiteSpecies; cutaway: boolean }) {
-  const outerLabel = item.id === 'trichuris' ? 'จุกสองขั้ว' : item.id === 'enterobius' ? 'ด้านหนึ่งแบน' : item.id === 'taenia' ? 'ผนังลายรัศมี' : item.id === 'opisthorchis' ? 'ฝาปิดและบ่า · ปุ่มขั้วตรงข้าม' : item.id === 'hookworm' ? 'เปลือกบางใส' : 'ผิวนอกขรุขระ';
-  const innerLabel = item.id === 'hookworm' ? 'ตัวอ่อนแบ่งเซลล์' : item.id === 'enterobius' ? 'ตัวอ่อน' : item.id === 'taenia' ? 'ตะขอ 3 คู่' : item.id === 'opisthorchis' ? 'Miracidium' : 'เซลล์ไข่';
+  const annotations: Record<string, [string, string]> = {
+    ascaris: ['ผิวนอกขรุขระ', 'เซลล์ไข่'],
+    trichuris: ['จุกสองขั้ว', 'เซลล์ไข่'],
+    hookworm: ['เปลือกบางใส', 'ตัวอ่อนแบ่งเซลล์'],
+    enterobius: ['ด้านหนึ่งแบน', 'ตัวอ่อน'],
+    taenia: ['ผนังลายรัศมี', 'ตะขอ 3 คู่'],
+    opisthorchis: ['ฝาปิดและบ่า · ปุ่มขั้วตรงข้าม', 'Miracidium'],
+    mif: ['ฝาปิด · เปลือกเรียบ', 'Miracidium · กลุ่ม MIF'],
+    'hymenolepis-nana': ['เยื่อหุ้มบางสองชั้น', 'เส้นใยขั้ว · ตะขอ 3 คู่'],
+    'hymenolepis-diminuta': ['ผนังสองชั้น', 'ตะขอ 3 คู่ · ไม่มีเส้นใยขั้ว'],
+    echinostoma: ['ฝาปิด · เปลือกบาง', 'เซลล์ไข่แดง · ยังไม่มีตัวอ่อน'],
+    fasciolopsis: ['ฝาปิด · รูปรีขนาดใหญ่', 'เซลล์ไข่แดง · ยังไม่มีตัวอ่อน'],
+  };
+  const [outerLabel, innerLabel] = annotations[item.id];
   return <div className="atlas-annotations" aria-label="จุดสังเกตของแบบจำลอง">
     <div className="atlas-callout atlas-callout-outer"><div className="atlas-model-label"><span />{outerLabel}</div><small>ลักษณะภายนอก</small></div>
     {cutaway && <div className="atlas-callout atlas-callout-inner"><small>โครงสร้างภายใน</small><div className="atlas-model-label"><span />{innerLabel}</div></div>}
@@ -209,7 +292,9 @@ export default function Atlas({ initialSpecies }: AtlasProps) {
   const [expanded, setExpanded] = useState(false);
   const viewerRef = useRef<HTMLDivElement>(null);
   const item = getSpeciesById(selectedId);
-  const matches = species.filter((entry) => (group === 'all' || entry.group === group) && `${entry.name} ${entry.thaiName}`.toLowerCase().includes(query.toLowerCase()));
+  const queryLabel = query.toLowerCase().trim();
+  const aliasMatch = matchSpeciesLabel(queryLabel);
+  const matches = species.filter((entry) => (group === 'all' || entry.group === group) && (entry.id === aliasMatch?.id || `${entry.name} ${entry.thaiName}`.toLowerCase().includes(queryLabel)));
   useEffect(() => { if (initialSpecies) setSelectedId(getSpeciesById(initialSpecies).id); }, [initialSpecies]);
   useEffect(() => {
     if (!expanded) return;
