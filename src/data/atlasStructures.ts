@@ -24,6 +24,7 @@ const teachingNote = 'อ่านคำบรรยายต้นฉบับ�
 const buckelewBase = 'https://github.com/tombuckelew/parasitology-images/blob/main/site/Buckelew/';
 
 export const atlasSources: Record<string, AtlasSource> = {
+  'openstax-ascariasis': { title: 'OpenStax Microbiology — Ascariasis', url: 'https://github.com/openstax/osbooks-microbiology/blob/f91d7fcdc7ebbafa36ec33099f78ff0a494f1c2b/modules/m58932/index.cnxml', note: 'อ่านเนื้อหา Ascariasis และคำบรรยายภาพไข่จากตำราต้นทางแล้ว ใช้อ้างอิงข้อความเรื่องรูปร่างไข่และการกินไข่ที่มีตัวอ่อน ไม่ได้นำรูปในตำรามาใช้ซ้ำ' },
   'cdc-ascariasis': { title: 'CDC DPDx — Ascariasis', url: 'https://www.cdc.gov/dpdx/ascariasis/index.html', note: cdcNote },
   'cdc-trichuriasis': { title: 'CDC DPDx — Trichuriasis', url: 'https://www.cdc.gov/dpdx/trichuriasis/index.html', note: cdcNote },
   'cdc-hookworm': { title: 'CDC DPDx — Hookworm (Intestinal)', url: 'https://www.cdc.gov/dpdx/hookworm/index.html', note: cdcNote },

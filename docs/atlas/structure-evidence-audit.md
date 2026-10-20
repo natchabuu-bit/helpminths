@@ -112,3 +112,14 @@ application integration are verified separately by the root agent.
 Before clinical teaching release, a local parasitology specialist should review
 the final 3D rendering and current primary sources. The catalogue alone is not a
 validated diagnostic device or a clinical performance study.
+
+## Subsequent Ascaris stage extension
+
+`ascarisStages.ts` now provides stage-specific anatomy and an independent
+decorticated state. Ascaris has seven distinct anatomical feature ids across all
+variants, with only two to four shown for a given selection. The complete Atlas
+therefore has 51 distinct selectable features across its developmental variants;
+the static catalogue's original 48-feature audit above describes the baseline.
+An actually read OpenStax reference was added alongside the earlier sources.
+See [stage evidence](./ascaris-stages-evidence.md) and
+[stage validation](./ascaris-stages-validation.md) for the extension's scope.

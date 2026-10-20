@@ -8,6 +8,8 @@ interface AtlasPhotoViewerProps {
   item: ParasiteSpecies;
   photos: AtlasPhoto[];
   selectedStructure: AtlasStructure | null;
+  emptyTitle?: string;
+  emptyDescription?: string;
 }
 
 interface PhotoView { zoom: number; x: number; y: number }
@@ -18,7 +20,7 @@ const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 const midpoint = (a: Point, b: Point): Point => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
 
 /** Real, credited micrographs remain separate from the explanatory 3D model. */
-export default function AtlasPhotoViewer({ item, photos, selectedStructure }: AtlasPhotoViewerProps) {
+export default function AtlasPhotoViewer({ item, photos, selectedStructure, emptyTitle, emptyDescription }: AtlasPhotoViewerProps) {
   const [photoIndex, setPhotoIndex] = useState(0);
   const [view, setView] = useState<PhotoView>(initialView);
   const [failed, setFailed] = useState(false);
@@ -150,8 +152,8 @@ export default function AtlasPhotoViewer({ item, photos, selectedStructure }: At
       <section className="atlas-photo-viewer atlas-photo-missing" aria-label="ภาพไข่จริง">
         <div className="atlas-photo-empty" role="status">
           <ImageOff size={28} aria-hidden="true" />
-          <h3>ยังไม่มีภาพไข่จริงในชุดนี้</h3>
-          <p>ยังไม่มีภาพของ {item.name} ที่ตรวจสอบชนิดและสิทธิ์พร้อมเก็บออฟไลน์ จึงแสดงเฉพาะแบบจำลองและแหล่งอ้างอิง</p>
+          <h3>{emptyTitle ?? 'ยังไม่มีภาพไข่จริงในชุดนี้'}</h3>
+          <p>{emptyDescription ?? `ยังไม่มีภาพของ ${item.name} ที่ตรวจสอบชนิดและสิทธิ์พร้อมเก็บออฟไลน์ จึงแสดงเฉพาะแบบจำลองและแหล่งอ้างอิง`}</p>
         </div>
         <div className="atlas-photo-sources">
           {sources.map(source => <a key={source.url} href={source.url} target="_blank" rel="noreferrer">{source.title} <ExternalLink size={13} aria-hidden="true" /></a>)}

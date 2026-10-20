@@ -3,9 +3,11 @@ import { ArrowUpRight, BookOpen, Box, Check, ChevronRight, Eye, Info, Layers3, M
 import { getSpeciesById, groupLabels, matchSpeciesLabel, species, type SpeciesGroup } from '../data/species';
 import { atlasEvidenceNote, atlasSources, getAtlasStructures } from '../data/atlasStructures';
 import { atlasPhotos, getAtlasPhotos } from '../data/atlasPhotos';
+import { ascarisStages, getAscarisStage, getAscarisStagePhotos, getAscarisStructures, type AscarisStageId } from '../data/ascarisStages';
 import EggIllustration from './EggIllustration';
 import AtlasModel from './AtlasModel';
 import AtlasPhotoViewer from './AtlasPhotoViewer';
+import AscarisStageGuide from './AscarisStageGuide';
 import '../styles/atlas.css';
 
 type ViewMode = 'compare' | 'model' | 'photo';
@@ -13,7 +15,9 @@ const viewModes: { id: ViewMode; label: string }[] = [
   { id: 'compare', label: 'เทียบภาพจริงกับ 3D' }, { id: 'model', label: 'โมเดล 3D' }, { id: 'photo', label: 'ภาพไข่จริง' },
 ];
 const photoCoverage = new Set(atlasPhotos.map((photo) => photo.speciesId)).size;
-const structureCount = species.reduce((count, item) => count + getAtlasStructures(item.id).length, 0);
+const structureCount = species.reduce((count, item) => count + (item.id === 'ascaris'
+  ? new Set(ascarisStages.flatMap((stage) => getAscarisStructures(stage.id).map((part) => part.id))).size
+  : getAtlasStructures(item.id).length), 0);
 
 export default function Atlas({ initialSpecies }: { initialSpecies?: string }) {
   const [selectedId, setSelectedId] = useState(getSpeciesById(initialSpecies).id);
@@ -25,19 +29,25 @@ export default function Atlas({ initialSpecies }: { initialSpecies?: string }) {
   const [autoRotate, setAutoRotate] = useState(true);
   const [zoom, setZoom] = useState(1);
   const [selectedStructureId, setSelectedStructureId] = useState<string | null>(null);
+  const [ascarisStage, setAscarisStage] = useState<AscarisStageId>('fertilized');
+  const [ascarisDecorticated, setAscarisDecorticated] = useState(false);
   const [resetKey, setResetKey] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const viewerRef = useRef<HTMLDivElement>(null);
   const item = getSpeciesById(selectedId);
-  const structures = getAtlasStructures(item.id);
+  const isAscaris = item.id === 'ascaris';
+  const currentStage = getAscarisStage(ascarisStage);
+  const structures = isAscaris ? getAscarisStructures(ascarisStage, ascarisDecorticated) : getAtlasStructures(item.id);
   const selectedStructure = structures.find((part) => part.id === selectedStructureId) || null;
-  const photos = getAtlasPhotos(item.id);
+  const photos = isAscaris ? getAscarisStagePhotos(ascarisStage, ascarisDecorticated) : getAtlasPhotos(item.id);
+  const displayFeatures = isAscaris ? [...currentStage.features, ascarisDecorticated ? 'ชั้นผิวนอกขรุขระหลุดออก เหลือเปลือกผิวเรียบ' : 'มีชั้นผิวนอกขรุขระ (mammillated coat)'] : item.features;
   const queryLabel = query.toLowerCase().trim();
   const aliasMatch = matchSpeciesLabel(queryLabel);
   const matches = species.filter((entry) => (group === 'all' || entry.group === group) && (entry.id === aliasMatch?.id || `${entry.name} ${entry.thaiName}`.toLowerCase().includes(queryLabel)));
 
   function chooseSpecies(id: string) {
     setSelectedId(id); setSelectedStructureId(null); setZoom(1); setCutaway(false);
+    setAscarisStage('fertilized'); setAscarisDecorticated(false);
     setResetKey((value) => value + 1);
   }
   function selectStructure(id: string) {
@@ -92,16 +102,17 @@ export default function Atlas({ initialSpecies }: { initialSpecies?: string }) {
           <div className="atlas-specimen-caption"><span>{groupLabels[item.group]}</span><h2>{item.name}</h2><p>{item.thaiName}</p></div>
           <div className="atlas-viewer-actions"><button aria-label={expanded ? 'ปิดมุมมองแบบขยาย' : 'ขยายมุมมอง'} aria-pressed={expanded} title="ขยายหรือย่อมุมมอง · Esc เพื่อปิด" onClick={() => setExpanded((value) => !value)}>{expanded ? <><X size={16} /><span>ปิด</span></> : <Maximize2 size={17} />}</button></div>
         </div>
+        {isAscaris && <AscarisStageGuide stage={ascarisStage} decorticated={ascarisDecorticated} onStageChange={(stage) => { setAscarisStage(stage); resetModel(); }} onDecorticatedChange={(value) => { setAscarisDecorticated(value); resetModel(); }} />}
         <div className="atlas-view-tabs" role="tablist" aria-label="รูปแบบการเรียนรู้">{viewModes.map((view, index) => <button id={`atlas-tab-${view.id}`} key={view.id} role="tab" aria-selected={mode === view.id} aria-controls="atlas-learning-panels" tabIndex={mode === view.id ? 0 : -1} onClick={() => setMode(view.id)} onKeyDown={(event) => {
           const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
           const next = event.key === 'Home' ? 0 : event.key === 'End' ? 2 : step ? (index + step + viewModes.length) % viewModes.length : null;
           if (next !== null) { event.preventDefault(); setMode(viewModes[next].id); document.getElementById(`atlas-tab-${viewModes[next].id}`)?.focus(); }
         }}>{view.label}</button>)}</div>
         <div id="atlas-learning-panels" role="tabpanel" aria-labelledby={`atlas-tab-${mode}`} className={`atlas-comparison atlas-comparison-${mode}`}>
-          <section className="atlas-photo-panel" aria-label="ตัวอย่างภาพไข่จริง" hidden={mode === 'model'}><div className="atlas-pane-title"><span className="atlas-pane-index">01</span><div><h3>ภาพไข่จริง</h3><p>LIGHT MICROSCOPY</p></div></div><AtlasPhotoViewer key={item.id} item={item} photos={photos} selectedStructure={selectedStructure} /></section>
+          <section className="atlas-photo-panel" aria-label="ตัวอย่างภาพไข่จริง" hidden={mode === 'model'}><div className="atlas-pane-title"><span className="atlas-pane-index">01</span><div><h3>ภาพไข่จริง</h3><p>LIGHT MICROSCOPY</p></div></div><AtlasPhotoViewer key={isAscaris ? `${item.id}-${ascarisStage}-${ascarisDecorticated}` : item.id} item={item} photos={photos} selectedStructure={selectedStructure} emptyTitle={isAscaris ? 'ยังไม่มีภาพจริงที่ตรงกับตัวเลือกนี้' : undefined} emptyDescription={isAscaris ? `ยังไม่มีภาพไข่ ${currentStage.englishTitle}${ascarisDecorticated ? ' แบบ decorticated' : ''} ที่ยืนยันระยะ ลักษณะเปลือก และสิทธิ์นำมาใช้ได้ ดูภาพวาดอธิบายด้านบนและโมเดลที่เปลี่ยนตามตัวเลือก พร้อมแหล่งอ้างอิงประกอบ` : undefined} /></section>
           <section className="atlas-model-panel" aria-label="แบบจำลองโครงสร้าง" hidden={mode === 'photo'}>
             <div className="atlas-pane-title"><span className="atlas-pane-index">02</span><div><h3>โมเดลอธิบายโครงสร้าง</h3><p>INTERACTIVE 3D · ไม่ใช่สเกลจริง</p></div><button className="atlas-icon-button" aria-label="เริ่มมุมมองใหม่" title="เริ่มมุมมองใหม่" onClick={resetModel}><RotateCcw size={16} /></button></div>
-            <div className="atlas-model-stage"><AtlasModel item={item} cutaway={cutaway} autoRotate={autoRotate} resetKey={resetKey} selectedStructureId={selectedStructureId} onSelectStructure={selectStructure} zoom={zoom} labels={labels} />
+            <div className="atlas-model-stage"><AtlasModel item={item} cutaway={cutaway} autoRotate={autoRotate} resetKey={resetKey} selectedStructureId={selectedStructureId} onSelectStructure={selectStructure} zoom={zoom} labels={labels} ascarisStage={ascarisStage} ascarisDecorticated={ascarisDecorticated} />
               {labels && <div className="atlas-annotations" aria-label="จุดสังเกตของแบบจำลอง"><span className="atlas-model-label">{selectedStructure ? selectedStructure.shortLabel : 'กดจุดสีเขียวหรือส่วนของโมเดล'}</span><small>{cutaway ? 'ภาพตัดภายใน' : 'เปลือกโปร่งเพื่อเรียนรู้ภายใน'}</small></div>}
             </div>
             <div className="atlas-zoom-controls"><button aria-label="ย่อโมเดล 3D" disabled={zoom <= .65} onClick={() => setZoom((value) => Math.max(.65, +(value - .2).toFixed(2)))}><Minus size={16} /></button><input aria-label="ซูมโมเดล 3D" type="range" min="0.65" max="2.5" step="0.05" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} /><button aria-label="ขยายโมเดล 3D" disabled={zoom >= 2.5} onClick={() => setZoom((value) => Math.min(2.5, +(value + .2).toFixed(2)))}><Plus size={16} /></button><output>{Math.round(zoom * 100)}%</output></div>
@@ -117,8 +128,8 @@ export default function Atlas({ initialSpecies }: { initialSpecies?: string }) {
         </section>
       </div>
       <aside className="atlas-details" aria-label="รายละเอียดลักษณะไข่พยาธิ">
-        <div><div className="atlas-detail-eyebrow">MORPHOLOGY GUIDE</div><h2>ลักษณะอ้างอิง</h2><p className="atlas-description">{item.description}</p><dl className="atlas-dimensions"><div><dt>ขนาดโดยทั่วไป</dt><dd>{item.size}</dd></div><div><dt>รูปร่าง</dt><dd>{item.shape}</dd></div></dl></div>
-        <div><div className="atlas-feature-section"><h3>จุดสังเกตสำคัญ</h3>{item.features.map((feature, index) => <div className="atlas-feature" key={feature}><span>{String(index + 1).padStart(2, '0')}</span><p>{feature}</p><Check size={13} /></div>)}</div>{item.clinicalNote && <div className="atlas-clinical-note"><Info size={16} /><p>{item.clinicalNote}</p></div>}</div>
+        <div><div className="atlas-detail-eyebrow">MORPHOLOGY GUIDE</div><h2>ลักษณะอ้างอิง{isAscaris ? ` · ${currentStage.title}` : ''}</h2><p className="atlas-description">{isAscaris ? currentStage.description : item.description}</p><dl className="atlas-dimensions"><div><dt>ขนาดโดยทั่วไป</dt><dd>{isAscaris ? currentStage.size : item.size}</dd></div><div><dt>รูปร่าง</dt><dd>{isAscaris ? `${currentStage.shape}${ascarisDecorticated ? ' · ชั้นผิวนอกหลุด ผิวเรียบ' : ''}` : item.shape}</dd></div></dl></div>
+        <div><div className="atlas-feature-section"><h3>จุดสังเกตสำคัญ</h3>{displayFeatures.map((feature, index) => <div className="atlas-feature" key={feature}><span>{String(index + 1).padStart(2, '0')}</span><p>{feature}</p><Check size={13} /></div>)}</div>{item.clinicalNote && <div className="atlas-clinical-note"><Info size={16} /><p>{item.clinicalNote}</p></div>}</div>
       </aside>
     </div>
     <div className="atlas-education-note"><Info size={16} /><div><p>{atlasEvidenceNote}</p><p>รายชื่อใน Atlas ไม่ยืนยันขอบเขตหรือความแม่นยำของ AI การระบุชนิดจริงควรให้ผู้เชี่ยวชาญตรวจยืนยัน ภาพจาก Buckelew ใช้เพื่อการศึกษาไม่ใช่เชิงพาณิชย์ตาม CC BY-NC 4.0; ลิงก์อ้างอิงภายนอกต้องใช้อินเทอร์เน็ต</p></div></div>

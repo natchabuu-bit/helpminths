@@ -134,7 +134,7 @@ test('a first home visit prepares unvisited Atlas, fonts, local images and expli
         await page.waitForFunction(() => { const image = document.querySelector('.atlas-real-photo'); return image?.complete && image.naturalWidth > 0 })
         decodedPhotos.add(await page.locator('.atlas-real-photo').getAttribute('src'))
         assert.match(await page.locator('.atlas-photo-attribution').innerText(), /Thomas P\. Buckelew.*CC BY-NC/s)
-        if (index + 1 < count) await page.getByRole('button', { name: 'ภาพจริงถัดไป' }).click()
+        if (index + 1 < count) await page.locator('.ascaris-stage-option[data-stage="embryonated"]').click()
       }
       if (name === 'Hymenolepis nana') {
         await page.locator('.atlas-structure-list button').filter({ hasText: 'เส้นใยขั้ว' }).click()
@@ -146,6 +146,27 @@ test('a first home visit prepares unvisited Atlas, fonts, local images and expli
       }
     }
     assert.deepEqual([...decodedPhotos].sort(), photoPaths.sort(), 'All previously unvisited photographs must decode while fully offline')
+    await page.getByLabel('ค้นหาชื่อพยาธิ').fill('Ascaris')
+    await page.locator('.atlas-species-item').click()
+    for (const stage of ['unfertilized', 'fertilized', 'cleavage', 'embryonated']) {
+      const stageButton = page.locator(`.ascaris-stage-option[data-stage="${stage}"]`)
+      await stageButton.click()
+      assert.equal(await stageButton.getAttribute('aria-pressed'), 'true')
+      const diagram = page.locator(`.ascaris-stage-figure svg[data-ascaris-stage="${stage}"]`)
+      assert.equal(await diagram.count(), 1, 'Every Ascaris stage illustration must be available on the first offline Atlas visit')
+      assert.ok((await page.locator('.ascaris-stage-description').innerText()).length > 60)
+      assert.ok(await page.locator('.ascaris-stages a[href^="https://"]').count() > 0, 'Stage explanations must retain source references offline')
+      const coat = page.getByRole('button', { name: 'เปลือกชั้นนอกหลุด (Decorticated)', exact: true })
+      await coat.click()
+      assert.equal(await stageButton.getAttribute('aria-pressed'), 'true', 'Offline decortication must preserve the developmental stage')
+      assert.equal(await diagram.getAttribute('data-decorticated'), 'true')
+      assert.equal(await diagram.getByRole('group', { name: 'ชั้นผิวนอกขรุขระของไข่ Ascaris', exact: true }).count(), 0)
+      assert.equal(await page.locator('.atlas-real-photo').count(), 0, 'No coated photo may be substituted for an offline decorticated specimen')
+      assert.match(await page.locator('.atlas-photo-empty').innerText(), /Decorticated|เปลือก.*หลุด/i)
+      await coat.click()
+      if (stage === 'cleavage') assert.equal(await page.locator('.atlas-real-photo').count(), 0)
+      else await page.waitForFunction(() => { const image = document.querySelector('.atlas-real-photo'); return image?.complete && image.naturalWidth > 0 })
+    }
     await page.getByRole('button', { name: 'ภาพตัดภายใน', exact: true }).click()
     await page.getByLabel('ค้นหาชื่อพยาธิ').fill('OV')
     assert.equal(await page.locator('.atlas-species-item').count(), 1)

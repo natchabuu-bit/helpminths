@@ -5,7 +5,9 @@ import { BufferGeometry, DoubleSide, Euler, Float32BufferAttribute, PerspectiveC
 import { Box } from 'lucide-react';
 import type { ParasiteSpecies } from '../data/species';
 import { getAtlasStructures } from '../data/atlasStructures';
+import { getAscarisStructures, type AscarisStageId } from '../data/ascarisStages';
 import EggIllustration from './EggIllustration';
+import AscarisStageIllustration from './AscarisStageIllustration';
 
 export interface AtlasModelProps {
   item: ParasiteSpecies;
@@ -17,6 +19,8 @@ export interface AtlasModelProps {
   /** A relative magnification. Wheel and pinch gestures remain available. */
   zoom: number;
   labels: boolean;
+  ascarisStage?: AscarisStageId;
+  ascarisDecorticated?: boolean;
 }
 
 type Triple = [number, number, number];
@@ -41,7 +45,8 @@ class ModelBoundary extends Component<{ children: ReactNode; fallback: ReactNode
   render() { return this.state.failed ? this.props.fallback : this.props.children; }
 }
 
-function dimensions(id: string): Triple {
+function dimensions(id: string, ascarisStage: AscarisStageId = 'fertilized'): Triple {
+  if (id === 'ascaris' && ascarisStage === 'unfertilized') return [1.72, .78, .72];
   if (id === 'taenia') return [1, 1, 1];
   if (id === 'trichuris') return [1.5, .62, .62];
   if (id === 'enterobius') return [1.55, .74, .64];
@@ -55,8 +60,8 @@ function dimensions(id: string): Triple {
 }
 
 /** The front hemisphere is omitted in section view; the outline is not a literal histological slice. */
-function eggGeometry(id: string, cutaway: boolean) {
-  const scale = dimensions(id);
+function eggGeometry(id: string, cutaway: boolean, ascarisStage: AscarisStageId = 'fertilized') {
+  const scale = dimensions(id, ascarisStage);
   const geometry = new SphereGeometry(1, 64, 40, cutaway ? Math.PI : 0, cutaway ? Math.PI : Math.PI * 2);
   const positions = geometry.attributes.position;
   for (let i = 0; i < positions.count; i++) {
@@ -184,6 +189,25 @@ function Ovum({ selected, largeFluke = false }: { selected: boolean; largeFluke?
   </group>;
 }
 
+/** Irregular refractile contents illustrate an unfertilized ovum, not blastomeres or organelles. */
+function UnfertilizedContents({ selected }: { selected: boolean }) {
+  const granules = useMemo(() => Array.from({ length: 73 }, (_, i) => {
+    const angle = i * Math.PI * (3 - Math.sqrt(5));
+    const radius = Math.sqrt((i + .5) / 73);
+    return [Math.cos(angle) * radius * 1.27, Math.sin(angle) * radius * .53, .08 + Math.sin(i * 1.7) * .22] as Triple;
+  }), []);
+  return <group>{granules.map((position, i) => <mesh key={i} position={position} scale={[1.15 + i % 3 * .12, .8, .8]}>
+    <sphereGeometry args={[.059 + i % 4 * .013, 12, 10]} /><Surface color={['#a39b69', '#d1bd8c', '#8d8c5b', '#b4a777'][i % 4]} selected={selected} />
+  </mesh>)}</group>;
+}
+
+/** Four cells show one illustrative cleavage configuration, not a diagnostic fixed count. */
+function AscarisBlastomeres({ selected }: { selected: boolean }) {
+  return <group>{([[-.33, .23, .03], [.31, .23, -.03], [-.33, -.22, .08], [.31, -.22, .08]] as Triple[]).map((position, i) => <mesh key={i} position={position} scale={[1.15, .83, .87]}>
+    <sphereGeometry args={[.34, 32, 24]} /><Surface color={i % 2 ? '#aeb68a' : '#919e70'} selected={selected} />
+  </mesh>)}</group>;
+}
+
 function YolkCells({ scale, selected }: { scale: Triple; selected: boolean }) {
   const cells = useMemo(() => Array.from({ length: 68 }, (_, i) => {
     const angle = i * Math.PI * (3 - Math.sqrt(5));
@@ -221,10 +245,10 @@ function PolarFilaments({ selected }: { selected: boolean }) {
   return <group>{filaments.map((points, i) => <CurveTube key={i} points={points} color="#f3e7c0" radius={selected ? .019 : .014} selected={selected} />)}</group>;
 }
 
-function Egg({ item, cutaway, selectedStructureId, onSelectStructure, labels }: Pick<AtlasModelProps, 'item' | 'cutaway' | 'selectedStructureId' | 'onSelectStructure' | 'labels'>) {
-  const shellGeometry = useMemo(() => eggGeometry(item.id, cutaway), [item.id, cutaway]);
+function Egg({ item, cutaway, selectedStructureId, onSelectStructure, labels, ascarisStage = 'fertilized', ascarisDecorticated = false }: Pick<AtlasModelProps, 'item' | 'cutaway' | 'selectedStructureId' | 'onSelectStructure' | 'labels' | 'ascarisStage' | 'ascarisDecorticated'>) {
+  const shellGeometry = useMemo(() => eggGeometry(item.id, cutaway, ascarisStage), [item.id, cutaway, ascarisStage]);
   useEffect(() => () => shellGeometry.dispose(), [shellGeometry]);
-  const scale = dimensions(item.id);
+  const scale = dimensions(item.id, ascarisStage);
   const terminalPatch = useMemo(() => {
     if (item.id !== 'mif') return null;
     // Reuse the actual shell contour at the end. A new knob is not a shared MIF feature.
@@ -240,7 +264,7 @@ function Egg({ item, cutaway, selectedStructureId, onSelectStructure, labels }: 
     return geometry;
   }, [item.id, shellGeometry]);
   useEffect(() => () => terminalPatch?.dispose(), [terminalPatch]);
-  const structures = getAtlasStructures(item.id);
+  const structures = item.id === 'ascaris' ? getAscarisStructures(ascarisStage, ascarisDecorticated) : getAtlasStructures(item.id);
   const has = (id: string) => structures.some((structure) => structure.id === id);
   const selected = (id: string) => selectedStructureId === id;
   const partProps = { selectedId: selectedStructureId, onSelect: onSelectStructure };
@@ -253,8 +277,8 @@ function Egg({ item, cutaway, selectedStructureId, onSelectStructure, labels }: 
   const shellId = isHymenolepis ? 'outer-membrane' : item.id === 'taenia' ? 'embryophore' : 'shell';
   const bumps = useMemo(() => Array.from({ length: 105 }, (_, i) => {
     const y = 1 - i / 104 * 2, radius = Math.sqrt(1 - y * y), theta = Math.PI * (3 - Math.sqrt(5)) * i;
-    return new Vector3(Math.cos(theta) * radius * 1.4, y * .86, Math.sin(theta) * radius * .79);
-  }), []);
+    return new Vector3(Math.cos(theta) * radius * scale[0], y * scale[1], Math.sin(theta) * radius * scale[2]);
+  }), [scale[0], scale[1], scale[2]]);
   return <group rotation={MODEL_ROTATION}>
     <Part id={shellId} {...partProps} resolveId={isMIF ? (event) => {
       // The terminal surface is the same shell, so resolve the actual hit point
@@ -267,10 +291,10 @@ function Egg({ item, cutaway, selectedStructureId, onSelectStructure, labels }: 
       </mesh>
       {cutaway && item.id !== 'enterobius' && <mesh scale={[scale[0], scale[1], 1]} position={[0, 0, .005]}>
         {/* One schematic cut edge shows thickness without asserting histological layer counts. */}
-        <ringGeometry args={[item.id === 'taenia' || item.id === 'ascaris' ? .88 : .965, 1, 80]} /><Surface color={item.color} selected={selected(shellId)} />
+        <ringGeometry args={[item.id === 'ascaris' && ascarisStage === 'unfertilized' ? .955 : item.id === 'taenia' || item.id === 'ascaris' ? .88 : .965, 1, 80]} /><Surface color={item.color} selected={selected(shellId)} />
       </mesh>}
     </Part>
-    {item.id === 'ascaris' && <Part id="mammillated-coat" {...partProps}>
+    {item.id === 'ascaris' && !ascarisDecorticated && <Part id="mammillated-coat" {...partProps}>
       {bumps.filter((point) => !cutaway || point.z < .025).map((position, i) => <mesh key={i} position={position} scale={[1, .8, .8]}>
         <sphereGeometry args={[.08 + i % 3 * .012, 8, 7]} /><Surface color={i % 3 === 0 ? '#e2b57e' : '#c4945c'} selected={selected('mammillated-coat')} opacity={.95} />
       </mesh>)}
@@ -297,7 +321,10 @@ function Egg({ item, cutaway, selectedStructureId, onSelectStructure, labels }: 
         <sphereGeometry args={[1, 40, 16]} /><Surface color="#dbd5b7" selected={selected('flattened-side')} opacity={selected('flattened-side') ? .85 : .4} />
       </mesh></Part>
     </>}
-    {(item.id === 'ascaris' || item.id === 'trichuris') && <Part id="ovum" {...partProps}><Ovum selected={selected('ovum')} /></Part>}
+    {(item.id === 'trichuris' || (item.id === 'ascaris' && ascarisStage === 'fertilized')) && <Part id="ovum" {...partProps}><Ovum selected={selected('ovum')} /></Part>}
+    {item.id === 'ascaris' && ascarisStage === 'unfertilized' && <Part id="granular-contents" {...partProps}><UnfertilizedContents selected={selected('granular-contents')} /></Part>}
+    {item.id === 'ascaris' && ascarisStage === 'cleavage' && <Part id="blastomeres" {...partProps}><AscarisBlastomeres selected={selected('blastomeres')} /></Part>}
+    {item.id === 'ascaris' && ascarisStage === 'embryonated' && <Part id="larval-body" {...partProps}><Larva selected={selected('larval-body')} /></Part>}
     {has('perivitelline-space') && <Part id="perivitelline-space" {...partProps}>
       <SpaceRegion scale={scale} selected={selected('perivitelline-space')} inner={item.id === 'enterobius' ? .67 : .64} flattened={item.id === 'enterobius'} />
     </Part>}
@@ -368,25 +395,27 @@ function Egg({ item, cutaway, selectedStructureId, onSelectStructure, labels }: 
 }
 
 function Scene(props: AtlasModelProps) {
-  const { item, resetKey, zoom, selectedStructureId, autoRotate } = props;
+  const { item, resetKey, zoom, selectedStructureId, autoRotate, ascarisStage = 'fertilized', ascarisDecorticated = false } = props;
+  const specimenKey = item.id === 'ascaris' ? `${item.id}:${ascarisStage}` : item.id;
   const controls = useRef<ComponentRef<typeof OrbitControls>>(null);
   const previous = useRef<{ id: string; resetKey: number; width: number; height: number; zoom: number; selected: string | null } | null>(null);
   const { camera, size, gl } = useThree();
   const aspect = Math.max(size.width, 1) / Math.max(size.height, 1);
   const halfFov = (camera instanceof PerspectiveCamera ? camera.getEffectiveFOV() : 38) * Math.PI / 360;
   const limitingAngle = Math.atan(Math.tan(halfFov) * Math.min(aspect, 1));
-  const framedRadius = Math.max(...dimensions(item.id)) * 1.15;
+  const framedRadius = Math.max(...dimensions(item.id, ascarisStage)) * 1.15;
   const frameDistance = Math.max(5.3, framedRadius / Math.sin(limitingAngle) * 1.06);
   const magnification = Math.max(.6, Math.min(2.5, zoom));
   const selectedPosition = useMemo(() => {
-    const structure = getAtlasStructures(item.id).find((entry) => entry.id === selectedStructureId);
+    const structures = item.id === 'ascaris' ? getAscarisStructures(ascarisStage, ascarisDecorticated) : getAtlasStructures(item.id);
+    const structure = structures.find((entry) => entry.id === selectedStructureId);
     return structure ? new Vector3(...structure.position).applyEuler(new Euler(...MODEL_ROTATION)) : new Vector3();
-  }, [item.id, selectedStructureId]);
+  }, [item.id, selectedStructureId, ascarisStage, ascarisDecorticated]);
   useEffect(() => {
     const orbit = controls.current;
     if (!orbit) return;
     const prior = previous.current;
-    const reframe = !prior || prior.id !== item.id || prior.resetKey !== resetKey || prior.width !== size.width || prior.height !== size.height;
+    const reframe = !prior || prior.id !== specimenKey || prior.resetKey !== resetKey || prior.width !== size.width || prior.height !== size.height;
     if (reframe) {
       // Reframing respects portrait stages; toggles never change the camera.
       camera.position.set(0, .15, frameDistance / magnification);
@@ -402,8 +431,8 @@ function Scene(props: AtlasModelProps) {
       camera.position.copy(orbit.target).add(offset.multiplyScalar(prior.zoom / magnification));
     }
     orbit.update();
-    previous.current = { id: item.id, resetKey, width: size.width, height: size.height, zoom: magnification, selected: selectedStructureId };
-  }, [camera, item.id, resetKey, size.width, size.height, magnification, selectedStructureId, selectedPosition, frameDistance]);
+    previous.current = { id: specimenKey, resetKey, width: size.width, height: size.height, zoom: magnification, selected: selectedStructureId };
+  }, [camera, specimenKey, resetKey, size.width, size.height, magnification, selectedStructureId, selectedPosition, frameDistance]);
   useEffect(() => {
     gl.domElement.style.cursor = 'grab';
     return () => { gl.domElement.style.cursor = ''; };
@@ -432,7 +461,7 @@ export default function AtlasModel(props: AtlasModelProps) {
   const [available, setAvailable] = useState(webGLAvailable);
   const onContextLost = useCallback(() => setAvailable(false), [setAvailable]);
   const fallback = <div className="atlas-svg-fallback" style={{ '--atlas-fallback-zoom': Math.max(.6, Math.min(2.5, props.zoom)) } as CSSProperties}>
-    <EggIllustration speciesId={props.item.id} showInternal={props.cutaway} />
+    {props.item.id === 'ascaris' ? <AscarisStageIllustration stage={props.ascarisStage ?? 'fertilized'} decorticated={props.ascarisDecorticated} showInternal={props.cutaway} /> : <EggIllustration speciesId={props.item.id} showInternal={props.cutaway} />}
     <span><Box size={14} /> ภาพวาดจำลอง 2 มิติ · อุปกรณ์นี้ไม่รองรับ WebGL</span>
   </div>;
   if (!available) return fallback;

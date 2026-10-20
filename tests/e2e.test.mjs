@@ -347,9 +347,9 @@ test('Atlas compares credited local micrographs, preserves honest coverage, and 
           assert.equal(await page.locator('.atlas-photo-attribution a').filter({ hasText: 'CC BY-NC 4.0' }).getAttribute('href'), 'https://creativecommons.org/licenses/by-nc/4.0/')
           assert.match(await page.locator('.atlas-photo-attribution a').filter({ hasText: 'แหล่งภาพและคำบรรยาย' }).getAttribute('href'), /^https:\/\/github\.com\/tombuckelew\/parasitology-images\/blob\/[0-9a-f]{40}\//)
           assert.ok((await page.locator('.atlas-photo-caption').innerText()).length > 40)
-          if (count > 1 && index === 0) await page.getByRole('button', { name: 'ภาพจริงถัดไป' }).click()
+          if (count > 1 && index === 0) await page.locator('.ascaris-stage-option[data-stage="embryonated"]').click()
         }
-        if (name === 'Ascaris lumbricoides') assert.match(await page.locator('.atlas-photo-stage').innerText(), /ระยะไข่มีตัวอ่อน.*ต่าง/)
+        if (name === 'Ascaris lumbricoides') assert.match(await page.locator('.atlas-photo-stage').innerText(), /ตัวอ่อน/)
       }
     }
     assert.equal(seen.size, 9, 'All nine photographs across eight reference groups must decode successfully')
@@ -357,7 +357,7 @@ test('Atlas compares credited local micrographs, preserves honest coverage, and 
   } finally { await page.close() }
 })
 
-test('Atlas photo and 3D controls support keyboard tabs, independent zoom, pan, gallery reset and cited feature selection', { timeout: 90_000 }, async () => {
+test('Atlas photo and 3D controls support keyboard tabs, independent zoom, pan, stage reset and cited feature selection', { timeout: 90_000 }, async () => {
   const page = await openPage()
   const errors = []
   page.on('pageerror', error => errors.push(error.message))
@@ -396,9 +396,9 @@ test('Atlas photo and 3D controls support keyboard tabs, independent zoom, pan, 
     await frame.focus()
     await page.keyboard.press('+')
     assert.equal(Number(await photoZoom.inputValue()), 1.25)
-    await page.getByRole('button', { name: 'ภาพจริงถัดไป' }).click()
-    assert.equal(Number(await photoZoom.inputValue()), 1, 'Changing photographs must reset zoom rather than transfer the old crop')
-    assert.match(await page.locator('.atlas-photo-stage').innerText(), /ระยะไข่มีตัวอ่อน/)
+    await page.locator('.ascaris-stage-option[data-stage="embryonated"]').click()
+    assert.equal(Number(await photoZoom.inputValue()), 1, 'Changing the Ascaris reference stage must reset photo zoom rather than transfer the old crop')
+    assert.match(await page.locator('.atlas-photo-stage').innerText(), /ตัวอ่อน/)
 
     await page.getByRole('button', { name: 'ขยายโมเดล 3D' }).click()
     assert.equal(Number(await page.getByRole('slider', { name: 'ซูมโมเดล 3D' }).inputValue()), 1.2)
@@ -460,9 +460,117 @@ test('a missing micrograph displays a source link and never presents a broken im
     assert.match(await page.locator('.atlas-photo-error a').getAttribute('href'), /^https:\/\/github\.com\/tombuckelew\//)
     assert.equal(await page.getByRole('button', { name: 'ขยายภาพจริง', exact: true }).isDisabled(), true)
     assert.equal(await page.locator('.atlas-real-photo').count(), 0)
-    await page.getByRole('button', { name: 'ภาพจริงถัดไป' }).click()
+    await page.locator('.ascaris-stage-option[data-stage="embryonated"]').click()
     await page.waitForFunction(() => { const image = document.querySelector('.atlas-real-photo'); return image?.complete && image.naturalWidth > 0 })
     assert.equal(await page.locator('.atlas-photo-error').count(), 0, 'Changing to a healthy photograph must recover from the previous load failure')
     assert.equal(await page.getByRole('button', { name: 'ขยายภาพจริง', exact: true }).isEnabled(), true)
+  } finally { await page.close() }
+})
+
+test('Ascaris keeps development separate from decortication and matches its structures, photographs and infectivity notes', { timeout: 90_000 }, async () => {
+  const page = await openPage()
+  const errors = []
+  page.on('pageerror', error => errors.push(error.message))
+  const stage = id => page.locator(`.ascaris-stage-option[data-stage="${id}"]`)
+  const coat = () => page.getByRole('button', { name: 'เปลือกชั้นนอกหลุด (Decorticated)', exact: true })
+  try {
+    await page.getByRole('button', { name: 'Atlas 3D', exact: true }).click()
+    await page.locator('.atlas-model-stage canvas').waitFor()
+    assert.equal(await page.locator('.ascaris-stage-option').count(), 4, 'The four developmental options must not turn coat loss into a fifth developmental stage')
+    assert.equal(await stage('fertilized').getAttribute('aria-pressed'), 'true')
+    assert.equal(await coat().getAttribute('aria-pressed'), 'false')
+    assert.match(await page.locator('.ascaris-stage-description').innerText(), /ยังไม่.*ติดต่อ|ไม่.*ระยะติดต่อ/)
+    await page.locator('.atlas-model-stage canvas').evaluate(canvas => { canvas.dataset.testAscarisPersistence = 'original' })
+
+    await stage('unfertilized').click()
+    assert.equal(await stage('unfertilized').getAttribute('aria-pressed'), 'true')
+    assert.match(await page.locator('.ascaris-stage-description').innerText(), /ไม่.*พัฒนา|ไม่.*เจริญ/)
+    assert.match(await page.locator('.atlas-photo-caption').innerText(), /ซ้ายล่าง|ซ้าย.*ล่าง/)
+    assert.match(await page.locator('.atlas-structure-list').innerText(), /เม็ด|granular/i)
+    assert.doesNotMatch(await page.locator('.atlas-structure-list').innerText(), /ตัวอ่อนขด|blastomeres/i)
+    await page.locator('.atlas-structure-list button').filter({ hasText: /เม็ด|granular/i }).click()
+    assert.equal(await page.getByRole('button', { name: 'ภาพตัดภายใน', exact: true }).getAttribute('aria-pressed'), 'true')
+    assert.ok(await page.locator('.atlas-structure-sources a').count() > 0)
+    await page.getByRole('button', { name: 'ขยายโมเดล 3D' }).click()
+
+    await stage('cleavage').click()
+    assert.equal(Number(await page.getByRole('slider', { name: 'ซูมโมเดล 3D' }).inputValue()), 1, 'Changing stage must reframe the egg and clear the previous magnification')
+    assert.equal(await page.locator('.atlas-structure-selected').count(), 0, 'A selected structure from another stage must not remain selected')
+    assert.match(await page.locator('.atlas-structure-list').innerText(), /เซลล์แบ่งตัว|แบ่งเซลล์|blastomeres/i)
+    assert.equal(await page.locator('.atlas-real-photo').count(), 0, 'A mixed or larvated photo must not be relabelled as a verified cleavage micrograph')
+    assert.match(await page.locator('.atlas-photo-empty').innerText(), /แบ่งเซลล์|Cleavage/i)
+    await page.locator('.atlas-structure-list button').filter({ hasText: /เซลล์แบ่งตัว|แบ่งเซลล์|blastomeres/i }).click()
+    assert.match(await page.locator('.atlas-structure-description').innerText(), /เซลล์/)
+
+    await coat().click()
+    assert.equal(await coat().getAttribute('aria-pressed'), 'true')
+    assert.equal(await stage('cleavage').getAttribute('aria-pressed'), 'true', 'Coat loss must preserve the selected developmental stage')
+    assert.doesNotMatch(await page.locator('.atlas-structure-list').innerText(), /ผิวนอกขรุขระ|mammillated/i)
+    assert.equal(await page.locator('.atlas-real-photo').count(), 0)
+    assert.match(await page.locator('.atlas-photo-empty').innerText(), /Decorticated|เปลือก.*หลุด/i)
+
+    await stage('embryonated').click()
+    assert.equal(await coat().getAttribute('aria-pressed'), 'true', 'Coat state must remain independent when the developmental stage changes')
+    assert.match(await page.locator('.atlas-structure-list').innerText(), /ตัวอ่อน|larval/i)
+    assert.match(await page.locator('.ascaris-stage-description').innerText(), /ติดต่อ/)
+    assert.match(await page.locator('.ascaris-stage-description').innerText(), /ภาพ.*ไม่|ไม่.*ภาพ|ยืนยัน/)
+    await coat().click()
+    await page.waitForFunction(() => { const image = document.querySelector('.atlas-real-photo'); return image?.complete && image.naturalWidth > 0 })
+    assert.match(await page.locator('.atlas-real-photo').getAttribute('src'), /ascaris-embryonated/)
+    assert.match(await page.locator('.atlas-photo-caption').innerText(), /ตัวอ่อน/)
+    assert.equal(await page.locator('.atlas-model-stage canvas').getAttribute('data-test-ascaris-persistence'), 'original', 'Changing stage must reuse the live WebGL canvas')
+
+    await page.getByLabel('ค้นหาชื่อพยาธิ').fill('Trichuris')
+    await page.locator('.atlas-species-item').click()
+    assert.equal(await page.locator('.ascaris-stages').count(), 0, 'The Ascaris development controls must not label another parasite')
+    await page.getByLabel('ค้นหาชื่อพยาธิ').fill('Ascaris')
+    await page.locator('.atlas-species-item').click()
+    assert.equal(await stage('fertilized').getAttribute('aria-pressed'), 'true')
+    assert.equal(await coat().getAttribute('aria-pressed'), 'false')
+    assert.deepEqual(errors, [])
+  } finally { await page.close() }
+})
+
+test('phone fallback illustrations distinguish all Ascaris stages and preserve their contents when the outer coat is absent', { timeout: 90_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+  await page.addInitScript(() => {
+    const original = HTMLCanvasElement.prototype.getContext
+    HTMLCanvasElement.prototype.getContext = function(type, ...args) {
+      if (String(type).startsWith('webgl')) return null
+      return original.call(this, type, ...args)
+    }
+  })
+  const contentNames = {
+    unfertilized: 'มวลเม็ดภายในไข่ไม่ปฏิสนธิ',
+    fertilized: 'เซลล์ไข่ในไข่ปฏิสนธิระยะต้น',
+    cleavage: 'เซลล์แบ่งตัวของไข่ Ascaris ตัวอย่าง 4 เซลล์',
+    embryonated: 'ตัวอ่อนขดภายในไข่ Ascaris ที่เจริญเต็มที่',
+  }
+  try {
+    await page.goto(baseURL, { waitUntil: 'networkidle' })
+    await page.getByRole('button', { name: 'เปิดเมนู' }).click()
+    await page.getByRole('button', { name: 'Atlas 3D', exact: true }).click()
+    await page.locator('.atlas-svg-fallback').waitFor()
+    for (const [id, contentName] of Object.entries(contentNames)) {
+      await page.locator(`.ascaris-stage-option[data-stage="${id}"]`).click()
+      const diagram = page.locator(`.ascaris-stage-figure svg[data-ascaris-stage="${id}"]`)
+      assert.equal(await diagram.count(), 1, `${id} needs its own clearly labelled educational illustration`)
+      assert.equal(await diagram.getAttribute('data-decorticated'), 'false')
+      assert.equal(await diagram.getByRole('group', { name: contentName, exact: true }).count(), 1)
+      for (const other of Object.values(contentNames).filter(name => name !== contentName)) assert.equal(await diagram.getByRole('group', { name: other, exact: true }).count(), 0, `${id} must not show another developmental state's internal contents`)
+      if (id === 'cleavage') assert.equal(await diagram.getByRole('group', { name: contentName, exact: true }).locator('ellipse').count(), 4)
+      const cutaway = page.getByRole('button', { name: 'ภาพตัดภายใน', exact: true })
+      if (await cutaway.getAttribute('aria-pressed') !== 'true') await cutaway.click()
+      assert.equal(await page.locator('.atlas-svg-fallback').getByRole('group', { name: contentName, exact: true }).count(), 1, 'The large fallback must match the selected stage, not always show the original ovum')
+      const coat = page.getByRole('button', { name: 'เปลือกชั้นนอกหลุด (Decorticated)', exact: true })
+      await coat.click()
+      assert.equal(await diagram.getAttribute('data-decorticated'), 'true')
+      assert.equal(await diagram.getByRole('group', { name: 'ชั้นผิวนอกขรุขระของไข่ Ascaris', exact: true }).count(), 0)
+      assert.equal(await diagram.getByRole('group', { name: contentName, exact: true }).count(), 1, 'Decortication removes the outer coat while preserving the internal developmental state')
+      assert.equal(await page.locator('.atlas-svg-fallback').getByRole('group', { name: 'ชั้นผิวนอกขรุขระของไข่ Ascaris', exact: true }).count(), 0)
+      assert.equal(await page.locator('.atlas-real-photo').count(), 0, 'A coated photo must not be shown as decorticated')
+      await coat.click()
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${id} controls and diagrams must fit the phone viewport`)
+    }
   } finally { await page.close() }
 })
