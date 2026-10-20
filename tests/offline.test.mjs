@@ -101,7 +101,11 @@ test('a first home visit prepares unvisited Atlas, fonts, local images and expli
     await page.locator('.offline-panel strong').filter({ hasText: /^พร้อมใช้งานออฟไลน์$/ }).waitFor()
 
     const before = await cachedPaths(page)
-    const requiredAssets = (await builtAssetPaths()).filter(path => path.startsWith('/assets/'))
+    const allBuiltAssets = await builtAssetPaths()
+    const requiredAssets = allBuiltAssets.filter(path => path.startsWith('/assets/'))
+    const photoPaths = allBuiltAssets.filter(path => /^\/atlas\/photos\/.+\.jpg$/.test(path))
+    assert.equal(photoPaths.length, 9, 'The offline package must include all nine licensed original micrographs')
+    for (const photo of photoPaths) assert.ok(before.includes(photo), `The first home visit did not precache an unvisited Atlas photograph: ${photo}`)
     assert.ok(requiredAssets.some(path => /\/Atlas-.*\.js$/.test(path)), 'The production build must contain a lazy Atlas chunk')
     assert.ok(requiredAssets.some(path => /\.woff2$/.test(path)), 'Bundled fonts must be available in the offline build')
     for (const asset of requiredAssets) assert.ok(before.includes(asset), `Required built asset was not precached: ${asset}`)
@@ -120,6 +124,28 @@ test('a first home visit prepares unvisited Atlas, fonts, local images and expli
     await nav(page, 'Atlas 3D').click()
     await page.locator('.atlas-model-stage canvas').waitFor()
     assert.equal(await page.locator('.atlas-species-item').count(), 11)
+    const offlinePhotoNames = ['Ascaris lumbricoides', 'Trichuris trichiura', 'Hookworm', 'Taenia spp.', 'Enterobius vermicularis', 'Hymenolepis nana', 'Hymenolepis diminuta', 'Fasciolopsis buski']
+    const decodedPhotos = new Set()
+    for (const name of offlinePhotoNames) {
+      await page.getByLabel('ค้นหาชื่อพยาธิ').fill(name)
+      await page.locator('.atlas-species-item').click()
+      const count = name === 'Ascaris lumbricoides' ? 2 : 1
+      for (let index = 0; index < count; index++) {
+        await page.waitForFunction(() => { const image = document.querySelector('.atlas-real-photo'); return image?.complete && image.naturalWidth > 0 })
+        decodedPhotos.add(await page.locator('.atlas-real-photo').getAttribute('src'))
+        assert.match(await page.locator('.atlas-photo-attribution').innerText(), /Thomas P\. Buckelew.*CC BY-NC/s)
+        if (index + 1 < count) await page.getByRole('button', { name: 'ภาพจริงถัดไป' }).click()
+      }
+      if (name === 'Hymenolepis nana') {
+        await page.locator('.atlas-structure-list button').filter({ hasText: 'เส้นใยขั้ว' }).click()
+        assert.equal(await page.getByRole('button', { name: 'ภาพตัดภายใน', exact: true }).getAttribute('aria-pressed'), 'true')
+        assert.match(await page.locator('.atlas-structure-description').innerText(), /polar filaments/)
+        assert.ok(await page.locator('.atlas-structure-sources a').count() > 0, 'Feature explanations and their citation labels must load offline')
+        await page.getByRole('button', { name: 'ขยายภาพจริง', exact: true }).click()
+        assert.equal(Number(await page.getByRole('slider', { name: 'ซูมภาพจริง', exact: true }).inputValue()), 1.25)
+      }
+    }
+    assert.deepEqual([...decodedPhotos].sort(), photoPaths.sort(), 'All previously unvisited photographs must decode while fully offline')
     await page.getByRole('button', { name: 'ภาพตัดภายใน', exact: true }).click()
     await page.getByLabel('ค้นหาชื่อพยาธิ').fill('OV')
     assert.equal(await page.locator('.atlas-species-item').count(), 1)
@@ -128,6 +154,8 @@ test('a first home visit prepares unvisited Atlas, fonts, local images and expli
     assert.match(await page.locator('.atlas-feature-section').innerText(), /operculum and shoulders/)
     assert.match(await page.locator('.atlas-feature-section').innerText(), /abopercular knob/)
     assert.match(await page.locator('.atlas-clinical-note').innerText(), /Clonorchis/)
+    assert.match(await page.locator('.atlas-photo-empty').innerText(), /ยังไม่มีภาพไข่จริง/)
+    assert.ok(await page.locator('.atlas-photo-sources a').count() > 0, 'Missing imagery must preserve source references while offline')
     const addedOfflineReferences = [
       { query: 'MIF', name: 'Minute intestinal flukes (MIF)', feature: /miracidium/, note: /OV.*Clonorchis/ },
       { query: 'ตืดแคระ', name: 'Hymenolepis nana', feature: /polar filaments/, note: /ภาพเดียว/ },
@@ -201,7 +229,8 @@ test('a first home visit prepares unvisited Atlas, fonts, local images and expli
 const contentTypes = {
   '.html': 'text/html; charset=utf-8', '.js': 'application/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.webmanifest': 'application/manifest+json',
-  '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2',
+  '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+  '.txt': 'text/plain; charset=utf-8', '.ico': 'image/x-icon', '.woff2': 'font/woff2',
 }
 
 async function faultInjectionServer() {

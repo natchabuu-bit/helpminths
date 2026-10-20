@@ -1,327 +1,78 @@
-import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef, type ErrorInfo, type ReactNode } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
-import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, PerspectiveCamera, SphereGeometry, Vector3 } from 'three';
-import { ArrowUpRight, BookOpen, Box, Check, ChevronRight, Eye, Info, Layers3, Maximize2, Pause, Play, RotateCcw, Search, SlidersHorizontal, Sparkles, X } from 'lucide-react';
-import { getSpeciesById, groupLabels, matchSpeciesLabel, species, type ParasiteSpecies, type SpeciesGroup } from '../data/species';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowUpRight, BookOpen, Box, Check, ChevronRight, Eye, Info, Layers3, Maximize2, Minus, Pause, Play, Plus, RotateCcw, Search, SlidersHorizontal, X } from 'lucide-react';
+import { getSpeciesById, groupLabels, matchSpeciesLabel, species, type SpeciesGroup } from '../data/species';
+import { atlasEvidenceNote, atlasSources, getAtlasStructures } from '../data/atlasStructures';
+import { atlasPhotos, getAtlasPhotos } from '../data/atlasPhotos';
 import EggIllustration from './EggIllustration';
+import AtlasModel from './AtlasModel';
+import AtlasPhotoViewer from './AtlasPhotoViewer';
 import '../styles/atlas.css';
 
-interface AtlasProps { initialSpecies?: string }
+type ViewMode = 'compare' | 'model' | 'photo';
+const viewModes: { id: ViewMode; label: string }[] = [
+  { id: 'compare', label: 'เทียบภาพจริงกับ 3D' }, { id: 'model', label: 'โมเดล 3D' }, { id: 'photo', label: 'ภาพไข่จริง' },
+];
+const photoCoverage = new Set(atlasPhotos.map((photo) => photo.speciesId)).size;
+const structureCount = species.reduce((count, item) => count + getAtlasStructures(item.id).length, 0);
 
-function webGLAvailable() {
-  if (typeof document === 'undefined') return false;
-  try {
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('webgl2') || canvas.getContext('webgl');
-    if (!context) return false;
-    context.getExtension('WEBGL_lose_context')?.loseContext();
-    return true;
-  } catch { return false; }
-}
-
-class ModelBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
-  state = { failed: false };
-  static getDerivedStateFromError() { return { failed: true }; }
-  componentDidCatch(_error: Error, _info: ErrorInfo) { /* The SVG fallback keeps the atlas available. */ }
-  render() { return this.state.failed ? this.props.fallback : this.props.children; }
-}
-
-function dimensions(id: string): [number, number, number] {
-  if (id === 'taenia') return [1, 1, 1];
-  if (id === 'trichuris') return [1.5, .62, .62];
-  if (id === 'enterobius') return [1.55, .74, .64];
-  if (id === 'opisthorchis') return [1.35, .68, .62];
-  if (id === 'mif') return [1.27, .69, .62];
-  if (id === 'hymenolepis-nana') return [.98, .94, .9];
-  if (id === 'hymenolepis-diminuta') return [1.1, .95, .87];
-  if (id === 'echinostoma') return [1.4, .8, .75];
-  if (id === 'fasciolopsis') return [1.65, .76, .7];
-  return [1.4, .86, .79];
-}
-
-function eggGeometry(id: string, cutaway: boolean) {
-  const scale = dimensions(id);
-  const geometry = new SphereGeometry(1, 64, 40, cutaway ? Math.PI : 0, cutaway ? Math.PI : Math.PI * 2);
-  const positions = geometry.attributes.position;
-  for (let i = 0; i < positions.count; i++) {
-    const x = positions.getX(i);
-    const y = positions.getY(i);
-    const z = positions.getZ(i);
-    let nextY = y;
-    if (id === 'enterobius' && nextY < -.34) nextY = -.34 + (nextY + .34) * .075;
-    if (id === 'trichuris') {
-      const endShape = .88 + .12 * (1 - x * x);
-      positions.setXYZ(i, x * scale[0], nextY * scale[1] * endShape, z * scale[2] * endShape);
-    } else {
-      const asymmetry = id === 'opisthorchis' ? 1 + x * .12 : id === 'mif' ? 1 + x * .08 : 1;
-      positions.setXYZ(i, x * scale[0], nextY * scale[1] * asymmetry, z * scale[2] * asymmetry);
-    }
-  }
-  geometry.computeVertexNormals();
-  return geometry;
-}
-
-function CurveTube({ points, color, radius = .055 }: { points: Vector3[]; color: string; radius?: number }) {
-  // A continuous tapered ribbon gives internal structures a soft organic silhouette.
-  const geometry = useMemo(() => {
-    const vertices: number[] = [];
-    const normals: number[] = [];
-    const indices: number[] = [];
-    points.forEach((point, i) => {
-      const tangent = (points[Math.min(i + 1, points.length - 1)].clone().sub(points[Math.max(i - 1, 0)])).normalize();
-      const normal = new Vector3(-tangent.y, tangent.x, 0).normalize();
-      for (let j = 0; j < 10; j++) {
-        const angle = j / 10 * Math.PI * 2;
-        vertices.push(point.x + normal.x * Math.cos(angle) * radius, point.y + normal.y * Math.cos(angle) * radius, point.z + Math.sin(angle) * radius);
-        normals.push(normal.x * Math.cos(angle), normal.y * Math.cos(angle), Math.sin(angle));
-        if (i > 0) {
-          const a = (i - 1) * 10 + j, b = (i - 1) * 10 + (j + 1) % 10, c = i * 10 + j, d = i * 10 + (j + 1) % 10;
-          indices.push(a, c, b, b, c, d);
-        }
-      }
-    });
-    const value = new BufferGeometry();
-    value.setAttribute('position', new Float32BufferAttribute(vertices, 3));
-    value.setAttribute('normal', new Float32BufferAttribute(normals, 3));
-    value.setIndex(indices);
-    return value;
-  }, [points, radius]);
-  useEffect(() => () => geometry.dispose(), [geometry]);
-  return <mesh geometry={geometry}><meshStandardMaterial color={color} roughness={.6} /></mesh>;
-}
-
-function Larva() {
-  const points = useMemo(() => Array.from({ length: 95 }, (_, i) => {
-    const angle = i / 94 * Math.PI * 3.4;
-    const radius = .67 * (1 - i / 150);
-    return new Vector3(Math.cos(angle) * radius * 1.35, Math.sin(angle) * radius * .38 - .01, .1);
-  }), []);
-  return <CurveTube points={points} color="#9ba875" radius={.075} />;
-}
-
-/** The simple cap represents an operculum; a raised shoulder is specific to the OV model. */
-function Operculum({ scale, color, shoulder = false }: { scale: [number, number, number]; color: string; shoulder?: boolean }) {
-  const position: [number, number, number] = [-scale[0] * .88, 0, 0];
-  return <group position={position}>
-    <mesh scale={[scale[0] * .15, scale[1] * .49, scale[2] * .49]}><sphereGeometry args={[1, 32, 24]} /><meshPhysicalMaterial color={color} roughness={.4} transparent opacity={.87} /></mesh>
-    <mesh rotation={[0, Math.PI / 2, 0]} scale={[scale[2] / scale[1], 1, 1]}><torusGeometry args={[scale[1] * .49, shoulder ? .035 : .017, 12, 48]} /><meshStandardMaterial color={shoulder ? '#91662e' : '#a58b56'} roughness={.6} /></mesh>
-  </group>;
-}
-
-function Miracidium({ small = false }: { small?: boolean }) {
-  return <group scale={small ? [.92, 1, 1] : [1, 1, 1]}>
-    <mesh scale={[.81, .34, .29]}><sphereGeometry args={[1, 44, 30]} /><meshStandardMaterial color="#a39754" roughness={.64} /></mesh>
-    {Array.from({ length: 24 }, (_, i) => {
-      const a = i / 24 * Math.PI * 2;
-      return <mesh key={i} position={[Math.cos(a) * .76, Math.sin(a) * .33, .025]} rotation={[0, 0, a - Math.PI / 2]}><coneGeometry args={[.018, .1, 6]} /><meshStandardMaterial color="#d8ce8f" /></mesh>;
-    })}
-    {small && <mesh position={[.1, 0, .26]} scale={[.23, .15, .08]}><sphereGeometry args={[1, 24, 18]} /><meshStandardMaterial color="#c2b879" roughness={.75} /></mesh>}
-  </group>;
-}
-
-/** Freshly passed large intestinal fluke eggs contain yolk cells, not a developed miracidium. */
-function YolkCells({ scale }: { scale: [number, number, number] }) {
-  const cells = useMemo(() => Array.from({ length: 68 }, (_, i) => {
-    const angle = i * Math.PI * (3 - Math.sqrt(5));
-    const distance = Math.sqrt((i + .5) / 68);
-    return [Math.cos(angle) * distance * scale[0] * .68, Math.sin(angle) * distance * scale[1] * .7, .2 + Math.sin(i * 1.71) * .12] as [number, number, number];
-  }), [scale]);
-  return <group>
-    <mesh scale={[scale[0] * .73, scale[1] * .76, scale[2] * .48]}><sphereGeometry args={[1, 44, 30]} /><meshStandardMaterial color="#ad9864" roughness={.8} /></mesh>
-    {cells.map((position, i) => <mesh key={i} position={position} scale={[1.12, .9, .8]}><sphereGeometry args={[.075 + i % 3 * .009, 12, 10]} /><meshStandardMaterial color={['#d7c18b', '#bba36c', '#9d8b58'][i % 3]} roughness={.9} /></mesh>)}
-  </group>;
-}
-
-function Oncosphere({ taenia = false }: { taenia?: boolean }) {
-  const hooks = useMemo(() => Array.from({ length: 6 }, (_, n) => Array.from({ length: 16 }, (_, j) => {
-    const t = j / 15;
-    const a = n / 6 * Math.PI * 2;
-    const x = .1 + t * .18;
-    const y = Math.sin(t * Math.PI) * .12;
-    return new Vector3(Math.cos(a) * x - Math.sin(a) * y, Math.sin(a) * x + Math.cos(a) * y, .49);
-  })), []);
-  return <group scale={taenia ? 1 : .86}>
-    <mesh scale={[.5, .5, .46]}><sphereGeometry args={[1, 44, 30]} /><meshStandardMaterial color="#8d996b" roughness={.64} /></mesh>
-    {hooks.map((points, i) => <CurveTube key={i} points={points} color="#f2e4b6" radius={.024} />)}
-  </group>;
-}
-
-function PolarFilaments() {
-  const filaments = useMemo(() => [-1, 1].flatMap((direction) => Array.from({ length: 4 }, (_, n) => Array.from({ length: 56 }, (_, j) => {
-    const t = j / 55;
-    const angle = t * Math.PI * (1.7 + n * .14) + n * .72;
-    return new Vector3(direction * (.59 + Math.sin(t * Math.PI) * .19 + Math.sin(angle) * .065), Math.sin(angle) * (.16 + t * .17), .15 + n * .025);
-  }))), []);
-  return <group>
-    {[-1, 1].map((direction) => <mesh key={direction} position={[direction * .59, 0, .1]} scale={[.055, .14, .1]}><sphereGeometry args={[1, 24, 18]} /><meshStandardMaterial color="#e8dcb6" roughness={.6} /></mesh>)}
-    {filaments.map((points, i) => <CurveTube key={i} points={points} color="#f0e4bd" radius={.013} />)}
-  </group>;
-}
-
-function Egg({ item, cutaway }: { item: ParasiteSpecies; cutaway: boolean }) {
-  const shellGeometry = useMemo(() => eggGeometry(item.id, cutaway), [item.id, cutaway]);
-  useEffect(() => () => shellGeometry.dispose(), [shellGeometry]);
-  const scale = dimensions(item.id);
-  const shell = new Color(item.color);
-  const isOV = item.id === 'opisthorchis';
-  const isMIF = item.id === 'mif';
-  const isNana = item.id === 'hymenolepis-nana';
-  const isDiminuta = item.id === 'hymenolepis-diminuta';
-  const isHymenolepis = isNana || isDiminuta;
-  const isLargeFluke = item.id === 'echinostoma' || item.id === 'fasciolopsis';
-  const bumps = useMemo(() => Array.from({ length: 105 }, (_, i) => {
-    const y = 1 - (i / 104) * 2;
-    const r = Math.sqrt(1 - y * y);
-    const theta = Math.PI * (3 - Math.sqrt(5)) * i;
-    return new Vector3(Math.cos(theta) * r * 1.4, y * .86, Math.sin(theta) * r * .79);
-  }), []);
-  return (
-    <group rotation={[.09, -.08, -.18]}>
-      <mesh geometry={shellGeometry} renderOrder={3}>
-        <meshPhysicalMaterial color={shell} roughness={.38} metalness={.03} clearcoat={.35} transparent opacity={cutaway ? .78 : .57} depthWrite={false} side={DoubleSide} />
-      </mesh>
-      {cutaway && item.id !== 'enterobius' && <mesh scale={[scale[0], scale[1], 1]} position={[0, 0, .005]}><ringGeometry args={[.94, 1, 80]} /><meshStandardMaterial color={item.color} roughness={.7} side={DoubleSide} /></mesh>}
-      {item.id === 'ascaris' && bumps.filter((p) => !cutaway || p.z < .025).map((p, i) => <mesh key={i} position={p} scale={[1, .8, .8]}><sphereGeometry args={[.08 + (i % 3) * .012, 8, 7]} /><meshStandardMaterial color={i % 3 === 0 ? '#e2b57e' : '#c4945c'} roughness={.8} transparent opacity={.88} /></mesh>)}
-      {item.id === 'trichuris' && [-1, 1].map((direction) => <group key={direction} position={[direction * 1.46, 0, 0]} rotation={[0, 0, Math.PI / 2]}><mesh scale={[.18, .24, .18]}><sphereGeometry args={[1, 24, 20]} /><meshPhysicalMaterial color="#ead6ad" roughness={.3} transparent opacity={.9} /></mesh><mesh rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[.18, .035, 10, 32]} /><meshStandardMaterial color="#c49a61" /></mesh></group>)}
-      {item.id === 'hookworm' && [[-.48, .15, .02], [0, .25, -.06], [.45, .08, .01], [-.33, -.26, .12], [.18, -.21, .15], [.12, .03, -.25]].map((position, i) => <mesh key={i} position={position as [number, number, number]} scale={[1, .91, .85]}><sphereGeometry args={[.31, 28, 22]} /><meshPhysicalMaterial color={i % 2 ? '#aab487' : '#8e9c74'} roughness={.7} clearcoat={.2} /></mesh>)}
-      {item.id === 'enterobius' && <Larva />}
-      {(item.id === 'ascaris' || item.id === 'trichuris') && <mesh scale={[.77, .51, .45]}><sphereGeometry args={[1, 44, 30]} /><meshStandardMaterial color="#8d996b" roughness={.64} /></mesh>}
-      {(isOV || isMIF) && <Miracidium small={isMIF} />}
-      {isLargeFluke && <YolkCells scale={scale} />}
-      {(item.id === 'taenia' || isHymenolepis) && <Oncosphere taenia={item.id === 'taenia'} />}
-      {isHymenolepis && <>
-        <mesh scale={isNana ? [.6, .65, .6] : [.66, .65, .59]} renderOrder={2}><sphereGeometry args={[1, 48, 32, cutaway ? Math.PI : 0, cutaway ? Math.PI : Math.PI * 2]} /><meshPhysicalMaterial color={isNana ? '#e1d7b3' : '#d8be7e'} roughness={.4} transparent opacity={isNana ? .29 : .46} depthWrite={false} side={DoubleSide} /></mesh>
-        {cutaway && <mesh scale={isNana ? [.6, .65, 1] : [.66, .65, 1]} position={[0, 0, .015]}><ringGeometry args={[.965, 1, 72]} /><meshStandardMaterial color="#e2ce9b" side={DoubleSide} /></mesh>}
-        {isDiminuta && <mesh scale={[scale[0] * .95, scale[1] * .95, scale[2] * .95]} renderOrder={2}><sphereGeometry args={[1, 48, 32, cutaway ? Math.PI : 0, cutaway ? Math.PI : Math.PI * 2]} /><meshPhysicalMaterial color="#e3c484" roughness={.5} transparent opacity={.28} depthWrite={false} side={DoubleSide} /></mesh>}
-        {isNana && <PolarFilaments />}
-      </>}
-      {(isMIF || isLargeFluke) && <Operculum scale={scale} color={isMIF ? '#e8cb88' : '#e3c993'} />}
-      {isOV && <>
-        <Operculum scale={scale} color="#dfbc72" shoulder />
-        <mesh position={[1.36, 0, 0]} scale={[.1, .075, .075]}><sphereGeometry args={[1, 24, 18]} /><meshStandardMaterial color="#dfbd72" roughness={.5} /></mesh>
-      </>}
-      {item.id === 'taenia' && <>
-        {Array.from({ length: 42 }, (_, i) => {
-          const angle = i / 42 * Math.PI * 2;
-          return <mesh key={i} position={[Math.cos(angle) * .955, Math.sin(angle) * .955, 0]} rotation={[0, 0, angle]} scale={[.07, .024, cutaway ? .12 : .2]}><sphereGeometry args={[1, 10, 8]} /><meshStandardMaterial color={i % 3 ? '#d3a76d' : '#805831'} roughness={.8} /></mesh>;
-        })}
-      </>}
-    </group>
-  );
-}
-
-function Scene({ item, cutaway, autoRotate, resetKey }: { item: ParasiteSpecies; cutaway: boolean; autoRotate: boolean; resetKey: number }) {
-  const controls = useRef<ComponentRef<typeof OrbitControls>>(null);
-  const { camera, size } = useThree();
-  // Fit a sphere around the egg, cap and surface details. The narrower field of
-  // view matters in the tall desktop stage as well as a portrait phone screen.
-  const aspect = Math.max(size.width, 1) / Math.max(size.height, 1);
-  const halfFov = (camera instanceof PerspectiveCamera ? camera.getEffectiveFOV() : 38) * Math.PI / 360;
-  const limitingAngle = Math.atan(Math.tan(halfFov) * Math.min(aspect, 1));
-  const framedRadius = Math.max(...dimensions(item.id)) * 1.15;
-  const frameDistance = Math.max(5.3, framedRadius / Math.sin(limitingAngle) * 1.06);
-  useEffect(() => {
-    camera.position.set(0, .15, frameDistance);
-    controls.current?.target.set(0, 0, 0);
-    controls.current?.update();
-  }, [resetKey, camera, item.id, size.width, size.height, frameDistance]);
-  return <>
-    <ambientLight intensity={1.1} />
-    <directionalLight position={[-3, 4, 5]} intensity={2.6} color="#fff1d9" />
-    <directionalLight position={[4, 1, -2]} intensity={2.2} color="#9de9dc" />
-    <pointLight position={[0, -3, 2]} intensity={8} color="#80aaa1" />
-    <Egg item={item} cutaway={cutaway} />
-    <OrbitControls ref={controls} makeDefault enablePan={false} minDistance={3} maxDistance={Math.max(8, frameDistance * 1.6)} autoRotate={autoRotate} autoRotateSpeed={.7} enableDamping dampingFactor={.07} />
-  </>;
-}
-
-function CanvasContextGuard({ onLost }: { onLost: () => void }) {
-  const gl = useThree((state) => state.gl);
-  useEffect(() => {
-    const canvas = gl.domElement;
-    canvas.addEventListener('webglcontextlost', onLost);
-    return () => canvas.removeEventListener('webglcontextlost', onLost);
-  }, [gl, onLost]);
-  return null;
-}
-
-function ModelViewer({ item, cutaway, autoRotate, resetKey }: { item: ParasiteSpecies; cutaway: boolean; autoRotate: boolean; resetKey: number }) {
-  const [available, setAvailable] = useState(webGLAvailable);
-  const onContextLost = useCallback(() => setAvailable(false), []);
-  const fallback = <div className="atlas-svg-fallback"><EggIllustration speciesId={item.id} showInternal={cutaway} /><span><Box size={14} /> ภาพวาดจำลอง 2 มิติ · อุปกรณ์นี้ไม่รองรับ WebGL</span></div>;
-  if (!available) return fallback;
-  return <ModelBoundary fallback={fallback}>
-    <Canvas camera={{ position: [0, .15, 5.3], fov: 38 }} dpr={[1, 1.7]} gl={{ antialias: true, alpha: true }} fallback={fallback}>
-      <CanvasContextGuard onLost={onContextLost} />
-      <Suspense fallback={null}><Scene item={item} cutaway={cutaway} autoRotate={autoRotate} resetKey={resetKey} /></Suspense>
-    </Canvas>
-  </ModelBoundary>;
-}
-
-/** DOM callouts stay in the application root, separate from the WebGL scene lifecycle. */
-function ModelAnnotations({ item, cutaway }: { item: ParasiteSpecies; cutaway: boolean }) {
-  const annotations: Record<string, [string, string]> = {
-    ascaris: ['ผิวนอกขรุขระ', 'เซลล์ไข่'],
-    trichuris: ['จุกสองขั้ว', 'เซลล์ไข่'],
-    hookworm: ['เปลือกบางใส', 'ตัวอ่อนแบ่งเซลล์'],
-    enterobius: ['ด้านหนึ่งแบน', 'ตัวอ่อน'],
-    taenia: ['ผนังลายรัศมี', 'ตะขอ 3 คู่'],
-    opisthorchis: ['ฝาปิดและบ่า · ปุ่มขั้วตรงข้าม', 'Miracidium'],
-    mif: ['ฝาปิด · เปลือกเรียบ', 'Miracidium · กลุ่ม MIF'],
-    'hymenolepis-nana': ['เยื่อหุ้มบางสองชั้น', 'เส้นใยขั้ว · ตะขอ 3 คู่'],
-    'hymenolepis-diminuta': ['ผนังสองชั้น', 'ตะขอ 3 คู่ · ไม่มีเส้นใยขั้ว'],
-    echinostoma: ['ฝาปิด · เปลือกบาง', 'เซลล์ไข่แดง · ยังไม่มีตัวอ่อน'],
-    fasciolopsis: ['ฝาปิด · รูปรีขนาดใหญ่', 'เซลล์ไข่แดง · ยังไม่มีตัวอ่อน'],
-  };
-  const [outerLabel, innerLabel] = annotations[item.id];
-  return <div className="atlas-annotations" aria-label="จุดสังเกตของแบบจำลอง">
-    <div className="atlas-callout atlas-callout-outer"><div className="atlas-model-label"><span />{outerLabel}</div><small>ลักษณะภายนอก</small></div>
-    {cutaway && <div className="atlas-callout atlas-callout-inner"><small>โครงสร้างภายใน</small><div className="atlas-model-label"><span />{innerLabel}</div></div>}
-  </div>;
-}
-
-export default function Atlas({ initialSpecies }: AtlasProps) {
+export default function Atlas({ initialSpecies }: { initialSpecies?: string }) {
   const [selectedId, setSelectedId] = useState(getSpeciesById(initialSpecies).id);
   const [query, setQuery] = useState('');
   const [group, setGroup] = useState<SpeciesGroup | 'all'>('all');
+  const [mode, setMode] = useState<ViewMode>('compare');
   const [cutaway, setCutaway] = useState(false);
   const [labels, setLabels] = useState(true);
   const [autoRotate, setAutoRotate] = useState(true);
+  const [zoom, setZoom] = useState(1);
+  const [selectedStructureId, setSelectedStructureId] = useState<string | null>(null);
   const [resetKey, setResetKey] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const viewerRef = useRef<HTMLDivElement>(null);
   const item = getSpeciesById(selectedId);
+  const structures = getAtlasStructures(item.id);
+  const selectedStructure = structures.find((part) => part.id === selectedStructureId) || null;
+  const photos = getAtlasPhotos(item.id);
   const queryLabel = query.toLowerCase().trim();
   const aliasMatch = matchSpeciesLabel(queryLabel);
   const matches = species.filter((entry) => (group === 'all' || entry.group === group) && (entry.id === aliasMatch?.id || `${entry.name} ${entry.thaiName}`.toLowerCase().includes(queryLabel)));
-  useEffect(() => { if (initialSpecies) setSelectedId(getSpeciesById(initialSpecies).id); }, [initialSpecies]);
+
+  function chooseSpecies(id: string) {
+    setSelectedId(id); setSelectedStructureId(null); setZoom(1); setCutaway(false);
+    setResetKey((value) => value + 1);
+  }
+  function selectStructure(id: string) {
+    const part = structures.find((entry) => entry.id === id);
+    if (!part) return;
+    setSelectedStructureId(id); setAutoRotate(false);
+    if (part.internal) setCutaway(true);
+    if (mode === 'photo') setMode('compare');
+  }
+  function resetModel() {
+    setSelectedStructureId(null); setZoom(1); setResetKey((value) => value + 1);
+  }
+  useEffect(() => { if (initialSpecies) chooseSpecies(getSpeciesById(initialSpecies).id); }, [initialSpecies]);
   useEffect(() => {
     if (!expanded) return;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setExpanded(false);
+      if (event.key === 'Escape') { setExpanded(false); return; }
       if (event.key !== 'Tab') return;
-      const buttons = viewerRef.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)');
-      if (!buttons?.length) return;
-      const first = buttons[0];
-      const last = buttons[buttons.length - 1];
-      if (event.shiftKey && (document.activeElement === first || document.activeElement === viewerRef.current)) {
-        event.preventDefault(); last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault(); first.focus();
-      }
+      const focusable = Array.from(viewerRef.current?.querySelectorAll<HTMLElement>('button, a[href], input, [tabindex="0"]') || []).filter((element) => element.getClientRects().length && !(element as HTMLButtonElement).disabled);
+      const first = focusable[0], last = focusable.at(-1);
+      if (!first || !last) return;
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === viewerRef.current)) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && (document.activeElement === last || document.activeElement === viewerRef.current)) { event.preventDefault(); first.focus(); }
     };
     window.addEventListener('keydown', onKey);
     const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    viewerRef.current?.focus();
+    document.body.style.overflow = 'hidden'; viewerRef.current?.focus();
     return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = previous; previousFocus?.focus(); };
   }, [expanded]);
+
   return <section className="atlas-page" aria-label="คลังเรียนรู้ไข่พยาธิสามมิติ">
     <div className="atlas-heading">
-      <div><div className="atlas-eyebrow"><span /> THE MORPHOLOGY COLLECTION</div><h1>รายละเอียดเล็ก ๆ <span>ที่สร้างความเข้าใจ</span></h1><p>สำรวจโครงสร้างไข่พยาธิ หมุนดูได้ทุกมุม และเรียนรู้จุดสังเกตที่สำคัญ</p></div>
-      <div className="atlas-collection-tag"><Box size={23} /><div><strong>3D Morphology Atlas</strong><span>{species.length} ชนิดอ้างอิง · เรียนรู้แบบอินเทอร์แอคทีฟ</span></div></div>
+      <div><div className="atlas-eyebrow"><span /> THE MORPHOLOGY COLLECTION</div><h1>จากภาพจริง <span>สู่ความเข้าใจโครงสร้าง</span></h1><p>เทียบภาพกล้องจุลทรรศน์กับโมเดล 3D แล้วเลือกสำรวจทีละส่วน</p></div>
+      <div className="atlas-collection-tag"><Box size={23} /><div><strong>Microscopy × 3D Atlas</strong><span>{species.length} กลุ่มอ้างอิง · ภาพจริง {photoCoverage} กลุ่ม · โครงสร้าง {structureCount} จุด</span></div></div>
     </div>
     <div className="atlas-workspace">
       <aside className="atlas-catalog" aria-label="เลือกชนิดพยาธิ">
@@ -329,30 +80,47 @@ export default function Atlas({ initialSpecies }: AtlasProps) {
         <label className="atlas-search"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ค้นหาชื่อพยาธิ..." aria-label="ค้นหาชื่อพยาธิ" /></label>
         <label className="atlas-filter"><SlidersHorizontal size={14} /><select value={group} onChange={(event) => setGroup(event.target.value as SpeciesGroup | 'all')} aria-label="กรองกลุ่มพยาธิ"><option value="all">ทุกกลุ่มพยาธิ</option>{Object.entries(groupLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <div className="atlas-species-list">
-          {matches.map((entry) => <button className={`atlas-species-item ${entry.id === selectedId ? 'atlas-selected' : ''}`} key={entry.id} onClick={() => { setSelectedId(entry.id); setResetKey((value) => value + 1); }} aria-pressed={entry.id === selectedId}>
-            <div className="atlas-species-thumb"><EggIllustration speciesId={entry.id} /></div><div className="atlas-species-name"><span className="atlas-item-index">SPECIMEN {String(species.indexOf(entry) + 1).padStart(2, '0')}</span><strong>{entry.name}</strong><span>{entry.thaiName}</span></div><ChevronRight size={15} />
+          {matches.map((entry) => <button className={`atlas-species-item ${entry.id === selectedId ? 'atlas-selected' : ''}`} key={entry.id} onClick={() => chooseSpecies(entry.id)} aria-pressed={entry.id === selectedId}>
+            <div className="atlas-species-thumb"><EggIllustration speciesId={entry.id} /></div><div className="atlas-species-name"><span className="atlas-item-index">SPECIMEN {String(species.indexOf(entry) + 1).padStart(2, '0')}</span><strong>{entry.name}</strong><span>{entry.thaiName}</span><small>{getAtlasPhotos(entry.id).length ? 'มีภาพไข่จริง' : '3D · รอภาพจริง'}</small></div><ChevronRight size={15} />
           </button>)}
           {matches.length === 0 && <p className="atlas-empty">ไม่พบชนิดที่ตรงกับคำค้น<br /><button onClick={() => { setQuery(''); setGroup('all'); }}>ดูทั้งหมด</button></p>}
         </div>
-        <div className="atlas-catalog-foot"><BookOpen size={15} /><span>เรียนรู้จากโครงสร้างและลักษณะเฉพาะ</span></div>
+        <div className="atlas-catalog-foot"><BookOpen size={15} /><span>ภาพและโมเดลพร้อมใช้ออฟไลน์<br />หลังบันทึกแอพครบแล้ว</span></div>
       </aside>
       <div className={`atlas-viewer ${expanded ? 'atlas-viewer-expanded' : ''}`} ref={viewerRef} tabIndex={-1} role={expanded ? 'dialog' : undefined} aria-modal={expanded || undefined} aria-label={expanded ? `แบบจำลองสามมิติ ${item.name}` : undefined}>
-        <div className="atlas-viewer-top"><div className="atlas-viewer-mode"><span /> INTERACTIVE 3D</div><div className="atlas-viewer-actions"><button aria-label="เริ่มมุมมองใหม่" title="เริ่มมุมมองใหม่" onClick={() => setResetKey((value) => value + 1)}><RotateCcw size={17} /></button><button className={expanded ? 'atlas-close-expanded' : ''} aria-label={expanded ? 'ปิดมุมมองแบบขยาย' : 'ขยายมุมมอง'} aria-pressed={expanded} title="ขยายหรือย่อมุมมอง · Esc เพื่อปิด" onClick={() => setExpanded((value) => !value)}>{expanded ? <><X size={16} /><span>ปิด</span></> : <Maximize2 size={17} />}</button></div></div>
-        <div className="atlas-model-stage"><ModelViewer item={item} cutaway={cutaway} autoRotate={autoRotate} resetKey={resetKey} />{labels && <ModelAnnotations item={item} cutaway={cutaway} />}<div className="atlas-stage-watermark" aria-hidden="true">{String(species.findIndex((entry) => entry.id === item.id) + 1).padStart(2, '0')}</div></div>
-        <div className="atlas-specimen-caption"><span>{groupLabels[item.group]}</span><h2>{item.name}</h2><p>{item.thaiName}</p></div>
-        <div className="atlas-model-toolbar"><button className={cutaway ? 'atlas-tool-active' : ''} aria-pressed={cutaway} onClick={() => setCutaway((value) => !value)}><Layers3 size={16} /> ภาพตัดภายใน</button><button className={labels ? 'atlas-tool-active' : ''} aria-pressed={labels} onClick={() => setLabels((value) => !value)}><Eye size={16} /> จุดสังเกต</button><button className={`atlas-rotate-button ${autoRotate ? 'atlas-tool-active' : ''}`} aria-label={autoRotate ? 'หยุดหมุนอัตโนมัติ' : 'หมุนอัตโนมัติ'} aria-pressed={autoRotate} onClick={() => setAutoRotate((value) => !value)}>{autoRotate ? <Pause size={15} /> : <Play size={15} />}</button></div>
-        <div className="atlas-viewer-instructions"><span className="atlas-mouse-icon" /> ลากเพื่อหมุน <span>·</span> เลื่อนเพื่อซูม <span className="atlas-model-note">แบบจำลองเพื่อการศึกษา · ไม่อ้างอิงสเกลระหว่างชนิด</span></div>
+        <div className="atlas-viewer-top">
+          <div className="atlas-specimen-caption"><span>{groupLabels[item.group]}</span><h2>{item.name}</h2><p>{item.thaiName}</p></div>
+          <div className="atlas-viewer-actions"><button aria-label={expanded ? 'ปิดมุมมองแบบขยาย' : 'ขยายมุมมอง'} aria-pressed={expanded} title="ขยายหรือย่อมุมมอง · Esc เพื่อปิด" onClick={() => setExpanded((value) => !value)}>{expanded ? <><X size={16} /><span>ปิด</span></> : <Maximize2 size={17} />}</button></div>
+        </div>
+        <div className="atlas-view-tabs" role="tablist" aria-label="รูปแบบการเรียนรู้">{viewModes.map((view, index) => <button id={`atlas-tab-${view.id}`} key={view.id} role="tab" aria-selected={mode === view.id} aria-controls="atlas-learning-panels" tabIndex={mode === view.id ? 0 : -1} onClick={() => setMode(view.id)} onKeyDown={(event) => {
+          const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+          const next = event.key === 'Home' ? 0 : event.key === 'End' ? 2 : step ? (index + step + viewModes.length) % viewModes.length : null;
+          if (next !== null) { event.preventDefault(); setMode(viewModes[next].id); document.getElementById(`atlas-tab-${viewModes[next].id}`)?.focus(); }
+        }}>{view.label}</button>)}</div>
+        <div id="atlas-learning-panels" role="tabpanel" aria-labelledby={`atlas-tab-${mode}`} className={`atlas-comparison atlas-comparison-${mode}`}>
+          <section className="atlas-photo-panel" aria-label="ตัวอย่างภาพไข่จริง" hidden={mode === 'model'}><div className="atlas-pane-title"><span className="atlas-pane-index">01</span><div><h3>ภาพไข่จริง</h3><p>LIGHT MICROSCOPY</p></div></div><AtlasPhotoViewer key={item.id} item={item} photos={photos} selectedStructure={selectedStructure} /></section>
+          <section className="atlas-model-panel" aria-label="แบบจำลองโครงสร้าง" hidden={mode === 'photo'}>
+            <div className="atlas-pane-title"><span className="atlas-pane-index">02</span><div><h3>โมเดลอธิบายโครงสร้าง</h3><p>INTERACTIVE 3D · ไม่ใช่สเกลจริง</p></div><button className="atlas-icon-button" aria-label="เริ่มมุมมองใหม่" title="เริ่มมุมมองใหม่" onClick={resetModel}><RotateCcw size={16} /></button></div>
+            <div className="atlas-model-stage"><AtlasModel item={item} cutaway={cutaway} autoRotate={autoRotate} resetKey={resetKey} selectedStructureId={selectedStructureId} onSelectStructure={selectStructure} zoom={zoom} labels={labels} />
+              {labels && <div className="atlas-annotations" aria-label="จุดสังเกตของแบบจำลอง"><span className="atlas-model-label">{selectedStructure ? selectedStructure.shortLabel : 'กดจุดสีเขียวหรือส่วนของโมเดล'}</span><small>{cutaway ? 'ภาพตัดภายใน' : 'เปลือกโปร่งเพื่อเรียนรู้ภายใน'}</small></div>}
+            </div>
+            <div className="atlas-zoom-controls"><button aria-label="ย่อโมเดล 3D" disabled={zoom <= .65} onClick={() => setZoom((value) => Math.max(.65, +(value - .2).toFixed(2)))}><Minus size={16} /></button><input aria-label="ซูมโมเดล 3D" type="range" min="0.65" max="2.5" step="0.05" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} /><button aria-label="ขยายโมเดล 3D" disabled={zoom >= 2.5} onClick={() => setZoom((value) => Math.min(2.5, +(value + .2).toFixed(2)))}><Plus size={16} /></button><output>{Math.round(zoom * 100)}%</output></div>
+            <div className="atlas-model-toolbar"><button className={cutaway ? 'atlas-tool-active' : ''} aria-pressed={cutaway} onClick={() => { setCutaway((value) => !value); if (cutaway && selectedStructure?.internal) setSelectedStructureId(null); }}><Layers3 size={16} /> ภาพตัดภายใน</button><button className={labels ? 'atlas-tool-active' : ''} aria-pressed={labels} onClick={() => setLabels((value) => !value)}><Eye size={16} /> จุดสังเกต</button><button className={autoRotate ? 'atlas-tool-active' : ''} aria-label={autoRotate ? 'หยุดหมุนอัตโนมัติ' : 'หมุนอัตโนมัติ'} aria-pressed={autoRotate} onClick={() => setAutoRotate((value) => !value)}>{autoRotate ? <Pause size={15} /> : <Play size={15} />}</button></div>
+            <p className="atlas-viewer-instructions">ลากเพื่อหมุน · ล้อเมาส์หรือสองนิ้วเพื่อซูม · กดส่วนประกอบเพื่อโฟกัส</p>
+          </section>
+        </div>
+        <p className="atlas-compare-note"><Info size={14} /> ภาพจริงกับโมเดลอาจต่างมุม ระยะพัฒนา และกำลังขยาย ใช้เทียบลักษณะ ไม่ใช้วัดขนาดหรือจัดแนวฟองไข่</p>
+        <section className="atlas-structure-explorer" aria-label="สำรวจส่วนประกอบของไข่">
+          <div className="atlas-structure-heading"><h3>สำรวจทีละส่วน <span>{structures.length} จุด</span></h3><span>เลือกจากโมเดลหรือรายการนี้</span></div>
+          <div className="atlas-structure-list">{structures.map((part, index) => <button key={part.id} className={part.id === selectedStructureId ? 'atlas-structure-selected' : ''} aria-pressed={part.id === selectedStructureId} onClick={() => selectStructure(part.id)}><span>{String(index + 1).padStart(2, '0')}</span>{part.shortLabel}{part.internal && <Layers3 size={13} />}</button>)}</div>
+          <div className="atlas-structure-description" aria-live="polite" aria-atomic="true">{selectedStructure ? <><div><span>{selectedStructure.internal ? 'โครงสร้างภายใน' : 'ลักษณะภายนอก'}</span><h4>{selectedStructure.label}</h4></div><p>{selectedStructure.description}</p><div className="atlas-structure-sources">{selectedStructure.sourceIds.map((sourceId) => <a key={sourceId} href={atlasSources[sourceId].url} target="_blank" rel="noreferrer">{atlasSources[sourceId].title}<ArrowUpRight size={12} /></a>)}</div></> : <p>เลือกส่วนประกอบเพื่อดูคำอธิบาย แหล่งอ้างอิง และโฟกัสตำแหน่งในโมเดล ส่วนภายในจะเปิดภาพตัดให้โดยอัตโนมัติ</p>}</div>
+        </section>
       </div>
       <aside className="atlas-details" aria-label="รายละเอียดลักษณะไข่พยาธิ">
-        <div className="atlas-detail-eyebrow"><Sparkles size={15} /> MORPHOLOGY GUIDE</div>
-        <h2>มองให้เห็น<br /><span>ลักษณะเฉพาะ</span></h2>
-        <p className="atlas-description">{item.description}</p>
-        <dl className="atlas-dimensions"><div><dt>ขนาดโดยทั่วไป</dt><dd>{item.size}</dd></div><div><dt>รูปร่าง</dt><dd>{item.shape}</dd></div></dl>
-        <div className="atlas-feature-section"><h3>จุดสังเกตสำคัญ</h3>{item.features.map((feature, index) => <div className="atlas-feature" key={feature}><span>{String(index + 1).padStart(2, '0')}</span><p>{feature}</p><Check size={13} /></div>)}</div>
-        {item.clinicalNote && <div className="atlas-clinical-note"><Info size={16} /><p>{item.clinicalNote}</p></div>}
-        <a className="atlas-source-link" href="https://www.cdc.gov/dpdx/" target="_blank" rel="noreferrer">อ่านข้อมูลอ้างอิง CDC DPDx <ArrowUpRight size={14} /></a>
+        <div><div className="atlas-detail-eyebrow">MORPHOLOGY GUIDE</div><h2>ลักษณะอ้างอิง</h2><p className="atlas-description">{item.description}</p><dl className="atlas-dimensions"><div><dt>ขนาดโดยทั่วไป</dt><dd>{item.size}</dd></div><div><dt>รูปร่าง</dt><dd>{item.shape}</dd></div></dl></div>
+        <div><div className="atlas-feature-section"><h3>จุดสังเกตสำคัญ</h3>{item.features.map((feature, index) => <div className="atlas-feature" key={feature}><span>{String(index + 1).padStart(2, '0')}</span><p>{feature}</p><Check size={13} /></div>)}</div>{item.clinicalNote && <div className="atlas-clinical-note"><Info size={16} /><p>{item.clinicalNote}</p></div>}</div>
       </aside>
     </div>
-    <div className="atlas-education-note"><Info size={15} /><p>แบบจำลองสร้างขึ้นเพื่อเรียนรู้ morphology ไม่ใช่ภาพจากกล้องจุลทรรศน์ รายชื่อใน Atlas ไม่ยืนยันขอบเขตชนิดที่โมเดล AI ตรวจจับได้ การระบุชนิดจริงควรให้ผู้เชี่ยวชาญตรวจยืนยัน</p></div>
+    <div className="atlas-education-note"><Info size={16} /><div><p>{atlasEvidenceNote}</p><p>รายชื่อใน Atlas ไม่ยืนยันขอบเขตหรือความแม่นยำของ AI การระบุชนิดจริงควรให้ผู้เชี่ยวชาญตรวจยืนยัน ภาพจาก Buckelew ใช้เพื่อการศึกษาไม่ใช่เชิงพาณิชย์ตาม CC BY-NC 4.0; ลิงก์อ้างอิงภายนอกต้องใช้อินเทอร์เน็ต</p></div></div>
   </section>;
 }

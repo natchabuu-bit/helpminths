@@ -1,0 +1,352 @@
+{
+  "verifiedOn": "2026-10-20",
+  "licenseScope": "Educational noncommercial use, CC BY-NC 4.0; no blanket training/commercial rights claimed.",
+  "photos": [
+    {
+      "id": "ascaris-fertilized-unfertilized-buckelew",
+      "speciesId": "ascaris",
+      "filename": "ascaris-fertilized-unfertilized-buckelew.jpg",
+      "label": "Ascaris lumbricoides",
+      "caption": "ภาพไข่ Ascaris lumbricoides หลายระยะ ผู้เขียนระบุว่าส่วนใหญ่เป็นไข่ปฏิสนธิ ยกเว้นฟองซ้ายล่าง (400×)",
+      "originalCaption": "egg capsules of Ascaris lumbricoides. Most of these egg capsules are fertilized with the exception of the one to the lower far left. 400x",
+      "note": "คำบรรยายระยะไข่อ้างตามผู้ถ่าย ภาพไม่มีแถบมาตราส่วน จึงใช้วัดขนาดไมโครเมตรจากภาพโดยตรงไม่ได้",
+      "stage": "mixed",
+      "credit": "Thomas P. Buckelew, Ph.D., Professor Emeritus, California University of Pennsylvania",
+      "license": "CC BY-NC 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+      "licenseEvidence": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/LICENSE",
+      "originalEducationalUseNotice": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/index.html",
+      "sourcePage": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/Ascaris%20lumbricoides%20ova.htm",
+      "sourceImage": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/images/Ascaris%20eggs%20fertilized%20and%20unfertilized.jpg",
+      "imageURL": "https://raw.githubusercontent.com/tombuckelew/parasitology-images/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/images/Ascaris%20eggs%20fertilized%20and%20unfertilized.jpg",
+      "publisher": "Parasitology Images: An Auto-tutorial with Additional Instructional Aids",
+      "sourceVersion": "901b77d18f847eedc36e9c653bddb121224ff1c8",
+      "changes": "None. Original JPEG bytes copied without crop, color adjustment or resampling.",
+      "verifiedOn": "2026-10-20",
+      "verified": {
+        "sourceCaption": true,
+        "licenseAndOriginalNonprofitNotice": true,
+        "visualReview": true,
+        "thirdPartyPhotoCreditAbsent": true
+      },
+      "sha256": "7702ccef33c7c9f8de33b49e321ed8677573a448b61f97b9e85ccd132201a813",
+      "width": 640,
+      "height": 512,
+      "publicPath": "/atlas/photos/ascaris-fertilized-unfertilized-buckelew.jpg",
+      "sourceCommit": "901b77d18f847eedc36e9c653bddb121224ff1c8",
+      "localChanges": "None; original JPEG bytes retained."
+    },
+    {
+      "id": "ascaris-embryonated-buckelew",
+      "speciesId": "ascaris",
+      "filename": "ascaris-embryonated-buckelew.jpg",
+      "label": "Ascaris lumbricoides",
+      "caption": "ไข่ Ascaris lumbricoides ระยะมีตัวอ่อน เห็นผิวเปลือกขรุขระและตัวอ่อนภายใน (ต้นฉบับระบุ 400×)",
+      "originalCaption": "embryonated egg capsule of Ascaris lumbricoides. Note the warty surface and developed larva inside. 400x",
+      "note": "ภาพนี้เป็นระยะไข่มีตัวอ่อน การพัฒนาภายในจึงต่างจากไข่ที่เพิ่งขับออกมากับอุจจาระ",
+      "stage": "embryonated",
+      "credit": "Thomas P. Buckelew, Ph.D., Professor Emeritus, California University of Pennsylvania",
+      "license": "CC BY-NC 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+      "licenseEvidence": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/LICENSE",
+      "originalEducationalUseNotice": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/index.html",
+      "sourcePage": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/Ascaris%20lumbricoides%20ova.htm",
+      "sourceImage": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/images/Ascaris%20eggs%20fertilized%20and%20embryonated.jpg",
+      "imageURL": "https://raw.githubusercontent.com/tombuckelew/parasitology-images/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/images/Ascaris%20eggs%20fertilized%20and%20embryonated.jpg",
+      "publisher": "Parasitology Images: An Auto-tutorial with Additional Instructional Aids",
+      "sourceVersion": "901b77d18f847eedc36e9c653bddb121224ff1c8",
+      "changes": "None. Original JPEG bytes copied without crop, color adjustment or resampling.",
+      "verifiedOn": "2026-10-20",
+      "verified": {
+        "sourceCaption": true,
+        "licenseAndOriginalNonprofitNotice": true,
+        "visualReview": true,
+        "thirdPartyPhotoCreditAbsent": true
+      },
+      "sha256": "9c33cc420b542e5f379067998764909a5459f55a8e023b974af979718620271e",
+      "width": 640,
+      "height": 512,
+      "publicPath": "/atlas/photos/ascaris-embryonated-buckelew.jpg",
+      "sourceCommit": "901b77d18f847eedc36e9c653bddb121224ff1c8",
+      "localChanges": "None; original JPEG bytes retained."
+    },
+    {
+      "id": "trichuris-buckelew",
+      "speciesId": "trichuris",
+      "filename": "trichuris-buckelew.jpg",
+      "label": "Trichuris trichiura",
+      "caption": "ไข่ Trichuris trichiura รูปทรงคล้ายถัง ปลายทั้งสองมีจุก (ต้นฉบับระบุ 400×)",
+      "originalCaption": "egg capsule of Trichuris trichiura the human whipworm. 400x",
+      "note": "ไม่มีแถบมาตราส่วน ห้ามอนุมานขนาดจริงจากขนาดบนจอ",
+      "stage": "egg",
+      "credit": "Thomas P. Buckelew, Ph.D., Professor Emeritus, California University of Pennsylvania",
+      "license": "CC BY-NC 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+      "licenseEvidence": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/LICENSE",
+      "originalEducationalUseNotice": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/index.html",
+      "sourcePage": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/Trichuris%20trichiura%20ova.htm",
+      "sourceImage": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/images/Trichuris%20trichiura%20egg.jpg",
+      "imageURL": "https://raw.githubusercontent.com/tombuckelew/parasitology-images/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/images/Trichuris%20trichiura%20egg.jpg",
+      "publisher": "Parasitology Images: An Auto-tutorial with Additional Instructional Aids",
+      "sourceVersion": "901b77d18f847eedc36e9c653bddb121224ff1c8",
+      "changes": "None. Original JPEG bytes copied without crop, color adjustment or resampling.",
+      "verifiedOn": "2026-10-20",
+      "verified": {
+        "sourceCaption": true,
+        "licenseAndOriginalNonprofitNotice": true,
+        "visualReview": true,
+        "thirdPartyPhotoCreditAbsent": true
+      },
+      "sha256": "aca8719df61cd58e42dcf76e40e1be97b0b108e03128fae1235094ac193cfb39",
+      "width": 640,
+      "height": 512,
+      "publicPath": "/atlas/photos/trichuris-buckelew.jpg",
+      "sourceCommit": "901b77d18f847eedc36e9c653bddb121224ff1c8",
+      "localChanges": "None; original JPEG bytes retained."
+    },
+    {
+      "id": "hookworm-buckelew",
+      "speciesId": "hookworm",
+      "filename": "hookworm-buckelew.jpg",
+      "label": "Ancylostoma duodenale (Hookworm group)",
+      "caption": "ตัวอย่างไข่พยาธิปากขอ ต้นฉบับระบุ Ancylostoma duodenale (400×)",
+      "originalCaption": "egg capsule of Ancylostoma duodenale 400x. The egg capsules of the hookworms are indistinguishable.",
+      "note": "ใช้แสดงกลุ่ม Hookworm เท่านั้น ภาพไข่ทั่วไปแยก Ancylostoma และ Necator อย่างน่าเชื่อถือไม่ได้ ภาพนี้ไม่เห็นเซลล์แบ่งตัวทุกส่วนชัดเจน",
+      "stage": "egg",
+      "credit": "Thomas P. Buckelew, Ph.D., Professor Emeritus, California University of Pennsylvania",
+      "license": "CC BY-NC 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+      "licenseEvidence": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/LICENSE",
+      "originalEducationalUseNotice": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/index.html",
+      "sourcePage": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/Ancylostoma%20duodenale%20ova.htm",
+      "sourceImage": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/images/Ancylostoma%20duodenale%20egg2.jpg",
+      "imageURL": "https://raw.githubusercontent.com/tombuckelew/parasitology-images/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/images/Ancylostoma%20duodenale%20egg2.jpg",
+      "publisher": "Parasitology Images: An Auto-tutorial with Additional Instructional Aids",
+      "sourceVersion": "901b77d18f847eedc36e9c653bddb121224ff1c8",
+      "changes": "None. Original JPEG bytes copied without crop, color adjustment or resampling.",
+      "verifiedOn": "2026-10-20",
+      "verified": {
+        "sourceCaption": true,
+        "licenseAndOriginalNonprofitNotice": true,
+        "visualReview": true,
+        "thirdPartyPhotoCreditAbsent": true
+      },
+      "sha256": "a0183b2b56ad41096ed97f7844dbf0796d3ecf22732c31e3fd801c7bb7aa0e91",
+      "width": 640,
+      "height": 512,
+      "publicPath": "/atlas/photos/hookworm-buckelew.jpg",
+      "sourceCommit": "901b77d18f847eedc36e9c653bddb121224ff1c8",
+      "localChanges": "None; original JPEG bytes retained."
+    },
+    {
+      "id": "taenia-buckelew",
+      "speciesId": "taenia",
+      "filename": "taenia-buckelew.jpg",
+      "label": "Typical taeniid egg (source image filename: Taenia saginata)",
+      "caption": "ตัวอย่างไข่กลุ่ม Taeniidae เห็น embryophore มีลายรัศมี (400×) ใช้ประกอบการเรียนรู้ Taenia spp.",
+      "originalCaption": "egg capsule of a typical taeniid. The capsular wall is lost by this point in development and the outer embryophore is pitted with radiating pores which give it the striated appearance. The ova of taeniids are indistinguishable. 400x",
+      "note": "หน้าต้นฉบับบรรยายเป็น typical taeniid แม้ชื่อไฟล์ระบุ T. saginata ไข่เพียงอย่างเดียวไม่ยืนยัน T. saginata หรือ T. solium และไม่ใช่ภาพยืนยันชนิดด้วยวิธีโมเลกุล",
+      "stage": "egg",
+      "credit": "Thomas P. Buckelew, Ph.D., Professor Emeritus, California University of Pennsylvania",
+      "license": "CC BY-NC 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+      "licenseEvidence": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/LICENSE",
+      "originalEducationalUseNotice": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/index.html",
+      "sourcePage": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/egg_capsule_of_a_typical_taeniid.htm",
+      "sourceImage": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/images/Taenia%20saginata%20egg.jpg",
+      "imageURL": "https://raw.githubusercontent.com/tombuckelew/parasitology-images/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/images/Taenia%20saginata%20egg.jpg",
+      "publisher": "Parasitology Images: An Auto-tutorial with Additional Instructional Aids",
+      "sourceVersion": "901b77d18f847eedc36e9c653bddb121224ff1c8",
+      "changes": "None. Original JPEG bytes copied without crop, color adjustment or resampling.",
+      "verifiedOn": "2026-10-20",
+      "verified": {
+        "sourceCaption": true,
+        "licenseAndOriginalNonprofitNotice": true,
+        "visualReview": true,
+        "thirdPartyPhotoCreditAbsent": true
+      },
+      "sha256": "216a6c68a2ab01305b22ad85daf2a510c24cebad82c6d512c941bd08767e6561",
+      "width": 640,
+      "height": 512,
+      "publicPath": "/atlas/photos/taenia-buckelew.jpg",
+      "sourceCommit": "901b77d18f847eedc36e9c653bddb121224ff1c8",
+      "localChanges": "None; original JPEG bytes retained."
+    },
+    {
+      "id": "enterobius-buckelew",
+      "speciesId": "enterobius",
+      "filename": "enterobius-buckelew.jpg",
+      "label": "Enterobius vermicularis",
+      "caption": "ไข่ Enterobius vermicularis ด้านหนึ่งแบน ลักษณะคล้ายตัว D (ต้นฉบับระบุ 400×)",
+      "originalCaption": "egg capsule of Enterobius vermicularis, the human pinworm. The one side of the egg capsule is somewhat flattened. 400x",
+      "note": "ไม่มีแถบมาตราส่วนและไม่ได้ระบุวิธีเตรียมสไลด์",
+      "stage": "egg",
+      "credit": "Thomas P. Buckelew, Ph.D., Professor Emeritus, California University of Pennsylvania",
+      "license": "CC BY-NC 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+      "licenseEvidence": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/LICENSE",
+      "originalEducationalUseNotice": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/index.html",
+      "sourcePage": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/Enterobius%20vermicularis%20ova.htm",
+      "sourceImage": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/images/Enterobius%20ova.jpg",
+      "imageURL": "https://raw.githubusercontent.com/tombuckelew/parasitology-images/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/images/Enterobius%20ova.jpg",
+      "publisher": "Parasitology Images: An Auto-tutorial with Additional Instructional Aids",
+      "sourceVersion": "901b77d18f847eedc36e9c653bddb121224ff1c8",
+      "changes": "None. Original JPEG bytes copied without crop, color adjustment or resampling.",
+      "verifiedOn": "2026-10-20",
+      "verified": {
+        "sourceCaption": true,
+        "licenseAndOriginalNonprofitNotice": true,
+        "visualReview": true,
+        "thirdPartyPhotoCreditAbsent": true
+      },
+      "sha256": "f9d909b8288ab489a183e74cf5347b5cbc47eb3a475681d3e6ab2a3d0c518379",
+      "width": 640,
+      "height": 512,
+      "publicPath": "/atlas/photos/enterobius-buckelew.jpg",
+      "sourceCommit": "901b77d18f847eedc36e9c653bddb121224ff1c8",
+      "localChanges": "None; original JPEG bytes retained."
+    },
+    {
+      "target": "hymenolepis-nana",
+      "species": "Hymenolepis nana",
+      "sourcePage": "https://github.com/tombuckelew/parasitology-images/blob/main/site/Buckelew/Vampirolepis%20nana%20ova.htm",
+      "originalSourcePage": "http://workforce.cup.edu/buckelew/Vampirolepis%20nana%20ova.htm",
+      "sourceImage": "https://raw.githubusercontent.com/tombuckelew/parasitology-images/main/site/Buckelew/images/Vampirolepis%20nana%20egg.jpg",
+      "credit": "Thomas P. Buckelew, Ph.D. — Parasitology Educational Archive",
+      "license": "CC BY-NC 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+      "licenseEvidence": "https://github.com/tombuckelew/parasitology-images/blob/main/LICENSE",
+      "caption": "ภาพไข่ Hymenolepis nana (ในแหล่งเดิมใช้ชื่อ Vampirolepis nana) ที่กำลังขยาย 400× เห็นตัวอ่อนและเส้นใยขั้วไข่",
+      "observableFeatures": "เปลือกไข่ / embryophore / ตัวอ่อน hexacanth / เส้นใยขั้วไข่",
+      "changes": "ไม่มีการปรับแต่งเนื้อหาภาพ",
+      "sha256": "cd44268a43e2ecc32fa04d64f06e10f5596e7e6ae516ea94f2ff56443a71bd4e",
+      "sourceCommit": "901b77d18f847eedc36e9c653bddb121224ff1c8",
+      "licenseScope": "ใช้เพื่อการศึกษาและไม่ใช้เชิงพาณิชย์ พร้อมให้เครดิต; หน้าภาพไม่มีข้อยกเว้นลิขสิทธิ์ของบุคคลที่สาม; acknowledgments ระบุผู้ออกแบบภาพวงจรชีวิตซึ่งไม่เกี่ยวกับภาพกล้องจุลทรรศน์เหล่านี้",
+      "visualInspection": "ตรวจภาพด้วย view_image แล้ว เป็นภาพกล้องจุลทรรศน์ไข่จริง ขนาด 640×512 และตรงกับคำบรรยายหน้าแหล่งต้นฉบับ",
+      "publicPath": "/atlas/photos/hymenolepis-nana-buckelew.jpg",
+      "verifiedOn": "2026-10-20",
+      "localChanges": "None; original JPEG bytes retained."
+    },
+    {
+      "target": "hymenolepis-diminuta",
+      "species": "Hymenolepis diminuta",
+      "sourcePage": "https://github.com/tombuckelew/parasitology-images/blob/main/site/Buckelew/Hymenolepis%20diminuta%20ova.htm",
+      "originalSourcePage": "http://workforce.cup.edu/buckelew/Hymenolepis%20diminuta%20ova.htm",
+      "sourceImage": "https://raw.githubusercontent.com/tombuckelew/parasitology-images/main/site/Buckelew/images/Hymenolepis%20diminuta%20egg%202.jpg",
+      "credit": "Thomas P. Buckelew, Ph.D. — Parasitology Educational Archive",
+      "license": "CC BY-NC 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+      "licenseEvidence": "https://github.com/tombuckelew/parasitology-images/blob/main/LICENSE",
+      "caption": "ภาพไข่ Hymenolepis diminuta ที่กำลังขยาย 400× เห็นผนังชั้นนอกแยกจาก embryophore และตัวอ่อน hexacanth ไม่มีเส้นใยขั้วไข่",
+      "observableFeatures": "เปลือกไข่ / embryophore / ตัวอ่อน hexacanth",
+      "changes": "ไม่มีการปรับแต่งเนื้อหาภาพ",
+      "sha256": "05e522b498552acd4a8817033d2ace046128da19a45811798a7f525635479998",
+      "sourceCommit": "901b77d18f847eedc36e9c653bddb121224ff1c8",
+      "licenseScope": "ใช้เพื่อการศึกษาและไม่ใช้เชิงพาณิชย์ พร้อมให้เครดิต; หน้าภาพไม่มีข้อยกเว้นลิขสิทธิ์ของบุคคลที่สาม; acknowledgments ระบุผู้ออกแบบภาพวงจรชีวิตซึ่งไม่เกี่ยวกับภาพกล้องจุลทรรศน์เหล่านี้",
+      "visualInspection": "ตรวจภาพด้วย view_image แล้ว เป็นภาพกล้องจุลทรรศน์ไข่จริง ขนาด 640×512 และตรงกับคำบรรยายหน้าแหล่งต้นฉบับ",
+      "publicPath": "/atlas/photos/hymenolepis-diminuta-buckelew.jpg",
+      "verifiedOn": "2026-10-20",
+      "localChanges": "None; original JPEG bytes retained."
+    },
+    {
+      "target": "fasciolopsis",
+      "species": "Fasciolopsis buski",
+      "sourcePage": "https://github.com/tombuckelew/parasitology-images/blob/main/site/Buckelew/Fasciolopsis%20buski%20ova.htm",
+      "originalSourcePage": "http://workforce.cup.edu/buckelew/Fasciolopsis%20buski%20ova.htm",
+      "sourceImage": "https://raw.githubusercontent.com/tombuckelew/parasitology-images/main/site/Buckelew/images/Fasciolopsis%20buski%20egg%20capsule.jpg",
+      "credit": "Thomas P. Buckelew, Ph.D. — Parasitology Educational Archive",
+      "license": "CC BY-NC 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+      "licenseEvidence": "https://github.com/tombuckelew/parasitology-images/blob/main/LICENSE",
+      "caption": "ภาพไข่ Fasciolopsis buski ที่กำลังขยาย 400× แหล่งต้นฉบับระบุว่าไข่แยกจาก Fasciola hepatica ด้วยรูปร่างเพียงอย่างเดียวไม่ได้",
+      "observableFeatures": "เปลือกไข่ / operculum / เนื้อหาภายในไข่",
+      "changes": "ไม่มีการปรับแต่งเนื้อหาภาพ",
+      "sha256": "e6e524c44065a7da31982bbd98658d2a6ff50021f893a57269a23eb2a6b22060",
+      "sourceCommit": "901b77d18f847eedc36e9c653bddb121224ff1c8",
+      "licenseScope": "ใช้เพื่อการศึกษาและไม่ใช้เชิงพาณิชย์ พร้อมให้เครดิต; หน้าภาพไม่มีข้อยกเว้นลิขสิทธิ์ของบุคคลที่สาม; acknowledgments ระบุผู้ออกแบบภาพวงจรชีวิตซึ่งไม่เกี่ยวกับภาพกล้องจุลทรรศน์เหล่านี้",
+      "visualInspection": "ตรวจภาพด้วย view_image แล้ว เป็นภาพกล้องจุลทรรศน์ไข่จริง ขนาด 640×512 และตรงกับคำบรรยายหน้าแหล่งต้นฉบับ",
+      "publicPath": "/atlas/photos/fasciolopsis-buski-buckelew.jpg",
+      "verifiedOn": "2026-10-20",
+      "localChanges": "None; original JPEG bytes retained."
+    }
+  ],
+  "gaps": {
+    "researchedAt": "2026-10-20",
+    "status": "No additional image asset met both verified identity and reuse-rights requirements in this network environment.",
+    "networkLimitation": "Normal HTTPS requests to CDC DPDx, PHIL, Wikimedia, PMC/EuropePMC and publisher domains fail at platform proxy CONNECT with HTTP 403. GitHub and raw.githubusercontent.com are reachable. No network-policy bypass attempted.",
+    "missingTargets": [
+      {
+        "atlasId": "opisthorchis",
+        "target": "Opisthorchis viverrini egg (OV)",
+        "status": "not-acquired",
+        "authoritativeReference": "https://www.cdc.gov/dpdx/opisthorchiasis/index.html",
+        "reason": "Authoritative source is inaccessible from execution environment; GitHub ICIP/Chula image mirrors do not establish image reuse rights. O. felineus or Clonorchis eggs must not substitute for O. viverrini."
+      },
+      {
+        "atlasId": "mif",
+        "target": "MIF group, explicitly identified Haplorchis, Heterophyes or Metagonimus egg",
+        "status": "not-acquired",
+        "authoritativeReferences": [
+          "https://www.cdc.gov/dpdx/heterophyiasis/index.html",
+          "https://www.cdc.gov/dpdx/metagonimiasis/index.html"
+        ],
+        "reason": "No correct species-captioned egg asset with established image reuse rights accessible. OV and Clonorchis images must not substitute for MIF."
+      },
+      {
+        "atlasId": "echinostoma",
+        "target": "Echinostoma spp. egg",
+        "status": "not-acquired",
+        "authoritativeReference": "https://www.cdc.gov/dpdx/echinostomiasis/index.html",
+        "reason": "Buckelew archive contains adult and collar-spine images but no verified Echinostoma egg. Adult/larval images must not substitute for an egg."
+      }
+    ],
+    "assets": [],
+    "excludedSources": [
+      {
+        "repository": "https://github.com/discdetsu/MIFvsOV",
+        "reason": "README sample batch has relevant OV/MIF classes from Phramongkutklao and ICIP/Chula, but no repository image-reuse license verified."
+      },
+      {
+        "repository": "https://github.com/hikarimusic/PARASIGHT",
+        "reason": "Software GPL license does not establish reuse rights for ICIP/Chula microscopy image data."
+      },
+      {
+        "repository": "https://github.com/kershrita/Parasite-Image-Classifier",
+        "reason": "MIT software license does not establish reuse rights for ICIP/Chula microscopy image data."
+      },
+      {
+        "repository": "https://github.com/bodiwael/Parasite-Detection-Vision",
+        "reason": "Uses ICIP/Chula/Kaggle imagery with no verified image-specific license."
+      },
+      {
+        "repository": "https://github.com/manaswini35/PARASCAN",
+        "reason": "ICIP/Chula-based software; no verified independent image rights or needed new species assets."
+      },
+      {
+        "repository": "https://github.com/Pongphan/parasitic_platform_lfs",
+        "reason": "No license verified for source image assets."
+      },
+      {
+        "repository": "https://github.com/jamesjin63/Liver_fluke",
+        "reason": "Published figure collection contains epidemiological maps, not egg microscopy."
+      },
+      {
+        "repository": "https://github.com/tombuckelew/parasitology-images",
+        "reason": "Verified CC BY-NC 4.0 archive usable for other targets, but does not contain egg assets for these three targets."
+      },
+      {
+        "repositories": [
+          "https://github.com/atragedia/revisaoparasito",
+          "https://github.com/atragedia/parasitoid",
+          "https://github.com/atragedia/Material-de-EstudoParasito"
+        ],
+        "reason": "Only linked Ascaris eggs and Taenia adults from CDC; no needed species assets."
+      },
+      {
+        "repository": "https://github.com/ativichkaiau/microbiopokedex",
+        "reason": "Species educational text records only; no relevant microscopy assets."
+      }
+    ],
+    "uiGuidance": "Display source reference links and a concise image-not-yet-available state for missing targets; preserve honest coverage instead of substituting related species or illustrative models as real microscopy. If images later obtained, verify figure caption, creator, exact license and third-party exclusions before bundling."
+  }
+}
