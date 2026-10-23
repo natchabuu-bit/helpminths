@@ -268,6 +268,64 @@
       "publicPath": "/atlas/photos/fasciolopsis-buski-buckelew.jpg",
       "verifiedOn": "2026-10-20",
       "localChanges": "None; original JPEG bytes retained."
+    },
+    {
+      "id": "strongyloides-rhabditiform-buckelew",
+      "speciesId": "strongyloides",
+      "filename": "strongyloides-rhabditiform-buckelew.jpg",
+      "sourceTaxon": "Strongyloides stercoralis — rhabditiform larva",
+      "caption": "ตัวอ่อน rhabditiform ของ Strongyloides stercoralis ตามคำบรรยายผู้ถ่าย (100×) ใช้ดูรูปร่างโดยรวม ภาพนี้ไม่แสดง genital primordium ชัดพอสำหรับยืนยันตำแหน่ง",
+      "originalCaption": "rhabditiform larva of Strongyloides stercoralis. 100x",
+      "sourceUrl": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/Strongyloides%20stercoralis%20rhabditiform.htm",
+      "originalSourceUrl": "http://workforce.cup.edu/buckelew/Strongyloides%20stercoralis%20rhabditiform.htm",
+      "sourceImageUrl": "https://raw.githubusercontent.com/tombuckelew/parasitology-images/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/images/Strongyloides%20rhabditiform.jpg",
+      "credit": "Thomas P. Buckelew, Ph.D. — Parasitology Educational Archive",
+      "license": "CC BY-NC 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+      "licenseEvidence": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/LICENSE",
+      "sourceCommit": "901b77d18f847eedc36e9c653bddb121224ff1c8",
+      "width": 640,
+      "height": 512,
+      "sha256": "477654d8d00ba38e21668af8beecda871c4ec3a8ed761ad1a31d5452df51bdec",
+      "changes": "ภาพต้นฉบับ ไม่มีการครอปหรือปรับสี",
+      "observableStructureIds": [
+        "cuticle"
+      ],
+      "stageNote": "เป็นภาพตัวอ่อนระยะ rhabditiform ไม่ใช่ภาพไข่หรือ filariform ภาพขยาย 100× ไม่มีแถบมาตราส่วนที่สอบเทียบ",
+      "captionConflict": "The source page additionally claims rhabditiforms are indistinguishable from hookworms. That broad claim conflicts with standard short-buccal-cavity/prominent-genital-primordium morphology and is not adopted; photos are used only for source-labelled taxon/stage overview.",
+      "verifiedOn": "2026-10-20",
+      "publicPath": "/atlas/photos/strongyloides-rhabditiform-buckelew.jpg",
+      "localChanges": "None; original JPEG bytes retained.",
+      "packagedOn": "2026-10-23"
+    },
+    {
+      "id": "strongyloides-rhabditiform-stained-buckelew",
+      "speciesId": "strongyloides",
+      "filename": "strongyloides-rhabditiform-stained-buckelew.jpg",
+      "sourceTaxon": "Strongyloides stercoralis — rhabditiform larva",
+      "caption": "ตัวอ่อน rhabditiform ของ Strongyloides stercoralis ตามคำบรรยายผู้ถ่าย (100×) ภาพตัวอ่อนขด ใช้ประกอบการดูรูปร่างโดยรวม ไม่ยืนยัน genital primordium จากภาพนี้",
+      "originalCaption": "rhabditiform larva of Strongyloides stercoralis. 100x",
+      "sourceUrl": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/Strongyloides%20stercoralis%20rhabditiform.htm",
+      "originalSourceUrl": "http://workforce.cup.edu/buckelew/Strongyloides%20stercoralis%20rhabditiform.htm",
+      "sourceImageUrl": "https://raw.githubusercontent.com/tombuckelew/parasitology-images/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/images/Strongyloides%20rhabditiform%204%20stained%20blue.jpg",
+      "credit": "Thomas P. Buckelew, Ph.D. — Parasitology Educational Archive",
+      "license": "CC BY-NC 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+      "licenseEvidence": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/LICENSE",
+      "sourceCommit": "901b77d18f847eedc36e9c653bddb121224ff1c8",
+      "width": 640,
+      "height": 512,
+      "sha256": "02e23f027320e0340964835a90ad26b747d263102211bbae72f05aa726d03c7d",
+      "changes": "ภาพต้นฉบับ ไม่มีการครอปหรือปรับสี",
+      "observableStructureIds": [
+        "cuticle"
+      ],
+      "stageNote": "เป็นภาพตัวอ่อนระยะ rhabditiform ไม่ใช่ภาพไข่หรือ filariform ภาพขยาย 100× ไม่มีแถบมาตราส่วนที่สอบเทียบ",
+      "captionConflict": "The source page additionally claims rhabditiforms are indistinguishable from hookworms. That broad claim conflicts with standard short-buccal-cavity/prominent-genital-primordium morphology and is not adopted; photos are used only for source-labelled taxon/stage overview.",
+      "verifiedOn": "2026-10-20",
+      "publicPath": "/atlas/photos/strongyloides-rhabditiform-stained-buckelew.jpg",
+      "localChanges": "None; original JPEG bytes retained.",
+      "packagedOn": "2026-10-23"
     }
   ],
   "gaps": {
@@ -348,5 +406,6 @@
       }
     ],
     "uiGuidance": "Display source reference links and a concise image-not-yet-available state for missing targets; preserve honest coverage instead of substituting related species or illustrative models as real microscopy. If images later obtained, verify figure caption, creator, exact license and third-party exclusions before bundling."
-  }
+  },
+  "updatedOn": "2026-10-23"
 }

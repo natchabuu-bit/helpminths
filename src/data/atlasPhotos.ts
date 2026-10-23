@@ -172,6 +172,40 @@ export const atlasPhotos: AtlasPhoto[] = [
       "operculum"
     ],
     "stageNote": "ต้นฉบับระบุกำลังขยาย 400× แต่ไม่มีแถบมาตราส่วน จึงวัดขนาดจริงจากภาพบนจอไม่ได้"
+  },
+  {
+    "id": "strongyloides-rhabditiform-buckelew",
+    "speciesId": "strongyloides",
+    "sourceTaxon": "Strongyloides stercoralis — rhabditiform larva",
+    "caption": "ตัวอ่อน rhabditiform ของ Strongyloides stercoralis ตามคำบรรยายผู้ถ่าย (100×) ใช้ดูรูปร่างโดยรวม ภาพนี้ไม่แสดง genital primordium ชัดพอสำหรับยืนยันตำแหน่ง",
+    "credit": "Thomas P. Buckelew, Ph.D. — Parasitology Educational Archive",
+    "license": "CC BY-NC 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+    "sourceUrl": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/Strongyloides%20stercoralis%20rhabditiform.htm",
+    "sourceImageUrl": "https://raw.githubusercontent.com/tombuckelew/parasitology-images/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/images/Strongyloides%20rhabditiform.jpg",
+    "changes": "ภาพต้นฉบับ ไม่มีการครอปหรือปรับสี",
+    "observableStructureIds": [
+      "cuticle"
+    ],
+    "stageNote": "เป็นภาพตัวอ่อนระยะ rhabditiform ไม่ใช่ภาพไข่หรือ filariform ภาพขยาย 100× ไม่มีแถบมาตราส่วนที่สอบเทียบ",
+    "src": "/atlas/photos/strongyloides-rhabditiform-buckelew.jpg"
+  },
+  {
+    "id": "strongyloides-rhabditiform-stained-buckelew",
+    "speciesId": "strongyloides",
+    "sourceTaxon": "Strongyloides stercoralis — rhabditiform larva",
+    "caption": "ตัวอ่อน rhabditiform ของ Strongyloides stercoralis ตามคำบรรยายผู้ถ่าย (100×) ภาพตัวอ่อนขด ใช้ประกอบการดูรูปร่างโดยรวม ไม่ยืนยัน genital primordium จากภาพนี้",
+    "credit": "Thomas P. Buckelew, Ph.D. — Parasitology Educational Archive",
+    "license": "CC BY-NC 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+    "sourceUrl": "https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/Strongyloides%20stercoralis%20rhabditiform.htm",
+    "sourceImageUrl": "https://raw.githubusercontent.com/tombuckelew/parasitology-images/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/images/Strongyloides%20rhabditiform%204%20stained%20blue.jpg",
+    "changes": "ภาพต้นฉบับ ไม่มีการครอปหรือปรับสี",
+    "observableStructureIds": [
+      "cuticle"
+    ],
+    "stageNote": "เป็นภาพตัวอ่อนระยะ rhabditiform ไม่ใช่ภาพไข่หรือ filariform ภาพขยาย 100× ไม่มีแถบมาตราส่วนที่สอบเทียบ",
+    "src": "/atlas/photos/strongyloides-rhabditiform-stained-buckelew.jpg"
   }
 ];
 

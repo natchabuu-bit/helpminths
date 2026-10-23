@@ -31,6 +31,8 @@ export default function AtlasPhotoViewer({ item, photos, selectedStructure, empt
   const captionId = useId();
   const photoKey = photos.map(photo => `${photo.id}:${photo.src}`).join('|');
   const photo = photos[photoIndex] ?? photos[0];
+  const specimenLabel = item.specimenType === 'larva' ? 'ตัวอ่อน' : 'ไข่';
+  const photoLabel = `ภาพ${specimenLabel}จริง`;
 
   const updateView = useCallback((next: PhotoView) => {
     const zoom = boundedZoom(next.zoom);
@@ -149,10 +151,10 @@ export default function AtlasPhotoViewer({ item, photos, selectedStructure, empt
     const sourceIds = [...new Set(getAtlasStructures(item.id).flatMap(structure => structure.sourceIds))];
     const sources = sourceIds.filter(id => id.startsWith('cdc-')).map(id => atlasSources[id]).filter(Boolean);
     return (
-      <section className="atlas-photo-viewer atlas-photo-missing" aria-label="ภาพไข่จริง">
+      <section className="atlas-photo-viewer atlas-photo-missing" aria-label={photoLabel}>
         <div className="atlas-photo-empty" role="status">
           <ImageOff size={28} aria-hidden="true" />
-          <h3>{emptyTitle ?? 'ยังไม่มีภาพไข่จริงในชุดนี้'}</h3>
+          <h3>{emptyTitle ?? `ยังไม่มี${photoLabel}ในชุดนี้`}</h3>
           <p>{emptyDescription ?? `ยังไม่มีภาพของ ${item.name} ที่ตรวจสอบชนิดและสิทธิ์พร้อมเก็บออฟไลน์ จึงแสดงเฉพาะแบบจำลองและแหล่งอ้างอิง`}</p>
         </div>
         <div className="atlas-photo-sources">
@@ -165,7 +167,7 @@ export default function AtlasPhotoViewer({ item, photos, selectedStructure, empt
 
   const supportsStructure = selectedStructure && photo.observableStructureIds.includes(selectedStructure.id);
   return (
-    <section className="atlas-photo-viewer" aria-label="ภาพไข่จริง">
+    <section className="atlas-photo-viewer" aria-label={photoLabel}>
       <div className="atlas-photo-heading">
         <div><span className="atlas-photo-eyebrow">ภาพกล้องจุลทรรศน์จริง</span><h3><i>{photo.sourceTaxon}</i></h3></div>
         {photos.length > 1 && <div className="atlas-photo-gallery">
@@ -179,7 +181,7 @@ export default function AtlasPhotoViewer({ item, photos, selectedStructure, empt
         className="atlas-photo-frame"
         style={{ touchAction: 'none', overflow: 'hidden', position: 'relative', cursor: failed ? 'default' : view.zoom > 1 ? 'grab' : 'zoom-in' }}
         role="group"
-        aria-label={`ภาพไข่จริงของ ${photo.sourceTaxon}`}
+        aria-label={`${photoLabel}ของ ${photo.sourceTaxon}`}
         aria-describedby={`${instructionsId} ${captionId}`}
         tabIndex={failed ? -1 : 0}
         onPointerDown={onPointerDown}
@@ -193,7 +195,7 @@ export default function AtlasPhotoViewer({ item, photos, selectedStructure, empt
           key={photo.id}
           className="atlas-real-photo"
           src={photo.src}
-          alt={`ไข่ ${photo.sourceTaxon} จากภาพกล้องจุลทรรศน์ — ${photo.caption}`}
+          alt={`${specimenLabel} ${photo.sourceTaxon} จากภาพกล้องจุลทรรศน์ — ${photo.caption}`}
           draggable={false}
           style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', userSelect: 'none', transformOrigin: 'center', transform: `translate3d(${view.x}px, ${view.y}px, 0) scale(${view.zoom})` }}
           onError={() => { setFailed(true); reset(); }}

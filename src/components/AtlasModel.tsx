@@ -8,6 +8,8 @@ import { getAtlasStructures } from '../data/atlasStructures';
 import { getAscarisStructures, type AscarisStageId } from '../data/ascarisStages';
 import EggIllustration from './EggIllustration';
 import AscarisStageIllustration from './AscarisStageIllustration';
+import StrongyloidesModel from './StrongyloidesModel';
+import StrongyloidesIllustration from './StrongyloidesIllustration';
 
 export interface AtlasModelProps {
   item: ParasiteSpecies;
@@ -46,6 +48,7 @@ class ModelBoundary extends Component<{ children: ReactNode; fallback: ReactNode
 }
 
 function dimensions(id: string, ascarisStage: AscarisStageId = 'fertilized'): Triple {
+  if (id === 'strongyloides') return [2.65, .4, .3];
   if (id === 'ascaris' && ascarisStage === 'unfertilized') return [1.72, .78, .72];
   if (id === 'taenia') return [1, 1, 1];
   if (id === 'trichuris') return [1.5, .62, .62];
@@ -418,8 +421,17 @@ function Scene(props: AtlasModelProps) {
     const reframe = !prior || prior.id !== specimenKey || prior.resetKey !== resetKey || prior.width !== size.width || prior.height !== size.height;
     if (reframe) {
       // Reframing respects portrait stages; toggles never change the camera.
-      camera.position.set(0, .15, frameDistance / magnification);
-      orbit.target.set(0, 0, 0);
+      if (item.id === 'strongyloides' && selectedStructureId) {
+        // Opening the larva, or repeating its focus action, centres the selected
+        // internal primordium instead of silently resetting the target to zero.
+        orbit.target.copy(selectedPosition);
+        // Keep the whole slender larva visible at the default zoom even in a
+        // tall portrait stage. Its explicit focus action supplies magnification.
+        camera.position.copy(selectedPosition).add(new Vector3(0, .15, frameDistance / magnification));
+      } else {
+        camera.position.set(0, .15, frameDistance / magnification);
+        orbit.target.set(0, 0, 0);
+      }
     } else if (prior.selected !== selectedStructureId) {
       // Keep the current viewing direction, and focus the actual selected structure.
       const offset = camera.position.clone().sub(orbit.target);
@@ -442,7 +454,7 @@ function Scene(props: AtlasModelProps) {
     <directionalLight position={[-3, 4, 5]} intensity={2.6} color="#fff1d9" />
     <directionalLight position={[4, 1, -2]} intensity={2.2} color="#9de9dc" />
     <pointLight position={[0, -3, 2]} intensity={7} color="#80aaa1" />
-    <Egg {...props} />
+    {item.id === 'strongyloides' ? <StrongyloidesModel cutaway={props.cutaway} labels={props.labels} selectedStructureId={selectedStructureId} onSelectStructure={props.onSelectStructure} /> : <Egg {...props} />}
     <OrbitControls ref={controls} makeDefault enablePan={false} minDistance={1.5} maxDistance={Math.max(18, frameDistance * 2)} autoRotate={autoRotate} autoRotateSpeed={.7} enableDamping dampingFactor={.07} zoomSpeed={.8} />
   </>;
 }
@@ -461,7 +473,7 @@ export default function AtlasModel(props: AtlasModelProps) {
   const [available, setAvailable] = useState(webGLAvailable);
   const onContextLost = useCallback(() => setAvailable(false), [setAvailable]);
   const fallback = <div className="atlas-svg-fallback" style={{ '--atlas-fallback-zoom': Math.max(.6, Math.min(2.5, props.zoom)) } as CSSProperties}>
-    {props.item.id === 'ascaris' ? <AscarisStageIllustration stage={props.ascarisStage ?? 'fertilized'} decorticated={props.ascarisDecorticated} showInternal={props.cutaway} /> : <EggIllustration speciesId={props.item.id} showInternal={props.cutaway} />}
+    {props.item.id === 'strongyloides' ? <StrongyloidesIllustration showInternal={props.cutaway} selectedStructureId={props.selectedStructureId} /> : props.item.id === 'ascaris' ? <AscarisStageIllustration stage={props.ascarisStage ?? 'fertilized'} decorticated={props.ascarisDecorticated} showInternal={props.cutaway} /> : <EggIllustration speciesId={props.item.id} showInternal={props.cutaway} />}
     <span><Box size={14} /> ภาพวาดจำลอง 2 มิติ · อุปกรณ์นี้ไม่รองรับ WebGL</span>
   </div>;
   if (!available) return fallback;

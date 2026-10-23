@@ -11,6 +11,8 @@ export interface ParasiteSpecies {
   color: string;
   features: string[];
   clinicalNote?: string;
+  /** Eggs are the default; larval references must keep their specimen form explicit. */
+  specimenType?: 'egg' | 'larva';
 }
 
 /** Reference morphology, independent of the classes supported by an inference model. */
@@ -91,6 +93,13 @@ export const species: ParasiteSpecies[] = [
     features: ['ไข่รูปรีขนาดใหญ่ มีฝาปิด', 'เปลือกค่อนข้างบาง', 'ภายในมักยังไม่เป็นตัวอ่อนในอุจจาระสด'],
     clinicalNote: 'คำว่าขนาดใหญ่เป็นการจัดกลุ่มอ้างอิงของตัวเต็มวัย ไม่ใช่เกณฑ์ขนาดไข่ตายตัว ไข่คล้าย Fasciola hepatica/F. gigantica มากและทับซ้อนกับ Echinostoma บางชนิด จึงไม่สามารถยืนยัน F. buski จากภาพไข่เพียงอย่างเดียว',
   },
+  {
+    id: 'strongyloides', name: 'Strongyloides stercoralis', thaiName: 'พยาธิเส้นด้าย · ตัวอ่อน rhabditiform', group: 'nematode', specimenType: 'larva',
+    size: 'ประมาณ 180–380 µm (ความยาวตัวอ่อน rhabditiform)', shape: 'ตัวอ่อนเรียวยาว · ปลายหางแหลม', color: '#bcd5b8',
+    description: 'ตัวอ่อนระยะ rhabditiform มีช่องปากสั้น หลอดอาหารแบบ rhabditoid และ genital primordium ที่เด่นชัดภายในช่วงกลางลำตัว แบบจำลองเน้นส่วนนี้ด้วยสีและขนาดเพื่อให้เรียนรู้ได้ชัดเจน',
+    features: ['Genital primordium ขนาดเด่นชัดภายในลำตัว', 'ช่องปากสั้น (short buccal cavity)', 'หลอดอาหารแบบ rhabditoid มีส่วนโป่ง (bulb)', 'ปลายหางแหลมของตัวอ่อน rhabditiform'],
+    clinicalNote: 'การตรวจอุจจาระของ S. stercoralis โดยทั่วไปมักพบตัวอ่อนมากกว่าไข่ ใช้ช่องปากสั้นและ genital primordium ที่เด่นประกอบการแยกจากตัวอ่อน rhabditiform ของพยาธิปากขอ ระยะที่แสดงนี้ต่างจาก filariform ซึ่งเป็นระยะติดต่อ รูปร่างเพียงภาพเดียวต้องประเมินร่วมกับวิธีตรวจและผู้เชี่ยวชาญ',
+  },
 ];
 
 export const groupLabels: Record<SpeciesGroup, string> = {
@@ -129,6 +138,7 @@ export function matchSpeciesLabel(label?: string): ParasiteSpecies | undefined {
       'medium intestinal flukes', 'พยาธิใบไม้ลำไส้ขนาดกลาง',
     ], 'echinostoma'],
     [['fasciolopsis', 'fasciolopsis buski', 'f buski', 'giant intestinal fluke', 'large intestinal fluke', 'large intestinal flukes', 'พยาธิใบไม้ลำไส้ขนาดใหญ่'], 'fasciolopsis'],
+    [['strongyloides', 'strongyloides stercoralis', 's stercoralis', 'พยาธิเส้นด้าย', 'พยาธิสตรองจิลอยด์', 'พยาธิเส้นด้าย · ตัวอ่อน rhabditiform'], 'strongyloides'],
   ];
   const referenceMatch = referenceAliases.find(([names]) => names.includes(ovLabel));
   if (referenceMatch) return species.find((item) => item.id === referenceMatch[1]);

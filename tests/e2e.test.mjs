@@ -6,11 +6,12 @@ import { chromium } from 'playwright'
 
 const baseURL = process.env.HELPMINTHS_TEST_URL || 'http://127.0.0.1:5173'
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined)
-const atlasNames = [
+const eggAtlasNames = [
   'Ascaris lumbricoides', 'Trichuris trichiura', 'Hookworm', 'Opisthorchis viverrini',
   'Taenia spp.', 'Enterobius vermicularis', 'Minute intestinal flukes (MIF)',
   'Hymenolepis nana', 'Hymenolepis diminuta', 'Echinostoma spp.', 'Fasciolopsis buski',
 ]
+const atlasNames = [...eggAtlasNames, 'Strongyloides stercoralis']
 let browser
 before(async () => {
   browser = await chromium.launch({ executablePath, headless: true, args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
@@ -88,7 +89,7 @@ test('upload stays available without a model, and unsupported files are rejected
 test('mocked inference preserves exact model labels and links only supported taxa to the correct Atlas entry', { timeout: 90_000 }, async () => {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
   let receivedMultipart = false
-  const unrelatedLabels = ['Uncatalogued helminth egg', 'Schistosoma mansoni', 'Schistosoma haematobium', 'Schistosoma japonicum', 'Opisthorchis felineus', 'Clonorchis sinensis', 'Opisthorchis spp.', 'Fasciola hepatica', 'Fasciola gigantica', 'Hymenolepis spp.']
+  const unrelatedLabels = ['Uncatalogued helminth egg', 'Schistosoma mansoni', 'Schistosoma haematobium', 'Schistosoma japonicum', 'Opisthorchis felineus', 'Clonorchis sinensis', 'Opisthorchis spp.', 'Fasciola hepatica', 'Fasciola gigantica', 'Hymenolepis spp.', 'Strongyloides fuelleborni', 'S. fuelleborni', 'Strongyloides ratti', 'S. ratti']
   const ovLabels = ['Opisthorchis viverrine', 'OV', 'O. viverrini', 'Opisthorchis viverrini']
   const newReferences = [
     { labels: ['MIF', 'Haplorchis taichui'], name: 'Minute intestinal flukes (MIF)', note: /OV.*Clonorchis/ },
@@ -96,6 +97,7 @@ test('mocked inference preserves exact model labels and links only supported tax
     { labels: ['Hymenolepis diminuta', 'H. diminuta', 'Rat tapeworm'], name: 'Hymenolepis diminuta', note: /สเกล/ },
     { labels: ['Echinostoma spp.', 'Echinostoma revolutum'], name: 'Echinostoma spp.', note: /Fasciola/ },
     { labels: ['Fasciolopsis buski', 'F. buski'], name: 'Fasciolopsis buski', note: /Fasciola/ },
+    { labels: ['Strongyloides stercoralis', 'S. stercoralis'], name: 'Strongyloides stercoralis', note: /rhabditiform/i },
   ]
   const cases = [
     ...unrelatedLabels.map(label => ({ label, name: null })),
@@ -136,6 +138,12 @@ test('mocked inference preserves exact model labels and links only supported tax
       assert.equal(await page.locator('.scan-ov-note').count(), expected.name === 'Opisthorchis viverrini' ? 1 : 0, 'Only an OV match must display the OV-specific microscopy limitation')
       assert.equal(await page.locator('.scan-species-note').count(), expected.note ? 1 : 0, `${expected.label} must show its own microscopy limitation`)
       if (expected.note) assert.match(await page.locator('.scan-species-note').innerText(), expected.note)
+      if (expected.name === 'Strongyloides stercoralis') {
+        assert.match(await item.innerText(), /ตัวอ่อน/)
+        assert.doesNotMatch(await item.innerText(), /ไข่พยาธิเส้นด้าย/)
+        assert.match(await page.locator('.scan-species-note strong').innerText(), /ตัวอ่อน/)
+        assert.match(await page.locator('.scan-atlas-link small').innerText(), /ตัวอ่อน/)
+      }
     }
     assert.equal(await page.locator('.scan-demo-banner').count(), 0)
     const downloadPromise = page.waitForEvent('download')
@@ -282,7 +290,7 @@ test('mobile navigation offers rear camera capture; fallback drawings show the d
     await page.getByRole('button', { name: 'ภาพตัดภายใน', exact: true }).click()
     assert.equal(await fallback.getByRole('group', { name: 'ตัวอ่อน miracidium ของไข่ OV', exact: true }).count(), 1)
     const cutaway = page.getByRole('button', { name: 'ภาพตัดภายใน', exact: true })
-    for (const name of atlasNames.slice(6)) {
+    for (const name of eggAtlasNames.slice(6)) {
       await page.getByLabel('ค้นหาชื่อพยาธิ').fill(name)
       assert.equal(await page.locator('.atlas-species-item').count(), 1)
       await page.locator('.atlas-species-item').click()
@@ -335,7 +343,7 @@ test('Atlas compares credited local micrographs, preserves honest coverage, and 
         assert.match(await page.locator('.atlas-photo-empty').innerText(), /ยังไม่มีภาพไข่จริง/)
         assert.ok(await page.locator('.atlas-photo-sources a[href^="https://www.cdc.gov/dpdx/"]').count() >= 1)
       } else {
-        const count = name === 'Ascaris lumbricoides' ? 2 : 1
+        const count = ['Ascaris lumbricoides', 'Strongyloides stercoralis'].includes(name) ? 2 : 1
         for (let index = 0; index < count; index++) {
           await page.locator('.atlas-real-photo').waitFor()
           await page.waitForFunction(() => { const image = document.querySelector('.atlas-real-photo'); return image?.complete && image.naturalWidth > 0 })
@@ -347,12 +355,15 @@ test('Atlas compares credited local micrographs, preserves honest coverage, and 
           assert.equal(await page.locator('.atlas-photo-attribution a').filter({ hasText: 'CC BY-NC 4.0' }).getAttribute('href'), 'https://creativecommons.org/licenses/by-nc/4.0/')
           assert.match(await page.locator('.atlas-photo-attribution a').filter({ hasText: 'แหล่งภาพและคำบรรยาย' }).getAttribute('href'), /^https:\/\/github\.com\/tombuckelew\/parasitology-images\/blob\/[0-9a-f]{40}\//)
           assert.ok((await page.locator('.atlas-photo-caption').innerText()).length > 40)
-          if (count > 1 && index === 0) await page.locator('.ascaris-stage-option[data-stage="embryonated"]').click()
+          if (count > 1 && index === 0) {
+            if (name === 'Ascaris lumbricoides') await page.locator('.ascaris-stage-option[data-stage="embryonated"]').click()
+            else await page.getByRole('button', { name: 'ภาพจริงถัดไป' }).click()
+          }
         }
         if (name === 'Ascaris lumbricoides') assert.match(await page.locator('.atlas-photo-stage').innerText(), /ตัวอ่อน/)
       }
     }
-    assert.equal(seen.size, 9, 'All nine photographs across eight reference groups must decode successfully')
+    assert.equal(seen.size, 11, 'All eleven photographs across nine reference groups must decode successfully')
     assert.match(await page.locator('.atlas-compare-note').innerText(), /ต่างมุม.*ระยะพัฒนา.*กำลังขยาย/)
   } finally { await page.close() }
 })
@@ -572,5 +583,109 @@ test('phone fallback illustrations distinguish all Ascaris stages and preserve t
       await coat.click()
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${id} controls and diagrams must fit the phone viewport`)
     }
+  } finally { await page.close() }
+})
+
+test('Strongyloides opens a rhabditiform larva with a prominent selectable genital primordium and stage-matched comparison', { timeout: 90_000 }, async () => {
+  const page = await openPage()
+  const errors = []
+  page.on('pageerror', error => errors.push(error.message))
+  try {
+    await page.getByRole('button', { name: 'Atlas 3D', exact: true }).click()
+    await page.locator('.atlas-model-stage canvas').waitFor()
+    await page.locator('.atlas-model-stage canvas').evaluate(canvas => { canvas.dataset.strongyloidesPersistence = 'same-canvas' })
+    for (const query of ['Strongyloides', 'S. stercoralis', 'พยาธิเส้นด้าย']) {
+      await page.getByLabel('ค้นหาชื่อพยาธิ').fill(query)
+      assert.equal(await page.locator('.atlas-species-item').count(), 1, `${query} must find the Strongyloides reference`)
+      await page.locator('.atlas-species-item').click()
+      assert.equal(await page.locator('.atlas-specimen-caption h2').innerText(), 'Strongyloides stercoralis')
+      assert.equal(await page.locator('.atlas-structure-list button').filter({ hasText: 'Genital primordium' }).getAttribute('aria-pressed'), 'true', 'The requested conspicuous genital primordium must be selected on entry')
+    }
+    assert.equal(await page.locator('.atlas-model-stage canvas').getAttribute('data-strongyloides-persistence'), 'same-canvas', 'A larval reference must reuse the working canvas rather than replace it with an unrelated egg')
+    assert.equal(await page.getByRole('button', { name: 'ภาพตัดภายใน', exact: true }).getAttribute('aria-pressed'), 'true')
+    assert.equal(await page.getByRole('button', { name: 'หมุนอัตโนมัติ', exact: true }).getAttribute('aria-pressed'), 'false')
+    assert.match(await page.locator('.strongyloides-guide').innerText(), /rhabditiform/i)
+    assert.match(await page.locator('.atlas-structure-description h4').innerText(), /genital primordium/i)
+    assert.ok(await page.locator('.atlas-structure-sources a[href^="https://"]').count() > 0)
+    const comparison = await page.locator('.strongyloides-comparison').innerText()
+    assert.match(comparison, /rhabditiform/i, 'The comparison must explicitly use larvae of the same developmental form')
+    assert.match(comparison, /hookworm|พยาธิปากขอ/i)
+    assert.match(comparison, /สั้น/)
+    assert.match(comparison, /ยาว/)
+    assert.match(comparison, /genital primordium/i)
+    assert.match(await page.locator('.atlas-clinical-note').innerText(), /ตัวอ่อน|larva/i)
+    assert.match(await page.locator('.atlas-clinical-note').innerText(), /ไข่/)
+    const labels = ['ผิวลำตัว', 'ช่องปากสั้น', 'หลอดอาหาร rhabditoid', 'Genital primordium', 'ลำไส้', 'หางแหลม']
+    assert.equal(await page.locator('.atlas-structure-list button').count(), labels.length)
+    for (const label of labels) {
+      const part = page.locator('.atlas-structure-list button').filter({ hasText: label })
+      await part.click()
+      assert.equal(await part.getAttribute('aria-pressed'), 'true')
+      assert.ok((await page.locator('.atlas-structure-description p').innerText()).length > 25)
+      assert.ok(await page.locator('.atlas-structure-sources a').count() > 0)
+    }
+    assert.doesNotMatch(await page.locator('.atlas-structure-list').innerText(), /operculum|embryophore|ตะขอ|เปลือกไข่/i, 'A rhabditiform larva must not inherit an egg structure catalogue')
+    await page.locator('.atlas-structure-list button').filter({ hasText: 'Genital primordium' }).click()
+    assert.equal(await page.locator('.atlas-photo-feature.is-supported').count(), 0, 'A prominent model must not claim its genital primordium is resolved in the reference micrographs')
+    assert.match(await page.locator('.atlas-photo-feature').innerText(), /อาจไม่ปรากฏชัด/)
+    await page.getByRole('button', { name: 'ขยายโมเดล 3D' }).click()
+    assert.equal(Number(await page.getByRole('slider', { name: 'ซูมโมเดล 3D' }).inputValue()), 1.2)
+    await page.getByRole('button', { name: 'ขยายดู Genital primordium', exact: true }).click()
+    assert.equal(Number(await page.getByRole('slider', { name: 'ซูมโมเดล 3D' }).inputValue()), 1.6, 'The dedicated genital-primordium action must magnify its model view')
+    assert.equal(await page.locator('.atlas-structure-list button').filter({ hasText: 'Genital primordium' }).getAttribute('aria-pressed'), 'true')
+    await page.getByRole('button', { name: 'เริ่มมุมมองใหม่', exact: true }).click()
+    assert.equal(await page.locator('.atlas-structure-selected').count(), 0)
+    await page.getByRole('button', { name: 'ขยายดู Genital primordium', exact: true }).click()
+    assert.equal(Number(await page.getByRole('slider', { name: 'ซูมโมเดล 3D' }).inputValue()), 1.6, 'The focus action must work again after resetting the model')
+    await page.getByRole('button', { name: 'ขยายมุมมอง', exact: true }).click()
+    await page.getByRole('dialog').waitFor()
+    await page.keyboard.press('Escape')
+    assert.equal(await page.getByRole('dialog').count(), 0)
+    assert.deepEqual(errors, [])
+  } finally { await page.close() }
+})
+
+test('phone fallback shows a larva with a highlighted internal genital primordium and supports repeated focus', { timeout: 60_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+  await page.addInitScript(() => {
+    const original = HTMLCanvasElement.prototype.getContext
+    HTMLCanvasElement.prototype.getContext = function(type, ...args) {
+      if (String(type).startsWith('webgl')) return null
+      return original.call(this, type, ...args)
+    }
+  })
+  const errors = []
+  page.on('pageerror', error => errors.push(error.message))
+  try {
+    await page.goto(baseURL, { waitUntil: 'networkidle' })
+    await page.getByRole('button', { name: 'เปิดเมนู' }).click()
+    await page.getByRole('button', { name: 'Atlas 3D', exact: true }).click()
+    await page.getByLabel('ค้นหาชื่อพยาธิ').fill('Strongyloides')
+    await page.locator('.atlas-species-item').click()
+    const fallback = page.locator('.atlas-svg-fallback')
+    await fallback.waitFor()
+    const drawing = fallback.locator(':scope > svg')
+    assert.match(await drawing.getAttribute('aria-label'), /ตัวอ่อน.*rhabditiform/)
+    assert.equal(await drawing.getAttribute('data-selected-structure'), 'genital-primordium')
+    const primordium = drawing.getByRole('group', { name: 'Genital primordium ขนาดใหญ่ภายในตัวอ่อน', exact: true })
+    assert.equal(await primordium.count(), 1)
+    assert.equal(await primordium.getAttribute('data-selected'), 'true')
+    assert.equal(await drawing.getByRole('group', { name: 'ช่องปากสั้น (short buccal cavity)', exact: true }).count(), 1)
+    assert.equal(await drawing.getByRole('group', { name: 'หลอดอาหารแบบ rhabditoid และกระเปาะท้าย', exact: true }).count(), 1)
+    assert.equal(await drawing.getByRole('group', { name: 'ปลายหางแหลมของตัวอ่อน rhabditiform', exact: true }).count(), 1)
+    assert.equal(await drawing.getByRole('group', { name: /เปลือกไข่|operculum|ตะขอ/i }).count(), 0)
+    assert.match(await page.locator('.atlas-photo-panel .atlas-pane-title h3').innerText(), /ตัวอ่อน/)
+    assert.match(await page.locator('.atlas-real-photo').getAttribute('alt'), /ตัวอ่อน/)
+    assert.doesNotMatch(await page.locator('.atlas-real-photo').getAttribute('alt'), /^ไข่\s/, 'A larval micrograph must not be labelled as an egg')
+    const scaleBefore = await drawing.evaluate(svg => new DOMMatrix(getComputedStyle(svg).transform).a)
+    await page.getByRole('button', { name: 'ขยายดู Genital primordium', exact: true }).click()
+    assert.ok(await drawing.evaluate(svg => new DOMMatrix(getComputedStyle(svg).transform).a) > scaleBefore)
+    await page.getByRole('button', { name: 'ภาพตัดภายใน', exact: true }).click()
+    assert.equal(await primordium.count(), 0, 'A closed fallback drawing must not pretend its internal organ is exposed')
+    await page.getByRole('button', { name: 'ขยายดู Genital primordium', exact: true }).click()
+    assert.equal(await primordium.count(), 1)
+    assert.equal(await primordium.getAttribute('data-selected'), 'true')
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'The larval diagram, focus controls and same-stage comparison must fit a phone')
+    assert.deepEqual(errors, [])
   } finally { await page.close() }
 })

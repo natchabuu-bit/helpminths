@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { getSpeciesById } from '../data/species';
+import StrongyloidesIllustration from './StrongyloidesIllustration';
 
 export interface EggIllustrationProps {
   speciesId: string;
@@ -11,6 +12,7 @@ export interface EggIllustrationProps {
 export default function EggIllustration({ speciesId, className, showInternal = true }: EggIllustrationProps) {
   const item = getSpeciesById(speciesId);
   const uid = useId().replace(/:/g, '');
+  if (speciesId === 'strongyloides') return <StrongyloidesIllustration className={className} showInternal={showInternal} />;
   const isHymenolepis = speciesId === 'hymenolepis-nana' || speciesId === 'hymenolepis-diminuta';
   const isNana = speciesId === 'hymenolepis-nana';
   const isRound = speciesId === 'taenia' || isHymenolepis;

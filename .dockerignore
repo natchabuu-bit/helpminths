@@ -1,4 +1,5 @@
 .git
+backups/
 .venv
 node_modules
 dist
