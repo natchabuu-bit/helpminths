@@ -9,6 +9,7 @@
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc -b --pretty false",
     "test:e2e": "node --test tests/e2e.test.mjs",
+    "test:advisor": "node --test tests/advisor.test.mjs",
     "test:offline": "node --test tests/offline.test.mjs"
   },
   "dependencies": {

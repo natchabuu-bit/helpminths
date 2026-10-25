@@ -1,0 +1,47 @@
+{
+  "capturedAt": "2026-10-25T09:15:18.270Z",
+  "timezone": "Asia/Bangkok",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "notice": "ภาพหน้าจอจากเว็บต้นแบบ โหมดตรวจและประวัติในภาพใช้ข้อมูลสาธิต ภาพเหล่านี้ไม่ใช่หลักฐานทดสอบจากผู้เข้าร่วม",
+  "files": [
+    {
+      "filename": "home.png",
+      "description": "หน้าแรกและสถานะบริการจริง",
+      "source": "actual running prototype",
+      "privatePatientImages": false
+    },
+    {
+      "filename": "scan-demo.png",
+      "description": "โหมดสาธิต ภาพและกรอบจำลอง ไม่ใช่ผล AI",
+      "source": "actual running prototype",
+      "privatePatientImages": false
+    },
+    {
+      "filename": "history-demo.png",
+      "description": "ประวัติผลสาธิตในเซสชัน ไม่ใช่ข้อมูลผู้ป่วย",
+      "source": "actual running prototype",
+      "privatePatientImages": false
+    },
+    {
+      "filename": "atlas.png",
+      "description": "H. nana: ภาพจริง Thomas P. Buckelew CC BY-NC 4.0 เทียบโมเดลอธิบายโครงสร้าง",
+      "source": "actual running prototype",
+      "privatePatientImages": false
+    },
+    {
+      "filename": "evaluation.png",
+      "description": "หน้าประเมินเริ่มต้น ไม่มีผู้เข้าร่วมหรือคะแนนตัวอย่าง",
+      "source": "actual running prototype",
+      "privatePatientImages": false
+    },
+    {
+      "filename": "project.png",
+      "description": "แนวคิดโครงงาน HMW และสถานะหลักฐาน",
+      "source": "actual running prototype",
+      "privatePatientImages": false
+    }
+  ]
+}

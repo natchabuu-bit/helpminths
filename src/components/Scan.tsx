@@ -32,6 +32,17 @@ interface ScanProps {
   initialRecord?: AnalysisRecord | null;
   openAtlas?: (label: string) => void;
   startDemo?: boolean;
+  onUploadAttempt?: (attempt: UploadAttempt) => void;
+}
+
+export interface UploadAttempt {
+  success: boolean;
+  width?: number;
+  height?: number;
+  sizeBytes?: number;
+  mime?: string;
+  elapsedMs?: number;
+  reason?: string;
 }
 
 type HealthStatus = 'checking' | 'ready' | 'unavailable' | 'offline';
@@ -72,7 +83,7 @@ function readImage(file: File): Promise<{ url: string; width: number; height: nu
   });
 }
 
-export default function Scan({ onResult, initialRecord = null, openAtlas, startDemo = false }: ScanProps) {
+export default function Scan({ onResult, initialRecord = null, openAtlas, startDemo = false, onUploadAttempt }: ScanProps) {
   const [health, setHealth] = useState<HealthStatus>('checking');
   const [healthMessage, setHealthMessage] = useState('');
   const [imageUrl, setImageUrl] = useState(initialRecord?.imageUrl ?? '');
@@ -187,13 +198,19 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
 
   const acceptFile = async (file?: File) => {
     if (!file || working || reading) return;
+    const started = performance.now();
+    const recordAttempt = (attempt: Pick<UploadAttempt, 'success' | 'width' | 'height' | 'reason'>) => {
+      onUploadAttempt?.({ ...attempt, sizeBytes: file.size, mime: file.type, elapsedMs: Math.max(0, performance.now() - started) });
+    };
     setError('');
     if (!ACCEPTED_TYPES.includes(file.type)) {
       setError('กรุณาเลือกไฟล์ภาพ JPG, PNG หรือ WEBP หากภาพเป็น HEIC ให้แปลงเป็น JPG ก่อน');
+      recordAttempt({ success: false, reason: 'unsupported_type' });
       return;
     }
     if (file.size > MAX_SIZE) {
       setError('ไฟล์มีขนาดเกิน 20 MB กรุณาลดขนาดภาพแล้วลองอีกครั้ง');
+      recordAttempt({ success: false, reason: 'too_large' });
       return;
     }
     setReading(true);
@@ -207,8 +224,10 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
       setSelectedId(null);
       setZoom(1);
       setShowBoxes(true);
+      recordAttempt({ success: true, width: image.width, height: image.height });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'ไม่สามารถอ่านไฟล์ภาพได้');
+      recordAttempt({ success: false, reason: 'decode_error' });
     } finally {
       setReading(false);
       if (fileInput.current) fileInput.current.value = '';
