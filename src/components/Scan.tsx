@@ -47,6 +47,8 @@ export interface UploadAttempt {
 
 type HealthStatus = 'checking' | 'ready' | 'unavailable' | 'offline';
 const COLORS = ['#47e2b5', '#ffbb69', '#b6a0ff', '#72c9ff', '#ff8fa2'];
+// UI ink colors contrast with light cards; vivid image boxes keep their own palette.
+const RESULT_COLORS = ['#146b55', '#84521a', '#65429a', '#246693', '#a63b50'];
 const MAX_SIZE = 20 * 1024 * 1024;
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
@@ -386,7 +388,7 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
               <div className="scan-confidence-control"><label htmlFor="scan-confidence"><span>เกณฑ์ความเชื่อมั่นขั้นต่ำ <CircleHelp size={12}><title>แสดงเฉพาะกรอบที่มีความเชื่อมั่นตั้งแต่เกณฑ์นี้ขึ้นไป ค่านี้ไม่ใช่ความแม่นยำทางคลินิก</title></CircleHelp></span><strong>{threshold}%</strong></label><input id="scan-confidence" type="range" min="15" max="99" step="1" value={threshold} onChange={(event) => setThreshold(Number(event.target.value))} style={{ '--range-progress': `${(threshold - 15) / 84 * 100}%` } as React.CSSProperties} /><div><span>15%</span><span>99%</span></div></div>
               <div className="scan-detections-heading"><span>รายการที่ตรวจพบ</span><span>{detections.length} รายการ</span></div>
               <div className="scan-detections-list">
-                {detections.map((detection, index) => <button key={detection.id} type="button" className={`scan-detection-item ${detection.id === selectedId ? 'scan-detection-item--selected' : ''}`} onClick={() => setSelectedId(detection.id)} style={{ '--detection-color': COLORS[Math.abs(detection.class_id || 0) % COLORS.length] } as React.CSSProperties}><span className="scan-detection-number">{String(index + 1).padStart(2, '0')}</span><span className="scan-detection-name"><strong>{detection.label}</strong><span>{thaiName(detection.label)}</span></span><span className="scan-detection-confidence">{Math.round(detection.confidence * 100)}<small>%</small></span></button>)}
+                {detections.map((detection, index) => <button key={detection.id} type="button" className={`scan-detection-item ${detection.id === selectedId ? 'scan-detection-item--selected' : ''}`} onClick={() => setSelectedId(detection.id)} style={{ '--detection-color': RESULT_COLORS[Math.abs(detection.class_id || 0) % RESULT_COLORS.length] } as React.CSSProperties}><span className="scan-detection-number">{String(index + 1).padStart(2, '0')}</span><span className="scan-detection-name"><strong>{detection.label}</strong><span>{thaiName(detection.label)}</span></span><span className="scan-detection-confidence">{Math.round(detection.confidence * 100)}<small>%</small></span></button>)}
                 {detections.length === 0 && <div className="scan-no-results"><Crosshair size={26} /><strong>{record.detections.length > 0 ? 'ไม่มีกรอบที่ผ่านเกณฑ์นี้' : 'ไม่พบไข่พยาธิจากการวิเคราะห์'}</strong><p>{record.detections.length > 0 ? 'ลองลดเกณฑ์ความเชื่อมั่นเพื่อดูผลเพิ่มเติม' : 'การไม่ตรวจพบไม่ยืนยันว่าไม่มีพยาธิ ควรให้ผู้เชี่ยวชาญตรวจสอบภาพร่วมด้วย'}</p>{record.detections.length > 0 && <button type="button" onClick={() => setThreshold(15)}>ปรับเกณฑ์เป็น 15%</button>}</div>}
               </div>
               {selectedAtlasSpecies?.id === 'opisthorchis' && <div className="scan-model-note scan-ov-note"><Info size={15} /><p><strong>ลักษณะไข่คล้าย OV ต้องตรวจยืนยัน</strong><span>ไข่พยาธิใบไม้ตับอาจคล้ายไข่พยาธิใบไม้ลำไส้ขนาดเล็กและ Clonorchis ผลจากภาพเพียงอย่างเดียวยังไม่ยืนยันชนิด ควรให้ผู้เชี่ยวชาญทบทวน</span></p></div>}

@@ -388,10 +388,10 @@ function Egg({ item, cutaway, selectedStructureId, onSelectStructure, labels, as
     {labels && structures.filter((structure) => !structure.internal || cutaway).map((structure) => <Part key={structure.id} id={structure.id} {...partProps}>
       <mesh position={structure.position} renderOrder={12}>
         <sphereGeometry args={[selected(structure.id) ? .052 : .029, 16, 12]} />
-        <meshBasicMaterial color={selected(structure.id) ? '#effff9' : SELECTION_COLOR} depthTest={false} transparent opacity={selected(structure.id) ? 1 : .7} />
+        <meshBasicMaterial color={selected(structure.id) ? '#9b4d20' : '#146b55'} depthTest={false} transparent opacity={selected(structure.id) ? 1 : .7} />
       </mesh>
       {selected(structure.id) && <mesh position={structure.position} renderOrder={13}>
-        <torusGeometry args={[.105, .012, 8, 40]} /><meshBasicMaterial color={SELECTION_COLOR} depthTest={false} />
+        <torusGeometry args={[.105, .012, 8, 40]} /><meshBasicMaterial color="#9b4d20" depthTest={false} />
       </mesh>}
     </Part>)}
   </group>;
@@ -450,10 +450,10 @@ function Scene(props: AtlasModelProps) {
     return () => { gl.domElement.style.cursor = ''; };
   }, [gl]);
   return <>
-    <ambientLight intensity={1.15} />
-    <directionalLight position={[-3, 4, 5]} intensity={2.6} color="#fff1d9" />
-    <directionalLight position={[4, 1, -2]} intensity={2.2} color="#9de9dc" />
-    <pointLight position={[0, -3, 2]} intensity={7} color="#80aaa1" />
+    <ambientLight intensity={.55} />
+    <directionalLight position={[-3, 4, 5]} intensity={1.8} color="#fff1d9" />
+    <directionalLight position={[4, 1, -2]} intensity={.9} color="#9de9dc" />
+    <pointLight position={[0, -3, 2]} intensity={2.5} color="#80aaa1" />
     {item.id === 'strongyloides' ? <StrongyloidesModel cutaway={props.cutaway} labels={props.labels} selectedStructureId={selectedStructureId} onSelectStructure={props.onSelectStructure} /> : <Egg {...props} />}
     <OrbitControls ref={controls} makeDefault enablePan={false} minDistance={1.5} maxDistance={Math.max(18, frameDistance * 2)} autoRotate={autoRotate} autoRotateSpeed={.7} enableDamping dampingFactor={.07} zoomSpeed={.8} />
   </>;

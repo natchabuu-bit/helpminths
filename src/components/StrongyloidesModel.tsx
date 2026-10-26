@@ -107,8 +107,8 @@ export default function StrongyloidesModel({ cutaway, labels, selectedStructureI
       </mesh>
     </Part>
     {labels && structures.map((part) => <Part key={part.id} id={part.id} onSelect={onSelectStructure}>
-      <mesh position={part.position} renderOrder={12}><sphereGeometry args={[selected(part.id) ? .037 : .024, 16, 12]} /><meshBasicMaterial color={selected(part.id) ? '#fff4d2' : '#9debd8'} depthTest={false} /></mesh>
-      {selected(part.id) && <mesh position={part.position} renderOrder={13}><torusGeometry args={[part.id === 'genital-primordium' ? .15 : .095, .009, 8, 48]} /><meshBasicMaterial color={HIGHLIGHT} depthTest={false} /></mesh>}
+      <mesh position={part.position} renderOrder={12}><sphereGeometry args={[selected(part.id) ? .037 : .024, 16, 12]} /><meshBasicMaterial color={selected(part.id) ? '#9b4d20' : '#146b55'} depthTest={false} /></mesh>
+      {selected(part.id) && <mesh position={part.position} renderOrder={13}><torusGeometry args={[part.id === 'genital-primordium' ? .15 : .095, .009, 8, 48]} /><meshBasicMaterial color="#9b4d20" depthTest={false} /></mesh>}
     </Part>)}
   </group>;
 }
