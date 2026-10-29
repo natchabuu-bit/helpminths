@@ -33,3 +33,16 @@
 .strongyloides-guide-sources>a{font-size:.875rem}
 @media(max-width:1250px){.strongyloides-guide-overview{grid-template-columns:minmax(0,1fr)}.strongyloides-guide-description h4{font-size:1.5rem}.strongyloides-guide-description>p{font-size:1rem}.strongyloides-guide-sources>a{font-size:.875rem}.strongyloides-stage-tag{font-size:1rem;max-width:none}}
 @media(max-width:760px){.strongyloides-guide{margin:0 12px 20px;padding:18px 14px}.strongyloides-guide-heading h3{font-size:1.5rem}.strongyloides-guide-heading>div>span{font-size:.875rem}.strongyloides-stage-tag{font-size:1rem;max-width:100%}.strongyloides-guide-figure figcaption{font-size:.875rem}.strongyloides-guide-description h4{font-size:1.5rem}.strongyloides-guide-description h4>span{font-size:1.125rem;display:block;margin:3px 0 0}.strongyloides-guide-description>p,.strongyloides-stage-note>p{font-size:1rem}.strongyloides-focus-button{font-size:1rem;width:100%}.strongyloides-comparison{font-size:1rem}.strongyloides-comparison caption{font-size:1.125rem}.strongyloides-comparison th,.strongyloides-comparison td{padding:12px 7px}.strongyloides-comparison thead th{font-size:.875rem}.strongyloides-comparison tbody th>span{font-size:.875rem}.strongyloides-comparison-note,.strongyloides-evidence-note,.strongyloides-guide-sources>a{font-size:.875rem}}
+
+/* A warm accent draws attention to the genital primordium without changing its diagram. */
+.strongyloides-guide{border-radius:18px;background:linear-gradient(135deg,#fff5ed,#fbfcff);border-color:#e3cfbd}
+.strongyloides-guide-heading>div>span{color:#91603a;font-weight:500}
+.strongyloides-guide-heading h3{font-weight:600}
+.strongyloides-guide-figure{border-radius:15px;background:radial-gradient(ellipse at 48% 45%,#e7e9d8,#f7f8ef 75%);border-color:#d2d6c1}
+.strongyloides-gp-label{border-radius:8px;background:#fff0e2;border-color:#dfb899;color:#8a4d28}
+.strongyloides-focus-button{border-radius:12px;background:linear-gradient(110deg,#137c70,#136c77);color:#fff;box-shadow:0 4px 12px #137c7015}
+.strongyloides-focus-button:hover{background:linear-gradient(110deg,#0e695e,#0e5d67);border-color:#0e695e}
+.strongyloides-comparison{border-radius:13px;border-color:#d9e3ec}
+.strongyloides-comparison thead th{background:#edf2fa;color:#425d7a}
+.strongyloides-comparison tbody th{background:#f4f7fc}
+.strongyloides-comparison td:nth-child(2){background:#edf7f1;color:#325f46}

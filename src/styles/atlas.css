@@ -131,3 +131,61 @@
 @media(max-width:480px){.atlas-species-list{grid-template-columns:minmax(0,1fr);max-height:325px}.atlas-species-item{min-height:90px}.atlas-species-thumb{width:44px}.atlas-species-thumb svg{width:55px;min-width:55px}.atlas-species-name strong{font-size:1rem}.atlas-species-name>span:not(.atlas-item-index),.atlas-species-name>small,.atlas-item-index{font-size:.875rem}.atlas-pane-title{padding:16px 12px;gap:8px}.atlas-annotations{left:10px;right:10px}.atlas-model-label{font-size:.9375rem}.atlas-annotations small{font-size:.875rem}.atlas-photo-gallery button{width:44px;min-width:44px}.atlas-structure-heading h3{font-size:1.5rem}.atlas-structure-heading{gap:8px}.atlas-structure-list button{max-width:100%;overflow-wrap:anywhere}.atlas-viewer-expanded .atlas-model-stage{height:340px}}
 /* Keep multi-line species names and photo status from colliding in the scroll list. */
 .atlas-species-item{flex-shrink:0}
+
+/* A calm, contemporary learning collection with distinct controls and study cards. */
+.atlas-eyebrow{font-weight:600;color:var(--accent);letter-spacing:1px}
+.atlas-eyebrow>span{box-shadow:0 0 0 4px #137c7010}
+.atlas-heading h1{font-weight:650;letter-spacing:-.7px}
+.atlas-collection-tag{border-radius:18px;background:linear-gradient(130deg,#fff,#f3f0fc);border-color:#ddd9ee;box-shadow:0 6px 20px #4e467706}
+.atlas-collection-tag>svg{color:#65509d}
+.atlas-workspace{border-radius:22px;border-color:var(--border);box-shadow:0 14px 42px #25385c08}
+.atlas-catalog{background:linear-gradient(180deg,#f3f6fc,#fafbfe);border-color:var(--border)}
+.atlas-catalog-heading>span{border-radius:9px;background:#fff;border-color:#d9e3ef;color:var(--muted)}
+.atlas-search{border-radius:13px;border-color:#b6c8d6;box-shadow:0 2px 5px #172c4003}
+.atlas-search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px #137c7010}
+.atlas-search input::placeholder{color:var(--muted)}
+.atlas-filter{color:var(--muted)}
+.atlas-species-list{gap:8px;scrollbar-color:#b6c5d6 transparent}
+.atlas-species-item{border-radius:15px;transition:background .16s,border-color .16s,box-shadow .16s;flex-shrink:0}
+.atlas-species-item:hover{background:#fff;border-color:#dbe5f0}
+.atlas-species-item.atlas-selected{background:#fff;border-color:#a0cec4;box-shadow:inset 3px 0 0 var(--accent),0 5px 14px #1e665b09}
+.atlas-species-thumb{height:48px;border-radius:13px;background:linear-gradient(145deg,#e8f4ee,#edf0fa)}
+.atlas-item-index{color:#5e6e88;letter-spacing:.5px}
+.atlas-selected .atlas-species-name strong{color:#11695e}
+.atlas-specimen-caption>span{color:#64548e;font-weight:500}
+.atlas-specimen-caption h2{font-family:inherit;font-size:1.875rem;font-weight:600;letter-spacing:-.45px;color:var(--text)}
+.atlas-viewer-actions button,.atlas-icon-button{border-radius:12px;border-color:#c9d5e3;background:#f6f8fc;color:#456079}
+.atlas-viewer-actions button:hover,.atlas-icon-button:hover{border-color:#91c2b8;background:#e9f6f1;color:#11695e}
+.atlas-view-tabs{border-radius:16px;padding:5px;background:#f0f3fa;border-color:#dfe6f0;gap:5px}
+.atlas-view-tabs button{border-radius:11px;transition:background .16s,color .16s,box-shadow .16s}
+.atlas-view-tabs button[aria-selected=true]{background:linear-gradient(110deg,#137c70,#136c77);border-color:transparent;color:#fff;box-shadow:0 4px 10px #137c7020}
+.atlas-comparison{border-radius:18px;border-color:#d8e2ed}
+.atlas-photo-panel{background:#fff}
+.atlas-model-panel{background:radial-gradient(ellipse at 50% 38%,#dfe6d8,#f0f4ed 52%,#f5f6fc 100%)}
+.atlas-pane-title{background:#ffffffb3;border-color:#dbe4ed}
+.atlas-pane-index{border-radius:10px;border-color:#d9d3eb;background:#f2eefb;color:#64518e;font-weight:600}
+.atlas-pane-title h3{font-weight:600}
+.atlas-photo-heading{background:#fff;border-color:#dfe7f0}
+.atlas-photo-heading h3{font-family:inherit;font-style:italic;font-weight:500;color:var(--text)}
+.atlas-model-label{border-radius:10px;border-color:#b7d4c8;background:#ffffffee;box-shadow:0 5px 16px #223a3c0d;color:#244d43}
+.atlas-model-toolbar button,.atlas-zoom-controls button,.atlas-photo-controls button,.atlas-photo-gallery button{border-radius:11px;border-color:#c1cfdd;box-shadow:0 2px 5px #172c4004}
+.atlas-model-toolbar button:hover{background:#edf7f3;border-color:#8fc0b3}
+.atlas-model-toolbar button.atlas-tool-active{background:#e3f3ec;border-color:#99c6b8;color:#176c58}
+.atlas-photo-frame{background:#edf1f6}
+.atlas-photo-attribution{background:#f5f7fc;border-color:var(--border)}
+.atlas-photo-feature{border-radius:12px;background:#fff7e9;border-color:#e2c99b}
+.atlas-photo-feature.is-supported{background:#edf7f1;border-color:#b2d4c2}
+.atlas-photo-feature strong{color:#37614b}
+.atlas-photo-empty{background:radial-gradient(ellipse at 50% 30%,#eef0fb,#f9fbfe 75%)}
+.atlas-structure-explorer{background:linear-gradient(130deg,#f5f8fd,#f8fbfd);border-color:var(--border)}
+.atlas-structure-list button{border-radius:12px;border-color:#bdccdc;box-shadow:0 2px 5px #172c4003;transition:background .16s,border-color .16s}
+.atlas-structure-list button:hover{background:#edf5f7;border-color:#9bb8c7}
+.atlas-structure-list .atlas-structure-selected{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 4px 10px #137c7015}
+.atlas-structure-description{background:#fff;border:1px solid #dfe6f0;border-left:3px solid var(--accent);border-radius:0 13px 13px 0;padding:14px 16px}
+.atlas-details{background:#fff;border-color:var(--border)}
+.atlas-dimensions{border-radius:14px;background:#f5f7fc;border-color:#d8e2ee}
+.atlas-clinical-note{border-radius:13px;background:#fff7e9;border-color:#dfc597}
+.atlas-education-note{color:var(--muted)}
+.atlas-viewer-expanded{border-radius:22px;border-color:#c6d6e2;box-shadow:0 0 0 200vmax #e9edf6f5,0 20px 70px #172c4020}
+@media(max-width:760px){.atlas-workspace{border-radius:18px}.atlas-catalog{padding-top:18px}.atlas-specimen-caption h2{font-size:1.625rem}.atlas-view-tabs{border-radius:15px}.atlas-comparison{border-radius:14px}.atlas-structure-explorer{padding:22px 16px}.atlas-viewer-expanded{border-radius:16px}}
+.atlas-structure-list button.atlas-structure-selected:hover{background:#0e695e;border-color:#0e695e;color:#fff}

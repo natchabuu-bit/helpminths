@@ -100,3 +100,65 @@
 @media(max-width:1250px){.scan-grid{grid-template-columns:minmax(0,1fr)}.scan-results-empty{min-height:auto}.scan-detections-list{max-height:none}.scan-section-heading{align-items:flex-start}.scan-health{max-width:270px}.scan-how-it-works{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.scan-how-it-works>.scan-small-label{grid-column:1/-1}.scan-how-it-works>div{margin-top:0;align-items:flex-start}}
 @media(max-width:680px){.scan-section-heading{display:block}.scan-health{margin-top:16px;max-width:100%}.scan-section-heading h1{font-size:1.875rem}.scan-upload-zone{padding:26px 16px;min-height:auto}.scan-upload-zone h2{font-size:1.5rem}.scan-card-header{padding:14px 16px}.scan-card-caption{font-size:.875rem}.scan-quality-tip{padding:16px}.scan-how-it-works{grid-template-columns:1fr}.scan-how-it-works>div{gap:14px}.scan-results-empty{padding:28px 18px}.scan-analyze-row{flex-direction:column;align-items:stretch}.scan-view-controls{margin-left:auto}.scan-view-controls button:nth-last-child(2){display:flex}.scan-view-controls button svg{width:18px}.scan-image-name{width:100%;flex-basis:100%}.scan-image-name>span{max-width:none}.scan-image-toolbar{padding:10px}.scan-results-summary{padding:20px 16px}.scan-confidence-control{padding:20px 16px}.scan-detections-heading{padding:18px 16px 10px}.scan-results-summary strong{font-size:2.125rem}.scan-model-note p{font-size:.875rem}.scan-demo-banner>button{margin-left:0}.scan-detection-item{gap:8px}.scan-detection-number{height:30px;width:30px}.scan-detection-name>strong{font-size:1rem}.scan-medical-note{font-size:.875rem}.scan-card-title{font-size:1.125rem}.scan-button{font-size:1rem!important}}
 .scan-status-dot{background:#6d8577}.scan-health--ready .scan-status-dot{background:#146b55;box-shadow:0 0 0 3px #146b5515}.scan-health--unavailable .scan-status-dot,.scan-health--offline .scan-status-dot{background:#996b22}.scan-mini-dot{background:#2c7b4f}.scan-mini-dot--muted{background:#6d8577}
+
+/* Clear upload and results cards within the shared teal, navy and lilac interface. */
+.scan-eyebrow{font-weight:600;letter-spacing:1px}
+.scan-section-heading h1{font-weight:650;letter-spacing:-.7px}
+.scan-health{border-radius:14px;background:#edf7f3;border-color:#b8d9ca;color:#285e4e}
+.scan-health--unavailable,.scan-health--offline{background:#fff7eb;border-color:#e1c99f;color:#795017}
+.scan-viewer-card,.scan-results-card{border-radius:22px;border-color:var(--border);box-shadow:0 12px 34px #25385c08}
+.scan-card-header{background:linear-gradient(110deg,#fff,#f7f8fd);border-color:var(--border)}
+.scan-icon-tile{width:38px;height:38px;border-radius:12px;color:#66519b;background:#eeeafa}
+.scan-card-title{font-weight:600}
+.scan-card-caption{color:var(--muted)}
+.scan-upload-zone{background:radial-gradient(ellipse at 50% 28%,#e7f4ef,transparent 58%),radial-gradient(ellipse at 85% 95%,#f0edfb,transparent 55%),#fcfdff}
+.scan-upload-symbol{border-radius:27px;background:linear-gradient(135deg,#dcefe8,#f0edf9);border-color:#b3d3c8;color:var(--accent);box-shadow:0 12px 30px #235b4e12}
+.scan-orbit,.scan-orbit-two{border-color:#bfd4d7}
+.scan-orbit-node{background:#8570b0;box-shadow:0 0 0 4px #8570b010}
+.scan-orbit-cross{color:#7a659e}
+.scan-upload-zone h2{font-weight:600}
+.scan-button{border-radius:12px}
+.scan-button-primary{background:linear-gradient(110deg,#137c70,#136c77);color:#fff;box-shadow:0 5px 13px #137c701c}
+.scan-button-primary:hover:not(:disabled){background:linear-gradient(110deg,#0e695e,#0e5d67)}
+.scan-button-secondary{border-color:#aebfce;background:#fff;color:var(--text)}
+.scan-button-secondary:hover:not(:disabled){background:#f0f4fb;border-color:#95afc0}
+.scan-demo-link{color:#66519b;text-decoration:underline;text-underline-offset:5px}
+.scan-demo-link:hover{color:#483777}
+.scan-upload-divider{color:var(--muted)}
+.scan-upload-divider>span{background:#dbe4ee}
+.scan-quality-tip{border-radius:17px;background:linear-gradient(120deg,#f2effb,#f7f9ff);border-color:#dad4ec}
+.scan-tip-icon{border-radius:11px;background:#e6dff5;color:#66519b}
+.scan-quality-tip strong{color:#59457e}
+.scan-results-empty-icon{border-radius:20px;background:#eff2fa;border-color:#d6deeb;color:#72629b}
+.scan-results-empty-icon:after{border-radius:26px;border-color:#e3e8f3}
+.scan-step-number{border-radius:11px;background:#eef2fa;border-color:#d5dfee;color:#4d627d}
+.scan-step-number--done{background:#e4f3ec;border-color:#b0d1c0;color:#28654d}
+.scan-model-note,.scan-demo-banner{border-radius:13px;background:#fff7eb;border-color:#dfc395}
+.scan-demo-banner>button{border-radius:10px}
+.scan-error{border-radius:13px}
+.scan-image-toolbar{background:#f4f7fc;border-color:var(--border)}
+.scan-view-controls button{border-radius:10px}
+.scan-view-controls button:hover{background:#e8eff9}
+.scan-view-controls .scan-control-active{background:#e1f2ed;color:#176c58}
+.scan-image-scroll{background:#edf1f7;scrollbar-color:#a8b9cc #f3f6fb}
+.scan-viewer-bottom{background:#f6f8fc;border-color:var(--border)}
+.scan-analyze-row{background:#edf7f3;border-color:#bbd8c9}
+.scan-analysis-overlay{background:#f5faf8e8}
+.scan-result-badge{border-radius:8px;background:#e6f4ec;border-color:#b6d8c5;color:#28644b}
+.scan-result-badge--demo{background:#fff5e4;border-color:#dfc395;color:#795017}
+.scan-summary-icon{border-radius:16px;background:#eeeafa;color:#685394}
+.scan-confidence-control label>strong{border-radius:8px;background:#e3f2ed}
+.scan-confidence-control input{background:linear-gradient(to right,var(--accent) var(--range-progress),#d8e1ed var(--range-progress))}
+.scan-confidence-control input::-webkit-slider-thumb{background:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.scan-confidence-control input::-moz-range-thumb{background:var(--accent)}
+.scan-detection-item{border-radius:13px}
+.scan-detection-item:hover{background:#f2f6fc}
+.scan-detection-item--selected{background:linear-gradient(110deg,#e9f5ef,#f2f7fc);border-color:#a9cfc0}
+.scan-detection-number{border-radius:10px}
+.scan-detections-list{scrollbar-color:#b4c3d6 #f6f8fc}
+.scan-atlas-link{border-radius:15px;background:linear-gradient(115deg,#f0edf9,#f6f8fd);border-color:#d5cee9}
+.scan-atlas-link-icon{border-radius:12px;background:#e5ddf4;color:#6b5598}
+.scan-export-button{border-radius:12px;border-color:#b1c6d0;color:#176c67}
+.scan-export-button:hover{background:#eef6f7}
+.scan-no-results button{border-radius:11px;background:#edf5f7;border-color:#b9cfd5}
+@media(max-width:680px){.scan-viewer-card,.scan-results-card{border-radius:18px}.scan-quality-tip{border-radius:15px}.scan-upload-zone{padding-top:30px;padding-bottom:30px}.scan-card-title{gap:10px}.scan-icon-tile{width:34px;height:34px;border-radius:10px}}

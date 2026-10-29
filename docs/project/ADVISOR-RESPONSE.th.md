@@ -1,5 +1,7 @@
 # การปรับ HelpMinths ตามข้อเสนอแนะอาจารย์ที่ปรึกษา
 
+> เอกสารย้อนหลังของเว็บรุ่น 25 ตุลาคม 2569: รุ่นวันที่ 29 ตุลาคม 2569 นำหน้าโครงงานและเครื่องมือเก็บหลักฐานออกแล้ว เหลือแบบประเมิน SUS กับช่องข้อเสนอแนะที่ใช้งานง่าย เนื้อหาด้านล่างบรรยายรุ่นเดิม ไม่ใช่ความสามารถของเว็บปัจจุบัน
+
 วันที่จัดทำ 25 ตุลาคม 2569 (2026) • ใช้ข้อเสนอแนะในเอกสารวิเคราะห์ที่ผู้ใช้แนบเป็นรายการปรับต้นแบบ ไม่เผยแพร่ชื่อหรือรหัสนักศึกษาในเอกสารแนบ
 
 ## รายการปรับและหลักฐานที่ต้องเก็บ
@@ -33,7 +35,7 @@
 
 ## เอกสารอ้างอิงและการตรวจต้นทาง
 
-รายการใช้ร่วมกันโดยเว็บ รายงาน และสไลด์อยู่ใน [projectReferences.ts](../../src/data/projectReferences.ts) ประกอบด้วย Brooke (1996), Bangor et al. (2008), Stanford d.school, Ultralytics, Render, CONSORT-AI, WHO และ CDC
+รายการใช้ร่วมกันโดยเว็บ รายงาน และสไลด์อยู่ใน [projectReferences.ts](https://github.com/natchabuu-bit/helpminths/blob/024cff33b8ee57a90cc30e236fe2853c2ae18365/src/data/projectReferences.ts) ประกอบด้วย Brooke (1996), Bangor et al. (2008), Stanford d.school, Ultralytics, Render, CONSORT-AI, WHO และ CDC
 
 ในรอบนี้เปิดอ่าน source เอกสาร Ultralytics tag `v8.3.253` ได้จริง ส่วนโดเมน usability.gov, Stanford, Render, Crossref/DOI, Nature และ WHO ถูก network proxy ปฏิเสธ ค่าตัวเลขราคา/โควตาผู้ให้บริการจึงไม่ถูกยืนยัน และไม่สร้างตัวเลขขึ้นแทน การมี canonical citation แยกจากการอ้างว่าได้อ่านหน้าเว็บสดไว้ใน `accessNote` ของแต่ละรายการ
 
@@ -57,4 +59,4 @@
 
 หลังเผยแพร่โค้ดต้องสั่ง Render → HelpMinths → Manual Deploy → Deploy latest commit เนื่องจากบริการตั้ง `autoDeploy: false` การทดสอบในคลาวด์และการ push GitHub ไม่ได้ยืนยันว่าเว็บไซต์บน Render ใช้ build ใหม่แล้ว
 
-ดาวน์โหลด [รายงาน 17 หน้าและสไลด์ 14 หน้า ฉบับ PDF/HTML](https://github.com/natchabuu-bit/helpminths/raw/refs/heads/main/docs/project/HelpMinths-report-and-slides-2026-10-25.zip) ได้จาก GitHub ชุดนี้เป็นภาพรวมต้นแบบและแผนทดสอบที่ยังไม่มีผลผู้ใช้จริง เมื่อเก็บผลแล้วให้ส่งออกฉบับใหม่จากเว็บเพื่อรวมข้อมูลที่บันทึก
+ดาวน์โหลด [รายงาน 17 หน้าและสไลด์ 14 หน้า ฉบับ PDF/HTML](https://github.com/natchabuu-bit/helpminths/raw/refs/heads/main/docs/project/HelpMinths-report-and-slides-2026-10-25.zip) ได้จาก GitHub ชุดนี้เป็นภาพรวมต้นแบบและแผนทดสอบที่ยังไม่มีผลผู้ใช้จริง ไฟล์เก็บถาวรนี้ใช้รูปแบบและความสามารถของรุ่นเดิม

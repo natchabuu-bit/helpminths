@@ -1,25 +1,35 @@
-.offline-panel { margin-bottom: 24px; border: 1px solid #bdd6c7; border-radius: 12px; background: #eef7f1; padding: 16px 18px; color: #2e5c43; }
+.offline-panel { margin-bottom: 24px; border: 1px solid var(--border); border-radius: 16px; background: #ffffffd9; padding: 13px 16px; color: var(--muted); box-shadow: 0 3px 12px #25385c03; }
 .offline-overview { display: flex; align-items: center; gap: 12px; }
-.offline-overview > svg { flex-shrink: 0; color: var(--teal); }
+.offline-overview > svg { flex-shrink: 0; width: 36px; height: 36px; padding: 8px; border-radius: 11px; color: #47678b; background: #eaf0fa; }
 .offline-copy { flex: 1; min-width: 0; }
-.offline-copy strong { display: block; font-size: 1rem; font-weight: 600; color: #244c36; line-height: 1.8; }
-.offline-copy p { font-size: .875rem; line-height: 1.85; color: #486453; margin: 3px 0 0; }
+.offline-copy strong { display: block; font-size: 1rem; font-weight: 600; color: #354d68; line-height: 1.8; }
+.offline-copy p { font-size: .875rem; line-height: 1.85; color: var(--muted); margin: 2px 0 0; }
 .offline-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 .offline-actions button { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: .9375rem; line-height: 1.8; min-height: 44px; }
-.offline-details-toggle { color: #285b41; background: transparent; padding: 8px 0; }
+.offline-details-toggle { color: #46637e; background: transparent; padding: 8px 10px; border-radius: 10px; }
+.offline-details-toggle:hover { background: #eef3fa; }
 .offline-details-toggle[aria-expanded=true] svg { transform: rotate(180deg); }
-.offline-install { color: #fff; border: 1px solid #146b55; border-radius: 8px; padding: 9px 14px; background: var(--teal); }
-.offline-details { border-top: 1px solid #c2d9ca; margin-top: 14px; padding-top: 6px; font-size: 1rem; line-height: 1.9; color: #3f5e49; }
+.offline-install { color: #fff; border: 1px solid var(--accent); border-radius: 11px; padding: 9px 14px; background: var(--accent); }
+.offline-details { border-top: 1px solid var(--border); margin-top: 13px; padding-top: 6px; font-size: 1rem; line-height: 1.9; color: var(--muted); }
 .offline-details p { margin: 10px 0; }
-.offline-details strong { font-weight: 600; color: #274c34; }
-.offline-details .offline-update { color: #75470f; }
-.offline-panel.is-offline { background: #fff7e9; border-color: #dcc496; }
-.offline-panel.is-offline .offline-overview > svg, .offline-panel.is-offline .offline-copy strong { color: #795019; }
+.offline-details strong { font-weight: 600; color: #354d68; }
+.offline-details .offline-update { color: #795017; }
+.offline-panel.is-offline { background: #fff8ee; border-color: #dfcba8; }
+.offline-panel.is-offline .offline-overview > svg { color: #805b28; background: #f9eacd; }
+.offline-panel.is-offline .offline-copy strong { color: #795019; }
 @media (max-width: 1180px) {
   .offline-overview { flex-wrap: wrap; gap: 8px 12px; }
-  .offline-actions { padding-left: 30px; width: 100%; justify-content: flex-end; }
+  .offline-actions { padding-left: 48px; width: 100%; justify-content: flex-end; }
 }
 @media (max-width: 680px) {
-  .offline-panel { padding: 16px; margin-bottom: 22px; }
-  .offline-actions { justify-content: flex-start; flex-wrap: wrap; gap: 8px 16px; }
+  .offline-panel { padding: 10px 12px; margin-bottom: 22px; border-radius: 14px; }
+  .offline-overview { display: grid; grid-template-columns: 28px minmax(0, 1fr) 44px; align-items: center; gap: 8px; }
+  .offline-overview > svg { width: 28px; height: 28px; padding: 6px; border-radius: 9px; }
+  .offline-copy strong { font-size: .875rem; }
+  .offline-copy p { display: none; }
+  .offline-panel.is-expanded .offline-copy p { display: block; }
+  .offline-actions { display: contents; }
+  .offline-actions .offline-details-toggle { grid-column: 3; grid-row: 1; width: 44px; height: 44px; padding: 12px; font-size: 0; gap: 0; }
+  .offline-details-toggle > svg { width: 18px; height: 18px; }
+  .offline-actions .offline-install { grid-column: 2 / -1; grid-row: 2; justify-self: start; }
 }

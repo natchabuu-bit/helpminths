@@ -38,3 +38,18 @@
 .ascaris-stage-media-note{font-size:.875rem!important;color:var(--muted)}
 @media(max-width:1250px){.ascaris-stage-options{grid-template-columns:repeat(2,minmax(0,1fr))}.ascaris-stage-option strong{font-size:1rem}.ascaris-stage-option>span{font-size:.875rem}}
 @media(max-width:760px){.ascaris-stages{margin:0 12px 20px;padding:18px 14px}.ascaris-stage-heading h3{font-size:1.5rem}.ascaris-stage-heading>div>span{font-size:.875rem}.ascaris-stage-guide-tag{font-size:.875rem;max-width:100%;gap:7px}.ascaris-selected-stage,.ascaris-coat-section{grid-template-columns:minmax(0,1fr);gap:16px}.ascaris-stage-figure{width:180px;max-width:100%;justify-self:center}.ascaris-stage-description h4{font-size:1.25rem}.ascaris-stage-description h4>span{font-size:1rem;display:block;margin:3px 0 0}.ascaris-stage-description p,.ascaris-coat-explanation>p{font-size:1rem}.ascaris-stage-status,.ascaris-stage-sources a,.ascaris-coat-comparison span{font-size:.875rem}.ascaris-coat-comparison{width:210px;max-width:100%;justify-self:center}.ascaris-decorticated-toggle{font-size:1rem;padding:12px 10px;text-align:left;justify-content:flex-start}.ascaris-stage-thumbnail{height:90px}.ascaris-development-note{font-size:1rem}.ascaris-stage-media-note{font-size:.875rem}}
+
+/* A lilac study card separates development stages from model controls. */
+.ascaris-stages{border-radius:18px;background:linear-gradient(135deg,#f4f1fb,#f9fbff);border-color:#d7cee8}
+.ascaris-stage-heading>div>span{color:#6b5297;font-weight:500}
+.ascaris-stage-heading h3{font-weight:600}
+.ascaris-stage-option{border-radius:14px;border-color:#c9c1dc;background:#fff;transition:background .16s,border-color .16s}
+.ascaris-stage-option:hover{background:#f1edfa;border-color:#a99bc5}
+.ascaris-stage-option.ascaris-stage-selected{background:#ece6f8;border-color:#a08cbe;box-shadow:inset 0 0 0 1px #a08cbe20}
+.ascaris-stage-check{color:#72569f}
+.ascaris-stage-status{border-radius:8px;background:#eef2fb;border-color:#c6d0e6;color:#4b5d85}
+.ascaris-stage-status-mature{background:#fff2df;border-color:#dfc18e;color:#795017}
+.ascaris-decorticated-toggle{border-radius:12px;border-color:#b4c5d4;background:#fff}
+.ascaris-decorticated-toggle[aria-pressed=true]{background:#e6f3ed;border-color:#9dc4b4;color:#28624d}
+.ascaris-coat-switch{background:#d8e1ec;border-color:#a5b5c8}
+.ascaris-decorticated-toggle[aria-pressed=true] .ascaris-coat-switch{background:var(--accent);border-color:var(--accent)}

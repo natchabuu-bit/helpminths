@@ -43,12 +43,9 @@ try {
   if (await pause.count()) await pause.click()
   await page.waitForTimeout(1000)
   await capture('atlas.png', 'H. nana: ภาพจริง Thomas P. Buckelew CC BY-NC 4.0 เทียบโมเดลอธิบายโครงสร้าง')
-  await page.getByRole('button', { name: 'ทดสอบและ Feedback', exact: true }).click()
-  await page.getByRole('heading', { name: /ทดสอบและ Feedback/ }).waitFor()
-  await capture('evaluation.png', 'หน้าประเมินเริ่มต้น ไม่มีผู้เข้าร่วมหรือคะแนนตัวอย่าง')
-  await page.getByRole('button', { name: 'โครงงานและหลักฐาน', exact: true }).click()
-  await page.getByRole('heading', { name: 'โครงงานและหลักฐาน' }).waitFor()
-  await capture('project.png', 'แนวคิดโครงงาน HMW และสถานะหลักฐาน')
+  await page.getByRole('button', { name: 'ประเมินและข้อเสนอแนะ', exact: true }).click()
+  await page.getByRole('heading', { name: 'ประเมินการใช้งาน', exact: true }).waitFor()
+  await capture('evaluation.png', 'แบบประเมิน SUS และช่องข้อเสนอแนะ ไม่มีคำตอบตัวอย่าง')
   if (errors.length) throw new Error(`Browser errors during capture: ${errors.join('; ')}`)
   await writeFile(resolve(directory, 'manifest.json'), JSON.stringify({
     capturedAt: new Date().toISOString(), timezone: 'Asia/Bangkok', viewport: { width: 1440, height: 1000 },

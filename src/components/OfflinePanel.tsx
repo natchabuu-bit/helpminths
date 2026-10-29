@@ -51,7 +51,7 @@ export default function OfflinePanel() {
     : ready ? 'พร้อมใช้งานออฟไลน์' : busy ? 'กำลังเตรียมแอพสำหรับออฟไลน์…' : 'ยังไม่พร้อมใช้งานออฟไลน์'
   const Icon = !state.online ? WifiOff : ready ? Check : busy ? LoaderCircle : Info
 
-  return <section className={`offline-panel ${!state.online ? 'is-offline' : ''}`} aria-label="การใช้งานออฟไลน์">
+  return <section className={`offline-panel ${!state.online ? 'is-offline' : ''} ${expanded ? 'is-expanded' : ''}`} aria-label="การใช้งานออฟไลน์">
     <div className="offline-overview">
       <Icon size={18} className={busy && state.online ? 'spin' : ''} aria-hidden="true" />
       <div className="offline-copy" role="status">
@@ -63,7 +63,7 @@ export default function OfflinePanel() {
       </div>
       <div className="offline-actions">
         {installPrompt && ready && <button className="offline-install" onClick={() => void install()} disabled={installing}><Download size={14} />{installing ? 'กำลังเปิด…' : 'ติดตั้งแอพ'}</button>}
-        <button className="offline-details-toggle" onClick={() => setExpanded(old => !old)} aria-expanded={expanded} aria-controls="offline-details">วิธีใช้ออฟไลน์ <ChevronDown size={14} /></button>
+        <button className="offline-details-toggle" onClick={() => setExpanded(old => !old)} aria-expanded={expanded} aria-controls="offline-details" title="วิธีใช้ออฟไลน์">วิธีใช้ออฟไลน์ <ChevronDown size={14} /></button>
       </div>
     </div>
     {expanded && <div className="offline-details" id="offline-details">

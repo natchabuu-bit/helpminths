@@ -79,7 +79,9 @@ function nav(page, label) {
   return page.locator('.sidebar .nav-item').filter({ hasText: label })
 }
 
-test('a first home visit prepares unvisited Atlas, fonts, local images and explicitly labelled demo for offline use', { timeout: 90_000 }, async () => {
+// This scenario opens every reference and developmental stage in software WebGL.
+// Keep the individual Playwright timeouts; allow the complete tour to finish on CPU renderers.
+test('a first home visit prepares unvisited Atlas, fonts, local images and explicitly labelled demo for offline use', { timeout: 180_000 }, async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, serviceWorkers: 'allow', acceptDownloads: true })
   const page = await context.newPage()
   const pageErrors = []
