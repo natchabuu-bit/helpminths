@@ -124,6 +124,13 @@ test('a first home visit prepares unvisited Atlas, fonts, local images and expli
     assert.equal(offlineReload.status(), 200)
     assert.equal(offlineReload.fromServiceWorker(), true, 'Offline navigation must come from the installed service worker')
     await page.locator('.offline-panel strong').filter({ hasText: /^กำลังใช้งานออฟไลน์$/ }).waitFor()
+    // The new lazy dashboard page is part of the static offline package, while
+    // its Google Sheets API and statistics are deliberately not cached.
+    await nav(page, 'Dashboard').click()
+    await page.getByTestId('health-survey-dashboard').waitFor()
+    await page.locator('.hsd-status').filter({ hasText: 'ออฟไลน์' }).waitFor()
+    assert.equal(await page.locator('.hsd-status.is-ready').count(), 0)
+    assert.equal(await page.locator('.hsd-stat-tested_count strong').innerText(), '—')
     await nav(page, 'Atlas 3D').click()
     await page.locator('.atlas-model-stage canvas').waitFor()
     assert.equal(await page.locator('.atlas-species-item').count(), 12)

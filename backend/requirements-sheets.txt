@@ -1,0 +1,3 @@
+# Optional private Google Sheets reader; public CSV mode uses the standard library.
+-r requirements.txt
+google-auth[requests]==2.40.3

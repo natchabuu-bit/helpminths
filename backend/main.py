@@ -154,8 +154,8 @@ def create_app(
     app.include_router(auth_router)
     app.include_router(quality_router)
     # Domain routers use the same service, authorization and private transactional store.
-    from backend.platform import analyses, reviews, reporting, analytics, feedback, modelversions, evaluation, learning
-    for module in (analyses, reviews, reporting, analytics, feedback, modelversions, evaluation, learning):
+    from backend.platform import analyses, reviews, reporting, analytics, feedback, modelversions, evaluation, learning, sheets_dashboard
+    for module in (analyses, reviews, reporting, analytics, feedback, modelversions, evaluation, learning, sheets_dashboard):
         app.include_router(module.router)
 
     if serve_web:

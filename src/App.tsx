@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { ArrowDownToLine, ArrowRight, ArrowUpRight, BookOpen, Box, Camera, Check, CircleHelp, Clock3, FileText, Focus, GraduationCap, History, LayoutDashboard, LoaderCircle, Menu, MessageCircle, Microscope, ScanLine, Search, ShieldCheck, Settings, Sparkles, Upload, X } from 'lucide-react'
+import { ArrowDownToLine, BarChart3, ArrowRight, ArrowUpRight, BookOpen, Box, Camera, Check, CircleHelp, Clock3, FileText, Focus, GraduationCap, History, LayoutDashboard, LoaderCircle, Menu, MessageCircle, Microscope, ScanLine, Search, ShieldCheck, Settings, Sparkles, Upload, X } from 'lucide-react'
 import Scan from './components/Scan'
 import type { AnalysisRecord } from './components/Scan'
 import EggIllustration from './components/EggIllustration'
@@ -12,6 +12,7 @@ import { getSpeciesById, groupLabels, matchSpeciesLabel, species } from './data/
 
 const Atlas = lazy(() => import('./components/Atlas'))
 const PlatformDashboard = lazy(() => import('./components/PlatformDashboard'))
+const HealthSurveyDashboard = lazy(() => import('./components/HealthSurveyDashboard'))
 const AnalysisHistory = lazy(() => import('./components/AnalysisHistory'))
 const ExpertVerification = lazy(() => import('./components/ExpertVerification'))
 const LearningLab = lazy(() => import('./components/LearningLab'))
@@ -19,9 +20,9 @@ const PlatformReports = lazy(() => import('./components/PlatformReports'))
 const ModelPerformance = lazy(() => import('./components/ModelPerformance'))
 const PlatformSettings = lazy(() => import('./components/PlatformSettings'))
 const pendingPage = <div className="loading-state"><LoaderCircle className="spin"/><p>กำลังเตรียมหน้าที่เลือก…</p></div>
-type Page = 'home' | 'scan' | 'atlas' | 'history' | 'evaluation' | 'verification' | 'learning' | 'reports' | 'performance' | 'settings'
+type Page = 'home' | 'dashboard' | 'scan' | 'atlas' | 'history' | 'evaluation' | 'verification' | 'learning' | 'reports' | 'performance' | 'settings'
 const featuredSpecies = ['opisthorchis', 'mif', 'hymenolepis-nana'].map(getSpeciesById)
-const pageNames: Record<Page, string> = { home: 'ภาพรวม', scan: 'ตรวจวิเคราะห์', atlas: 'Atlas 3D', history: 'ประวัติการตรวจ', evaluation: 'แบบประเมิน SUS', verification: 'ทบทวนโดยผู้เชี่ยวชาญ', learning: 'ห้องเรียนพยาธิ', reports: 'รายงาน', performance: 'ประเมินและข้อเสนอแนะ', settings: 'ตั้งค่าและบัญชี' }
+const pageNames: Record<Page, string> = { home: 'ภาพรวม', dashboard: 'Dashboard', scan: 'ตรวจวิเคราะห์', atlas: 'Atlas 3D', history: 'ประวัติการตรวจ', evaluation: 'แบบประเมิน SUS', verification: 'ทบทวนโดยผู้เชี่ยวชาญ', learning: 'ห้องเรียนพยาธิ', reports: 'รายงาน', performance: 'ประเมินและข้อเสนอแนะ', settings: 'ตั้งค่าและบัญชี' }
 
 function Brand({ small = false }: { small?: boolean }) {
   return <div className={`brand ${small ? 'brand-small' : ''}`}><div className="brand-symbol"><svg viewBox="0 0 40 40" aria-hidden="true"><ellipse cx="20" cy="20" rx="9" ry="13" transform="rotate(32 20 20)"/><ellipse cx="20" cy="20" rx="3.4" ry="6" transform="rotate(32 20 20)"/><circle cx="31" cy="8" r="2.5"/></svg></div><span>Help<span className="brand-light">Minths</span><small>PARASITOLOGY AI PLATFORM</small></span></div>
@@ -136,7 +137,7 @@ export default function App() {
     <aside className={`sidebar ${menuOpen ? 'is-open' : ''}`}>
       <button className="brand-button" onClick={() => navigate('home')} aria-label="HelpMinths หน้าหลัก"><Brand /></button>
       <nav id="primary-navigation" aria-label="เมนูหลัก">
-        {([{ id: 'home', icon: LayoutDashboard, label: 'ภาพรวม' }, { id: 'scan', icon: ScanLine, label: 'ตรวจวิเคราะห์', badge: 'AI' }, { id: 'atlas', icon: Box, label: 'Atlas 3D' }, { id: 'history', icon: History, label: 'ประวัติการตรวจ' }, { id: 'verification', icon: ShieldCheck, label: 'ทบทวนโดยผู้เชี่ยวชาญ' }, { id: 'learning', icon: GraduationCap, label: 'ห้องเรียนพยาธิ' }, { id: 'reports', icon: FileText, label: 'รายงาน' }, { id: 'performance', icon: MessageCircle, label: 'ประเมินและข้อเสนอแนะ' }, { id: 'settings', icon: Settings, label: 'ตั้งค่าและบัญชี' }] as const).map(item => <button key={item.id} className={`nav-item ${page === item.id || (page === 'evaluation' && item.id === 'performance') ? 'active' : ''}`} onClick={() => item.id === 'scan' ? openScan() : navigate(item.id)} aria-current={page === item.id || (page === 'evaluation' && item.id === 'performance') ? 'page' : undefined}><item.icon size={19} /><span>{item.label}</span>{'badge' in item && <span className="nav-badge">{item.badge}</span>}{item.id === 'history' && visibleRecords.length > 0 && <span className="nav-count">{visibleRecords.length}</span>}</button>)}
+        {([{ id: 'home', icon: LayoutDashboard, label: 'ภาพรวม' }, { id: 'dashboard', icon: BarChart3, label: 'Dashboard' }, { id: 'scan', icon: ScanLine, label: 'ตรวจวิเคราะห์', badge: 'AI' }, { id: 'atlas', icon: Box, label: 'Atlas 3D' }, { id: 'history', icon: History, label: 'ประวัติการตรวจ' }, { id: 'verification', icon: ShieldCheck, label: 'ทบทวนโดยผู้เชี่ยวชาญ' }, { id: 'learning', icon: GraduationCap, label: 'ห้องเรียนพยาธิ' }, { id: 'reports', icon: FileText, label: 'รายงาน' }, { id: 'performance', icon: MessageCircle, label: 'ประเมินและข้อเสนอแนะ' }, { id: 'settings', icon: Settings, label: 'ตั้งค่าและบัญชี' }] as const).map(item => <button key={item.id} className={`nav-item ${page === item.id || (page === 'evaluation' && item.id === 'performance') ? 'active' : ''}`} onClick={() => item.id === 'scan' ? openScan() : navigate(item.id)} aria-current={page === item.id || (page === 'evaluation' && item.id === 'performance') ? 'page' : undefined}><item.icon size={19} /><span>{item.label}</span>{'badge' in item && <span className="nav-badge">{item.badge}</span>}{item.id === 'history' && visibleRecords.length > 0 && <span className="nav-count">{visibleRecords.length}</span>}</button>)}
       </nav>
       <div className="sidebar-learning"><div className="learning-icon"><Microscope size={22}/></div><span className="eyebrow">A CLOSER LOOK</span><h3>โลกใบเล็ก<br/>ที่รอให้คุณค้นพบ</h3><p>เรียนรู้โครงสร้างไข่พยาธิ<br/>ผ่านมุมมองใหม่ในแบบ 3D</p><button onClick={() => openAtlas()}>สำรวจ Atlas <ArrowUpRight size={16}/></button></div>
       <div className="sidebar-bottom"><button className="help-link" onClick={() => setHelpOpen(true)}><CircleHelp size={18}/><span>คู่มือการใช้งาน</span><ArrowUpRight size={14}/></button><div className="workspace-profile"><div className="profile-avatar">HM</div><div><strong>{platform.session.user?.username ?? 'ผู้เยี่ยมชม'}</strong><span>{platform.session.user ? roleNames[platform.session.user.role] : 'Atlas และการเรียนรู้เปิดให้ใช้งาน'}</span></div><span className="profile-dot"/></div></div>
@@ -165,6 +166,7 @@ export default function App() {
           <div className="research-note"><div><ShieldCheck size={20}/><p><strong>ออกแบบเพื่อการเรียนรู้และช่วยคัดกรอง</strong><span>ผลจาก AI ต้องได้รับการทบทวนโดยผู้เชี่ยวชาญ และไม่ใช้แทนการวินิจฉัยทางคลินิก</span></p></div><button onClick={() => setHelpOpen(true)}>เรียนรู้เพิ่มเติม <ArrowUpRight size={15}/></button></div>
           <section className="feedback-invite"><div><span className="section-kicker"><MessageCircle size={16}/> เสียงของคุณช่วยเราได้</span><h2>ช่วยให้ HelpMinths ดีขึ้นไปด้วยกัน</h2><p>ตอบแบบประเมินสั้น ๆ หรือบอกสิ่งที่อยากให้เราปรับปรุง</p></div><button className="button-primary" onClick={() => navigate('evaluation')}>ประเมินและเสนอแนะ <ArrowRight size={17}/></button></section>
         </>}
+        {page === 'dashboard' && <Suspense fallback={pendingPage}><HealthSurveyDashboard key={authIdentity} session={platform.session}/></Suspense>}
         {page === 'scan' && <Scan key={`${scanKey}:${authIdentity}`} startDemo={demo} initialRecord={safeSelectedRecord} onResult={saveRecord} openAtlas={openAtlas} platformSession={platform.session} onOpenSettings={() => navigate('settings')} onOpenReview={id => { setPlatformAnalysisId(id); navigate('verification') }}/>}
         {page === 'atlas' && <><div className="atlas-learning-entry"><span>เรียนรู้โครงสร้างใน Atlas แล้วฝึกจำแนกจากภาพจริง</span><button className="button-quiet" onClick={() => navigate('learning')}><GraduationCap size={18}/> เปิดห้องเรียน <ArrowRight size={16}/></button></div><Suspense fallback={<div className="loading-state"><LoaderCircle className="spin"/><p>กำลังเตรียม Atlas 3D…</p></div>}><Atlas initialSpecies={initialSpecies}/></Suspense></>}
         {page === 'verification' && <Suspense fallback={pendingPage}><ExpertVerification key={authIdentity} session={platform.session} analysisId={platformAnalysisId} onChooseAnalysis={setPlatformAnalysisId}/></Suspense>}

@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-30T05:03:09.415Z",
+  "capturedAt": "2026-10-30T14:07:03.549Z",
   "timezone": "Asia/Bangkok",
   "viewport": {
     "width": 1440,
@@ -46,6 +46,12 @@
     {
       "filename": "settings.png",
       "description": "สถานะการตั้งค่าจริง ยังไม่มีฐานข้อมูล บัญชี หรือโมเดลที่เชื่อมต่อ",
+      "source": "actual running prototype",
+      "privatePatientImages": false
+    },
+    {
+      "filename": "health-dashboard.png",
+      "description": "Dashboard กพด. เขตสุขภาพที่ 2 แสดงสถานะแหล่งข้อมูลจริง ไม่มีสถิติโครงการจำลอง",
       "source": "actual running prototype",
       "privatePatientImages": false
     }

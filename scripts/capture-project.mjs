@@ -59,6 +59,10 @@ try {
   await page.getByRole('button', { name: 'ตั้งค่าและบัญชี', exact: true }).click()
   await page.locator('.platform-page').waitFor()
   await capture('settings.png', 'สถานะการตั้งค่าจริง ยังไม่มีฐานข้อมูล บัญชี หรือโมเดลที่เชื่อมต่อ')
+  await page.getByRole('button', { name: 'Dashboard', exact: true }).click()
+  await page.getByTestId('health-survey-dashboard').waitFor()
+  await page.locator('.hsd-update button:not(:disabled)').waitFor()
+  await capture('health-dashboard.png', 'Dashboard กพด. เขตสุขภาพที่ 2 แสดงสถานะแหล่งข้อมูลจริง ไม่มีสถิติโครงการจำลอง')
   if (errors.length) throw new Error(`Browser errors during capture: ${errors.join('; ')}`)
   await writeFile(resolve(directory, 'manifest.json'), JSON.stringify({
     capturedAt: new Date().toISOString(), timezone: 'Asia/Bangkok', viewport: { width: 1440, height: 1000 },
