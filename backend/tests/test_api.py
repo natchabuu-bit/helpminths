@@ -109,6 +109,32 @@ class InjectedModelService(YOLOModelService):
         self.message = "test predictor ready"
 
 
+def test_configured_platform_cannot_bypass_inference_permissions_via_legacy_route(tmp_path):
+    app = create_app(InjectedModelService(model_path=""), platform_dir=tmp_path / 'private')
+    store = app.state.platform_store
+    password = 'Synthetic-legacy-test-only-2026!'
+    store.create_user('legacy_lab', password, 'lab')
+    store.create_user('legacy_student', password, 'student')
+
+    def upload(client, csrf=None):
+        return client.post('/api/analyze',
+                           files={'image': ('fixture.jpg', image_bytes(orientation=6), 'image/jpeg')},
+                           data={'confidence': '.4', 'acknowledge_quality': 'true',
+                                 'quality_comment': 'Synthetic test only: tiny EXIF chart.'},
+                           headers={'Origin': 'https://testserver', **({'X-CSRF-Token': csrf} if csrf else {})})
+
+    with TestClient(app, base_url='https://testserver') as client:
+        assert upload(client).status_code == 401
+        student = client.post('/api/platform/login', json={'username': 'legacy_student', 'password': password}).json()
+        assert upload(client, student['csrf_token']).status_code == 403
+        lab = client.post('/api/platform/login', json={'username': 'legacy_lab', 'password': password}).json()
+        assert upload(client).status_code == 403
+        result = upload(client, lab['csrf_token'])
+        assert result.status_code == 200
+        assert result.json()['storage'] == 'session_only'
+        assert store.count_documents('analysis') == 0
+
+
 def test_inference_contract_orientation_dynamic_names_and_clipped_boxes():
     # The stub verifies the API/adapter contract; it is never used in the app.
     with TestClient(create_app(InjectedModelService(model_path=""))) as client:
@@ -116,7 +142,9 @@ def test_inference_contract_orientation_dynamic_names_and_clipped_boxes():
         response = client.post(
             "/api/analyze",
             files={"image": ("slide.jpg", image_bytes(orientation=6), "image/jpeg")},
-            data={"confidence": "0.4"},
+            # The deliberately tiny orientation fixture needs an explicit quality override.
+            data={"confidence": "0.4", "acknowledge_quality": "true",
+                  "quality_comment": "Automated adapter test with a tiny EXIF fixture; not a clinical image"},
         )
     assert response.status_code == 200
     result = response.json()
@@ -126,6 +154,7 @@ def test_inference_contract_orientation_dynamic_names_and_clipped_boxes():
     assert result["model"] == "test-only.pt"
     assert len(result["id"]) == 32
     assert result["duration_ms"] >= 0
+    assert result["quality"]["status"] == "warning"
     assert result["detections"] == [{
         "id": "det-1", "class_id": 3, "label": "Trichuris trichiura",
         "confidence": 0.9234, "bbox": [0.0, 10.0, 50.0, 80.0],

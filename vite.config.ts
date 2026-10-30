@@ -52,12 +52,14 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
-    proxy: { '/api': { target: 'http://127.0.0.1:8000', changeOrigin: true } },
+    // Preserve the browser Host so same-origin login and CSRF checks also work
+    // through Vite's local development proxy.
+    proxy: { '/api': { target: 'http://127.0.0.1:8000', changeOrigin: false } },
   },
   preview: {
     host: '0.0.0.0',
     port: 4173,
-    proxy: { '/api': { target: 'http://127.0.0.1:8000', changeOrigin: true } },
+    proxy: { '/api': { target: 'http://127.0.0.1:8000', changeOrigin: false } },
   },
   build: { chunkSizeWarningLimit: 1200 },
 })

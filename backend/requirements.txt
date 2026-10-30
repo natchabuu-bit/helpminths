@@ -2,3 +2,8 @@ fastapi==0.143.3
 uvicorn==0.54.0
 Pillow==12.3.0
 python-multipart==0.0.32
+
+# Unicode Thai reports (Noto Sans Thai fonts are bundled under the SIL OFL).
+fpdf2==2.8.9
+uharfbuzz==0.57.0
+fonttools==4.68.0

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import hashlib
 import math
 import os
 import threading
@@ -25,9 +26,16 @@ class YOLOModelService:
         self._lock = threading.Lock()
         self.ready = False
         self.name: str | None = None
+        self.version: str | None = None
+        self.metadata: dict[str, Any] | None = None
         self.message = "ยังไม่ได้เชื่อมต่อโมเดล AI กรุณาตั้งค่า HELPMINTHS_MODEL_PATH ให้ชี้ไปยังโมเดล YOLO ที่ฝึกแล้ว"
 
     def load(self) -> None:
+        self.ready = False
+        self._model = None
+        self.name = None
+        self.version = None
+        self.metadata = None
         if not self._path:
             return
         path = Path(self._path).expanduser()
@@ -54,8 +62,23 @@ class YOLOModelService:
             logger.warning("YOLO checkpoint could not be loaded (%s)", type(exc).__name__)
             self.message = "โหลดโมเดลไม่สำเร็จ กรุณาตรวจสอบไฟล์โมเดลและเวอร์ชันของ Ultralytics"
             return
+        try:
+            with path.open("rb") as checkpoint:
+                checksum = hashlib.file_digest(checkpoint, "sha256").hexdigest()
+        except OSError:
+            self._model = None
+            self.message = "อ่านข้อมูลรุ่นโมเดลไม่ได้ กรุณาตรวจสิทธิ์ไฟล์และเริ่มบริการใหม่"
+            return
         self.ready = True
         self.name = path.name
+        self.version = checksum[:16]
+        self.metadata = {
+            "name": self.name, "version": self.version, "sha256": checksum,
+            "training_dataset_version": os.getenv("HELPMINTHS_TRAINING_DATASET_VERSION") or None,
+            "validation_dataset": os.getenv("HELPMINTHS_VALIDATION_DATASET_VERSION") or None,
+            "dataset_metadata_status": "operator_declared" if os.getenv("HELPMINTHS_TRAINING_DATASET_VERSION") else "unavailable",
+            "evaluation_metrics": None,
+        }
         self.message = "โมเดลพร้อมประมวลผลภาพ ผลลัพธ์ต้องได้รับการยืนยันโดยผู้เชี่ยวชาญ"
 
     def predict(self, image: Image.Image, confidence: float) -> list[dict[str, Any]]:

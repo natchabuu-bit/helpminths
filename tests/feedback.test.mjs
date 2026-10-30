@@ -28,7 +28,10 @@ async function nav(page, name) {
   const mobileMenu = page.getByRole('button', { name: 'เปิดเมนู', exact: true })
   if (await mobileMenu.isVisible() && !(await page.locator('.sidebar').getAttribute('class')).includes('is-open')) await mobileMenu.click()
   await item.click()
-  if (name === evaluationNav) await page.getByRole('heading', { name: 'ประเมินการใช้งาน', exact: true }).waitFor()
+  if (name === evaluationNav) {
+    await page.getByRole('tab', { name: 'แบบประเมิน SUS', exact: true }).click()
+    await page.getByRole('heading', { name: 'ประเมินการใช้งาน', exact: true }).waitFor()
+  }
 }
 
 async function answerSUS(page, answers) {
@@ -50,7 +53,7 @@ async function save(page) {
 test('navigation removes project and workspace UI; an old project URL safely opens the home page', async () => {
   const page = await openPage()
   try {
-    assert.equal(await page.locator('.sidebar .nav-item').count(), 5)
+    assert.equal(await page.locator('.sidebar .nav-item').count(), 9)
     assert.doesNotMatch(await page.locator('body').innerText(), /โครงงานและหลักฐาน|พื้นที่ทำงาน|WORKSPACE/)
     assert.equal(await page.getByRole('button', { name: 'โครงงานและหลักฐาน', exact: true }).count(), 0)
     await page.goto(`${baseURL}/#project`, { waitUntil: 'networkidle' })

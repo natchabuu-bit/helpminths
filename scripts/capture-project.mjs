@@ -27,6 +27,12 @@ try {
     await page.screenshot({ path: resolve(directory, filename), animations: 'disabled' })
     files.push({ filename, description, source: 'actual running prototype', privatePatientImages: false })
   }
+  const status = await page.request.get(`${baseURL}/api/platform/session`)
+  if (!status.ok()) throw new Error('The current platform session API must be available before capture')
+  if (status.headers()['x-helpminths-test-fixture']) throw new Error('Public screenshots must not use the synthetic backend fixture')
+  const session = await status.json()
+  if (typeof session.configured !== 'boolean') throw new Error('Unexpected platform session response')
+  if (session.user || session.configured) throw new Error('Capture public documentation only from an unconfigured, unauthenticated application')
   await page.goto(baseURL, { waitUntil: 'networkidle' })
   await page.getByRole('heading', { name: 'มองเห็น เข้าใจ เรียนรู้' }).waitFor()
   await capture('home.png', 'หน้าแรกและสถานะบริการจริง')
@@ -44,8 +50,15 @@ try {
   await page.waitForTimeout(1000)
   await capture('atlas.png', 'H. nana: ภาพจริง Thomas P. Buckelew CC BY-NC 4.0 เทียบโมเดลอธิบายโครงสร้าง')
   await page.getByRole('button', { name: 'ประเมินและข้อเสนอแนะ', exact: true }).click()
+  await page.getByRole('tab', { name: 'แบบประเมิน SUS', exact: true }).click()
   await page.getByRole('heading', { name: 'ประเมินการใช้งาน', exact: true }).waitFor()
   await capture('evaluation.png', 'แบบประเมิน SUS และช่องข้อเสนอแนะ ไม่มีคำตอบตัวอย่าง')
+  await page.getByRole('button', { name: 'ห้องเรียนพยาธิ', exact: true }).click()
+  await page.locator('.learning-page').waitFor()
+  await capture('learning.png', 'ห้องเรียนใช้ภาพอ้างอิงจริง มีเครดิตและข้อจำกัด แบบทดสอบยังไม่มีผู้ตรวจอนุมัติ')
+  await page.getByRole('button', { name: 'ตั้งค่าและบัญชี', exact: true }).click()
+  await page.locator('.platform-page').waitFor()
+  await capture('settings.png', 'สถานะการตั้งค่าจริง ยังไม่มีฐานข้อมูล บัญชี หรือโมเดลที่เชื่อมต่อ')
   if (errors.length) throw new Error(`Browser errors during capture: ${errors.join('; ')}`)
   await writeFile(resolve(directory, 'manifest.json'), JSON.stringify({
     capturedAt: new Date().toISOString(), timezone: 'Asia/Bangkok', viewport: { width: 1440, height: 1000 },

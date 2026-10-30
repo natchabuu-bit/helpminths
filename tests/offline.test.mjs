@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
 import { createServer } from 'node:http'
+import { once } from 'node:events'
 import { existsSync } from 'node:fs'
 import { readFile, readdir } from 'node:fs/promises'
 import { extname, resolve, sep } from 'node:path'
@@ -285,6 +286,7 @@ async function faultInjectionServer() {
       const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname)
       if (pathname === state.blockedAsset) {
         state.blockedRequests += 1
+        server.emit('fault-blocked', pathname)
         response.writeHead(503, { 'content-type': 'text/plain', 'cache-control': 'no-store' }); response.end('Intentional test-only unavailable asset'); return
       }
       if (pathname === '/api/health') {
@@ -301,15 +303,36 @@ async function faultInjectionServer() {
     } catch { response.writeHead(404); response.end() }
   })
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
-  return { state, url: `http://127.0.0.1:${server.address().port}`, close: () => new Promise(resolve => { server.close(resolve); server.closeAllConnections() }) }
+  return { state, url: `http://127.0.0.1:${server.address().port}`, waitForBlockedRequest: () => once(server, 'fault-blocked', { signal: AbortSignal.timeout(10000) }), close: () => new Promise(resolve => { server.close(resolve); server.closeAllConnections() }) }
 }
 
 test('incomplete downloads never claim readiness; a failed update preserves the usable version and a healthy update waits', { timeout: 90_000 }, async () => {
   const server = await faultInjectionServer()
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, serviceWorkers: 'allow' })
   const page = await context.newPage()
+  // An opaque about:blank inspector is not a scoped/controlled client. CDP
+  // lifecycle events remain available even when Chrome stops an idle worker.
+  const observer = await context.newPage()
+  assert.equal(observer.url(), 'about:blank')
+  const inspector = await context.newCDPSession(observer)
+  const versions = new Map(), changes = new Set()
+  inspector.on('ServiceWorker.workerVersionUpdated', event => {
+    for (const version of event.versions) versions.set(version.versionId, version)
+    for (const changed of changes) changed()
+  })
+  const waitForVersion = predicate => new Promise((resolve, reject) => {
+    const timer = setTimeout(() => { changes.delete(changed); reject(new Error('Service-worker lifecycle transition was not observed')) }, 15000)
+    const changed = () => {
+      const version = [...versions.values()].find(predicate)
+      if (version) { clearTimeout(timer); changes.delete(changed); resolve(version) }
+    }
+    changes.add(changed); changed()
+  })
+  await inspector.send('ServiceWorker.enable')
   try {
+    const blockedInitialInstall = server.waitForBlockedRequest()
     await page.goto(server.url, { waitUntil: 'networkidle' })
+    await blockedInitialInstall
     await page.waitForFunction(async () => {
       const registration = await navigator.serviceWorker.getRegistration()
       return !registration || (!registration.installing && !registration.active && !registration.waiting)
@@ -332,7 +355,9 @@ test('incomplete downloads never claim readiness; a failed update preserves the 
     server.state.version = newVersion
     server.state.blockedAsset = initialPaths.find(path => /\/Atlas-.*\.js$/.test(path))
     const blockedBefore = server.state.blockedRequests
+    const blockedUpdate = server.waitForBlockedRequest()
     await page.evaluate(async () => { const registration = await navigator.serviceWorker.getRegistration(); await registration.update() })
+    await blockedUpdate
     await page.waitForFunction(async () => { const registration = await navigator.serviceWorker.getRegistration(); return registration?.active && !registration.installing && !registration.waiting })
     assert.ok(server.state.blockedRequests > blockedBefore)
     assert.deepEqual(await workerStatus(page), firstReady, 'A failed update must leave the old complete worker active')
@@ -374,8 +399,11 @@ test('incomplete downloads never claim readiness; a failed update preserves the 
     await page.locator('.offline-panel strong').filter({ hasText: /^พร้อมใช้งานออฟไลน์$/ }).waitFor()
     assert.equal((await workerStatus(page)).version, firstReady.version)
 
-    // Normal lifecycle activation is allowed once the old session is closed.
+    // Capture the actual pending version, then let normal activation complete
+    // with no scoped clients. Opening a new page sooner can retain the old one.
+    const pendingVersion = await waitForVersion(version => version.scriptURL === `${server.url}/sw.js` && version.status === 'installed')
     await page.close()
+    await waitForVersion(version => version.versionId === pendingVersion.versionId && version.status === 'activated')
     const nextPage = await context.newPage()
     await nextPage.goto(server.url, { waitUntil: 'networkidle' })
     const nextReady = await waitForReady(nextPage)

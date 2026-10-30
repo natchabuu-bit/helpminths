@@ -2,8 +2,8 @@
   font-family: 'Inter Variable', 'Noto Sans Thai Variable', sans-serif;
   font-size: 100%; line-height: 1.75; color: var(--text); background: var(--bg);
   font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased;
-  --bg: #f6f8fc; --surface: #fff; --surface-2: #eef3fa; --text: #172c40;
-  --muted: #4e6376; --teal: #137c70; --accent: #137c70; --border: #dbe4ee;
+  --bg: #f4f7fb; --surface: #fff; --surface-2: #edf3f9; --text: #142b48;
+  --muted: #496078; --teal: #155ea6; --accent: #155ea6; --border: #d4dfeb;
   --accent-soft: #e3f5f0; --purple: #6655a4; --purple-soft: #f0edfb; --blue: #376eab; --warning: #805016; --warning-soft: #fff6e6;
   --danger: #a12b37; --danger-soft: #fff0f1; --shadow: 0 6px 24px #243f6010;
   color-scheme: light;

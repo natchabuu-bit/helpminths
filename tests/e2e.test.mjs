@@ -86,7 +86,8 @@ test('upload stays available without a model, and unsupported files are rejected
   } finally { await page.close() }
 })
 
-test('mocked inference preserves exact model labels and links only supported taxa to the correct Atlas entry', { timeout: 90_000 }, async () => {
+// This visits seven WebGL Atlas scenes on the CPU software renderer in CI.
+test('mocked inference preserves exact model labels and links only supported taxa to the correct Atlas entry', { timeout: 180_000 }, async () => {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
   let receivedMultipart = false
   const unrelatedLabels = ['Uncatalogued helminth egg', 'Schistosoma mansoni', 'Schistosoma haematobium', 'Schistosoma japonicum', 'Opisthorchis felineus', 'Clonorchis sinensis', 'Opisthorchis spp.', 'Fasciola hepatica', 'Fasciola gigantica', 'Hymenolepis spp.', 'Strongyloides fuelleborni', 'S. fuelleborni', 'Strongyloides ratti', 'S. ratti']
@@ -106,6 +107,9 @@ test('mocked inference preserves exact model labels and links only supported tax
   ]
   const labels = cases.map(item => item.label)
   await page.route('**/api/health', route => route.fulfill({ json: { status: 'ok', model_ready: true, model_name: 'contract-test-only.pt', message: 'Test fixture' } }))
+  // Quality is stubbed only here to isolate the label/inference UI contract.
+  // Real pixel heuristics and acknowledgement enforcement are covered by backend tests.
+  await page.route('**/api/platform/quality', route => route.fulfill({ json: { status: 'pass', checks: [], assessment_type: 'heuristic', can_override: true } }))
   await page.route('**/api/analyze', async route => {
     const request = route.request()
     const body = request.postDataBuffer()?.toString('latin1') || ''
