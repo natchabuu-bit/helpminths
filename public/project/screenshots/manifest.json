@@ -51,40 +51,64 @@
     },
     {
       "filename": "health-dashboard.png",
-      "capturedAt": "2026-10-31T04:00:27.882Z",
+      "capturedAt": "2026-10-31T04:17:58.387Z",
       "viewport": {
         "width": 1440,
         "height": 1000
       },
       "description": "Dashboard จาก helminth-dashboard.zip ใช้สถิติจริงจาก 2569.xlsx (1440px)",
       "source": "actual running prototype; uploaded workbook aggregate API",
-      "datasetVersion": "127cfb59ea094824",
+      "datasetVersion": "f8fa159f5ee78221",
       "privatePatientImages": false
     },
     {
       "filename": "health-dashboard-charts.png",
-      "capturedAt": "2026-10-31T04:00:27.882Z",
+      "capturedAt": "2026-10-31T04:17:58.387Z",
       "viewport": {
         "width": 1440,
         "height": 1000
       },
-      "description": "กราฟกระจาย อำเภอ สังกัด ชนิดพยาธิ และการกระจายช่วงร้อยละ จากสถิติจริง",
+      "description": "กราฟสถิติจริงและโรงเรียนที่ควรติดตาม เรียงร้อยละในกลุ่มส่งตรวจตั้งแต่ 30 คน",
       "source": "actual running prototype; uploaded workbook aggregate API",
-      "datasetVersion": "127cfb59ea094824",
+      "datasetVersion": "f8fa159f5ee78221",
+      "privatePatientImages": false
+    },
+    {
+      "filename": "health-dashboard-followup.png",
+      "capturedAt": "2026-10-31T04:17:58.387Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "description": "โรงเรียนที่ควรติดตาม 8 อันดับแรกจาก 108 แห่งที่ส่งตรวจตั้งแต่ 30 คน ตามคำขอเจ้าของ",
+      "source": "actual running prototype; uploaded workbook aggregate API",
+      "datasetVersion": "f8fa159f5ee78221",
+      "privatePatientImages": false
+    },
+    {
+      "filename": "health-dashboard-schools.png",
+      "capturedAt": "2026-10-31T04:17:58.387Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "description": "ตารางรายชื่อโรงเรียน/ศูนย์ 170 แห่งที่มีผู้ส่งตรวจจริง พร้อมค้นหา เรียง และ CSV",
+      "source": "actual running prototype; uploaded workbook aggregate API",
+      "datasetVersion": "f8fa159f5ee78221",
       "privatePatientImages": false
     },
     {
       "filename": "health-dashboard-mobile.png",
-      "capturedAt": "2026-10-31T04:00:31.466Z",
+      "capturedAt": "2026-10-31T04:18:00.388Z",
       "viewport": {
         "width": 375,
         "height": 900
       },
       "description": "Dashboard จาก helminth-dashboard.zip ใช้สถิติจริงจาก 2569.xlsx (375px)",
       "source": "actual running prototype; uploaded workbook aggregate API",
-      "datasetVersion": "127cfb59ea094824",
+      "datasetVersion": "f8fa159f5ee78221",
       "privatePatientImages": false
     }
   ],
-  "updatedAt": "2026-10-31T04:00:31.490Z"
+  "updatedAt": "2026-10-31T04:18:00.401Z"
 }

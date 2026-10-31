@@ -75,6 +75,9 @@ def test_auto_provider_serves_audited_public_snapshot_without_google_or_accounts
         assert metadata['source']['file_name'] == '2569.xlsx'
         assert metadata['source']['year_basis'] == 'filename'
         assert metadata['refresh_seconds'] == 0 and metadata['access'] == 'public_aggregates'
+        assert metadata['capabilities']['named_school_statistics'] is True
+        assert metadata['capabilities']['published_school_count'] == 170
+        assert metadata['capabilities']['person_records_exposed'] is False
         result = client.get('/api/platform/operations/dashboard')
         assert result.status_code == 200 and result.json()['status'] == 'ready'
         data = result.json()['data']
@@ -86,6 +89,9 @@ def test_auto_provider_serves_audited_public_snapshot_without_google_or_accounts
         assert data['quality']['formula_error_count'] == 44
         assert data['quality']['missing_count_cells'] == 2
         assert data['quality']['conflicting_count'] == 1
+        assert len(data['by_school']) == 170 and data['followup_eligible_school_count'] == 108
+        assert len(data['followup_schools']) == 8 and data['followup_min_tested'] == 30
+        assert all(row['tested_count'] >= 30 for row in data['followup_schools'])
         assert 'schools' not in data and 'cubes' not in data
     upstream.assert_not_called()
 
@@ -101,8 +107,11 @@ def test_snapshot_routes_filter_unknowns_and_export_only_selected_aggregates(mon
         assert pending['summary']['tested_count'] is None
         assert pending['summary']['infected_count'] is None
         assert pending['summary']['coverage_percent'] is None
+        assert pending['by_school'] == [] and pending['followup_schools'] == []
         selected = client.get('/api/platform/operations/dashboard', params={'province': 'พิษณุโลก'}).json()['data']
         assert selected['summary']['tested_count'] == 441 and selected['summary']['infected_count'] == 1
+        assert len(selected['by_school']) == 5
+        assert all(row['province'] == 'พิษณุโลก' for row in selected['by_school'])
         assert selected['quality']['issues'] == []
         response = client.get('/api/platform/operations/export.csv', params={'province': 'พิษณุโลก'})
         assert response.status_code == 200

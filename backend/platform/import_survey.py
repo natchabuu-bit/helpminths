@@ -1,4 +1,4 @@
-"""Import the KPD three-row-header template into public aggregate statistics.
+"""Import the KPD three-row-header template into public reporting statistics.
 
 Run locally; never upload the original workbook to the public repository. Excel
 formulas are read from saved values, never executed. Import fails before writing
@@ -20,7 +20,7 @@ from zipfile import BadZipFile, ZipFile
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 
-TRANSFORM_VERSION = 'kpd-workbook-aggregate-v2'
+TRANSFORM_VERSION = 'kpd-workbook-aggregate-v3'
 TYPE_COLUMNS = (
     ('hookworm', 'ปากขอ', 9), ('ascaris', 'ไส้เดือน', 11),
     ('trichuris', 'แส้ม้า', 13), ('liver_fluke', 'ใบไม้ตับ', 15),
@@ -67,7 +67,10 @@ def _positivity_band(infected: int | None, tested: int | None) -> str | None:
     return '20plus'
 
 
-def import_workbook(path: str | Path, *, worksheet: str, year: int, imported_at: str | None = None) -> dict:
+def import_workbook(path: str | Path, *, worksheet: str, year: int, imported_at: str | None = None,
+                    include_school_details: bool = False) -> dict:
+    if type(include_school_details) is not bool:
+        raise ValueError('ตัวเลือกเผยแพร่ชื่อสถานศึกษาต้องเป็น True หรือ False')
     source = Path(path)
     if source.suffix.lower() != '.xlsx' or source.stat().st_size > 10 * 1024 * 1024:
         raise ValueError('รองรับไฟล์ .xlsx ขนาดไม่เกิน 10 MB')
@@ -182,8 +185,11 @@ def import_workbook(path: str | Path, *, worksheet: str, year: int, imported_at:
             for issue in row_issues:
                 issues.append({'id': f'row-{row_number}-{issue["code"]}-{issue.get("parasite", "all")}', **dims,
                                'status': status, 'positivity_band': positivity_band, **issue})
+            school_identity = json.dumps([worksheet, *identity, row_number], ensure_ascii=False)
+            school_id = 'school-' + hashlib.sha256(school_identity.encode()).hexdigest()[:20]
             records.append({**dims, 'status': status, 'positivity_band': positivity_band,
-                            **core, 'parasites': parasites, '_row': row_number})
+                            **core, 'parasites': parasites, '_row': row_number,
+                            '_school': name, '_school_id': school_id})
         if not records or summary_start is None:
             raise ValueError('ไม่พบรายละเอียดหรือแถวรวมปิดตารางที่ใช้ตรวจยอด')
         check_offsets = {**CORE_COLUMNS, **{key: col for key, _, col in TYPE_COLUMNS}}
@@ -221,15 +227,26 @@ def import_workbook(path: str | Path, *, worksheet: str, year: int, imported_at:
                           **{key: _sum_known([record[key] for record in selected]) for key in CORE_COLUMNS},
                           'parasites': {key: {field: _sum_known([record['parasites'][key][field] for record in selected]) for field in ('reported', 'consistent', 'conflicting', 'missing', 'tested_missing')} for key, _, _ in TYPE_COLUMNS}})
         # Version the transformation as well as the workbook, so corrections are auditable.
-        version_basis = json.dumps([digest, TRANSFORM_VERSION, worksheet, year, source.name], ensure_ascii=False)
+        version_basis = json.dumps([digest, TRANSFORM_VERSION, worksheet, year, source.name, bool(include_school_details)], ensure_ascii=False)
         version = hashlib.sha256(version_basis.encode()).hexdigest()[:16]
+        # Named school results are a separate, explicit publication choice. The
+        # default remains aggregate-only; no notes, pupils, tambon or source IDs
+        # are published even when the operator selects this option.
+        schools = [
+            {'school_id': record['_school_id'], 'school': record['_school'],
+             **{key: record[key] for key in ('province', 'district', 'affiliation', 'status', 'positivity_band',
+                                            'enrolled', 'tested', 'infected', 'coinfection')}}
+            for record in records if record['status'] == 'tested'
+        ] if include_school_details else []
         return {
             'schema_version': 1,
             'dataset': {'id': f'kpd-{year}', 'version': version, 'transform_version': TRANSFORM_VERSION,
                         'file_name': source.name, 'file_sha256': digest, 'worksheet': worksheet, 'year': year,
                         'year_basis': 'filename', 'band_partitioned': True,
+                        'named_school_statistics': bool(include_school_details),
+                        'publication_scope': 'named_tested_school_statistics' if include_school_details else 'aggregates_only',
                         'imported_at': imported_at or datetime.now(timezone.utc).isoformat(timespec='seconds')},
-            'cubes': cubes, 'issues': issues,
+            'cubes': cubes, 'issues': issues, 'schools': schools,
             'audit': {'source_detail_rows': len(records), 'detail_row_range': [records[0]['_row'], records[-1]['_row']],
                       'excluded_summary_rows': total_rows, 'excluded_province_summary_rows': province_rows,
                       'summary_reconciled': True, 'formula_error_count': formula_error_count,
@@ -249,9 +266,12 @@ def main():
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--worksheet', required=True)
     parser.add_argument('--year', required=True, type=int)
+    parser.add_argument('--include-school-details', action='store_true',
+                        help='Publish named reporting-unit statistics for units with tested > 0; use only when authorized')
     args = parser.parse_args()
     try:
-        result = import_workbook(args.workbook, worksheet=args.worksheet, year=args.year)
+        result = import_workbook(args.workbook, worksheet=args.worksheet, year=args.year,
+                                 include_school_details=args.include_school_details)
         if args.output.exists():
             previous = json.loads(args.output.read_text(encoding='utf-8'))
             if previous.get('dataset', {}).get('version') == result['dataset']['version']:

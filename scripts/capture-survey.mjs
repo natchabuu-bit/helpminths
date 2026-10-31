@@ -25,6 +25,8 @@ try {
     const response = await page.request.get(`${baseURL}/api/platform/operations/dashboard`), actual = await response.json()
     assert.equal(actual.source.provider, 'uploaded_workbook'); assert.equal(actual.source.version, artifact.dataset.version)
     assert.equal(actual.data.summary.tested_count, 15888); assert.equal(actual.data.summary.infected_count, 698)
+    assert.equal(actual.data.named_school_statistics, true)
+    assert.equal(actual.data.by_school.length, 170); assert.equal(actual.data.followup_eligible_school_count, 108)
     await page.goto(`${baseURL}/#dashboard`, { waitUntil: 'networkidle' })
     await page.getByTestId('survey-positive').filter({ hasText: '698' }).waitFor()
     await page.evaluate(() => document.fonts.ready)
@@ -34,7 +36,11 @@ try {
     captures.push({ filename, capturedAt: new Date().toISOString(), viewport: { width, height: width === 1440 ? 1000 : 900 }, description: `Dashboard จาก helminth-dashboard.zip ใช้สถิติจริงจาก 2569.xlsx (${width}px)`, source: 'actual running prototype; uploaded workbook aggregate API', datasetVersion: actual.source.version, privatePatientImages: false })
     if (width === 1440) {
       await page.locator('.hd-grid').screenshot({ path: resolve(directory, 'health-dashboard-charts.png'), animations: 'disabled', style: '.hd-filters { position: relative !important; }' })
-      captures.push({ ...captures.at(-1), filename: 'health-dashboard-charts.png', description: 'กราฟกระจาย อำเภอ สังกัด ชนิดพยาธิ และการกระจายช่วงร้อยละ จากสถิติจริง' })
+      captures.push({ ...captures.at(-1), filename: 'health-dashboard-charts.png', description: 'กราฟสถิติจริงและโรงเรียนที่ควรติดตาม เรียงร้อยละในกลุ่มส่งตรวจตั้งแต่ 30 คน' })
+      await page.getByTestId('survey-school-followup').screenshot({ path: resolve(directory, 'health-dashboard-followup.png'), animations: 'disabled', style: '.hd-filters { position: relative !important; }' })
+      captures.push({ ...captures.at(-1), filename: 'health-dashboard-followup.png', description: 'โรงเรียนที่ควรติดตาม 8 อันดับแรกจาก 108 แห่งที่ส่งตรวจตั้งแต่ 30 คน ตามคำขอเจ้าของ' })
+      await page.getByTestId('survey-aggregate-table').screenshot({ path: resolve(directory, 'health-dashboard-schools.png'), animations: 'disabled', style: '.hd-filters { position: relative !important; }' })
+      captures.push({ ...captures.at(-1), filename: 'health-dashboard-schools.png', description: 'ตารางรายชื่อโรงเรียน/ศูนย์ 170 แห่งที่มีผู้ส่งตรวจจริง พร้อมค้นหา เรียง และ CSV' })
     }
     assert.deepEqual(errors, [])
     await context.close()

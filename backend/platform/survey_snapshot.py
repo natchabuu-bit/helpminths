@@ -1,6 +1,7 @@
-"""Public statistics from an imported, versioned, aggregate-only workbook snapshot.
+"""Public statistics from an imported, versioned workbook snapshot.
 
-The original workbook and institution-level records are not exposed by this API.
+The original workbook and person-level records are not exposed by this API.
+Named school statistics require an explicit import-time publication option.
 A snapshot is a dated import, not a live Google Sheets connection. Missing counts
 remain unknown; source arithmetic consistency is not clinical verification.
 """
@@ -11,6 +12,7 @@ import io
 import json
 import math
 from collections import defaultdict
+from fractions import Fraction
 from pathlib import Path
 from typing import Any
 
@@ -37,6 +39,8 @@ POSITIVITY_BANDS = (
 )
 BAND_KEYS = {item['key'] for item in POSITIVITY_BANDS}
 FILTERS = {'year', 'province', 'district', 'affiliation', 'record_status', 'positivity_band'}
+FOLLOWUP_MIN_TESTED = 30
+FOLLOWUP_LIMIT = 8
 
 
 def available(path: str | Path | None = None) -> bool:
@@ -94,6 +98,8 @@ def load_dataset(path: str | Path | None = None) -> dict:
                     raise ValueError
                 if not all(_number(values.get(field), nullable=False) for field in ('conflicting', 'missing', 'tested_missing')):
                     raise ValueError
+        if dataset.get('named_school_statistics') is True:
+            _school_records(snapshot, reconcile=True)
         return snapshot
     except (OSError, ValueError, TypeError, KeyError, AttributeError):
         raise HTTPException(503, 'ชุดข้อมูลสรุปที่นำเข้ายังไม่พร้อมใช้งาน กรุณาตรวจไฟล์ข้อมูลบนเซิร์ฟเวอร์') from None
@@ -111,14 +117,86 @@ def _source(snapshot: dict) -> dict:
 
 def metadata(dataset: dict | None = None) -> dict:
     snapshot = dataset if dataset is not None else load_dataset()
+    schools = _school_records(snapshot)
     return {
         'configured': True, 'source': _source(snapshot), 'refresh_seconds': 0,
         'access': 'public_aggregates', 'mapping_configured': True,
         'capabilities': {'read_only': True, 'raw_rows_exposed': False, 'mode': 'snapshot',
+                         'named_school_statistics': snapshot['dataset'].get('named_school_statistics') is True,
+                         'published_school_count': len(schools),
+                         'school_details_scope': 'tested_units_only' if schools else None,
+                         'person_records_exposed': False,
                          'filters': ['year', 'province', 'district', 'affiliation', 'record_status']
                                     + (['positivity_band'] if snapshot['dataset'].get('band_partitioned') else []),
                          'clinical_validation_claimed': False},
     }
+
+
+def _school_records(snapshot: dict, *, reconcile: bool = False) -> list[dict]:
+    """Validate the explicitly published school subset, never a raw workbook row.
+
+    Unknown artifact keys are not included in the API projection. When loading
+    from disk, also reconcile this subset with the existing tested-unit cubes.
+    The flag is checked before even reading an incidental school list.
+    """
+    if snapshot['dataset'].get('named_school_statistics') is not True:
+        return []
+    try:
+        schools = snapshot.get('schools')
+        if not isinstance(schools, list) or len(schools) > 10000:
+            raise ValueError
+        seen = set()
+        for row in schools:
+            if not isinstance(row, dict) or row.get('status') != 'tested':
+                raise ValueError
+            school_id = row.get('school_id')
+            if not isinstance(school_id, str) or not 1 <= len(school_id) <= 80 or school_id in seen:
+                raise ValueError
+            seen.add(school_id)
+            if not isinstance(row.get('school'), str) or not 1 <= len(row['school']) <= 400:
+                raise ValueError
+            if not all(isinstance(row.get(key), str) and 0 < len(row[key]) <= 160 for key in ('province', 'district', 'affiliation')):
+                raise ValueError
+            if not all(type(row.get(key)) is int and 0 <= row[key] <= 10**12 for key in ('enrolled', 'tested', 'infected', 'coinfection')):
+                raise ValueError
+            if not (row['tested'] > 0 and row['coinfection'] <= row['infected'] <= row['tested'] <= row['enrolled']):
+                raise ValueError
+            if snapshot['dataset'].get('band_partitioned') and row.get('positivity_band') not in BAND_KEYS:
+                raise ValueError
+        if reconcile:
+            dimensions = ('province', 'district', 'affiliation', 'status', 'positivity_band')
+            groups = defaultdict(lambda: [0, 0, 0, 0, 0])
+            for row in schools:
+                values = groups[tuple(row.get(key) for key in dimensions)]
+                values[0] += 1
+                for index, key in enumerate(('enrolled', 'tested', 'infected', 'coinfection'), start=1):
+                    values[index] += row[key]
+            cubes = defaultdict(lambda: [0, 0, 0, 0, 0])
+            for row in snapshot['cubes']:
+                if row['status'] != 'tested':
+                    continue
+                values = cubes[tuple(row.get(key) for key in dimensions)]
+                values[0] += row['school_count']
+                for index, key in enumerate(('enrolled', 'tested', 'infected', 'coinfection'), start=1):
+                    values[index] += row[key]
+            if dict(groups) != dict(cubes):
+                raise ValueError
+        return schools
+    except (ValueError, TypeError, KeyError):
+        raise HTTPException(503, 'ข้อมูลสถานศึกษาที่เผยแพร่ไม่สอดคล้องกับชุดข้อมูล กรุณาตรวจการนำเข้า') from None
+
+
+def _schools(snapshot: dict, filters: dict) -> list[dict]:
+    rows = _select(_school_records(snapshot), filters)
+    return [
+        {'school_id': row['school_id'], 'school': row['school'], 'label': row['school'],
+         **{key: row.get(key) for key in ('province', 'district', 'affiliation', 'status', 'positivity_band')},
+         'total_students_known': row['enrolled'], 'tested_count': row['tested'], 'infected_count': row['infected'],
+         'coverage_percent': _ratio(row['tested'], row['enrolled']),
+         'infection_rate_percent': _ratio(row['infected'], row['tested']),
+         'multiple_infections_count': row['coinfection']}
+        for row in sorted(rows, key=lambda row: (row['school'], row['province'], row['district'], row['affiliation'], row['school_id']))
+    ]
 
 
 def _sum_known(rows: list[dict], key: str) -> int | float | None:
@@ -308,6 +386,11 @@ def dashboard(filters: dict | None = None, dataset: dict | None = None) -> dict:
     parasites = _parasites(rows, summary['tested_count'])
     provinces, districts, affiliations = (_group(rows, key) for key in ('province', 'district', 'affiliation'))
     quality = _quality(snapshot, selected_filters, rows, parasites)
+    schools = _schools(snapshot, selected_filters)
+    eligible_schools = sorted(
+        [row for row in schools if row['tested_count'] >= FOLLOWUP_MIN_TESTED],
+        key=lambda row: (-Fraction(row['infected_count'], row['tested_count']), -row['infected_count'], row['school'], row['school_id']),
+    )
     summary['reported_findings_count'] = _sum_known(parasites, 'reported_count')
     summary['consistent_findings_count'] = _sum_known(parasites, 'validated_count')
     warnings = []
@@ -342,6 +425,10 @@ def dashboard(filters: dict | None = None, dataset: dict | None = None) -> dict:
         'coverage_percent': summary['coverage_percent'], 'infection_rate_percent': summary['infection_rate_percent'],
         'multiple_infections_count': summary['multiple_infections_count'], 'row_count': summary['school_count'],
         'by_province': provinces, 'by_district': districts, 'by_affiliation': affiliations, 'by_parasite': parasites,
+        'by_school': schools, 'followup_schools': eligible_schools[:FOLLOWUP_LIMIT],
+        'followup_eligible_school_count': len(eligible_schools), 'followup_min_tested': FOLLOWUP_MIN_TESTED,
+        'named_school_statistics': snapshot['dataset'].get('named_school_statistics') is True,
+        'published_school_count': len(_school_records(snapshot)),
         'by_positivity_band': _positivity_bands(_select(all_rows, selected_filters, omit='positivity_band'))
                               if snapshot['dataset'].get('band_partitioned') else [],
         'quality': quality, 'insights': _insights(summary, provinces, parasites),

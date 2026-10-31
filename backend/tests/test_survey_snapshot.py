@@ -209,3 +209,122 @@ def test_actual_positivity_distribution_and_cross_filters_do_not_reclassify_unte
     with pytest.raises(HTTPException) as caught:
         snapshot.dashboard({'positivity_band': 'fake'})
     assert caught.value.status_code == 422
+
+
+def named_school(name, *, tested, infected, province='ตาก', district='อำเภอA', affiliation='สังกัดA'):
+    import hashlib
+    band = ('none' if infected == 0 else 'under5' if infected * 100 < tested * 5
+            else '5to10' if infected * 100 < tested * 10 else '10to20' if infected * 100 < tested * 20 else '20plus')
+    return {'school_id': hashlib.sha256(f'{name}:{affiliation}'.encode()).hexdigest()[:24], 'school': name,
+            'province': province, 'district': district, 'affiliation': affiliation, 'status': 'tested',
+            'positivity_band': band, 'enrolled': tested, 'tested': tested, 'infected': infected, 'coinfection': 0}
+
+
+def named_dataset(dataset, schools):
+    result = copy.deepcopy(dataset)
+    result['dataset'].update(named_school_statistics=True, publication_scope='named_tested_school_statistics',
+                             band_partitioned=True)
+    result['schools'] = schools
+    result['cubes'] = []
+    for school in schools:
+        row = cube(school['province'], school['district'], school['affiliation'], 'tested', 1,
+                   school['enrolled'], school['tested'], school['infected'], int(school['infected'] > 0), school['coinfection'])
+        row['positivity_band'] = school['positivity_band']
+        result['cubes'].append(row)
+    result['issues'] = []
+    return result
+
+
+def test_named_school_ranking_uses_exact_ratios_minimum_thirty_and_explicit_zero_inclusion(dataset):
+    schools = [named_school('UNDER_CUTOFF', tested=29, infected=29),
+               named_school('EXACT_THIRTY', tested=30, infected=15),
+               named_school('SAME_RATE_MORE_POSITIVES', tested=60, infected=30),
+               named_school('EXACT_RATE_HIGHER', tested=10000000, infected=100001),
+               named_school('ROUNDED_RATE_TIE_MORE_POSITIVES', tested=50000000, infected=500000),
+               named_school('ZERO_POSITIVE_ELIGIBLE', tested=30, infected=0),
+               named_school('SMALL_HUNDRED_PERCENT', tested=1, infected=1)]
+    result = snapshot.dashboard(dataset=named_dataset(dataset, schools))['data']
+    assert result['named_school_statistics'] is True
+    assert len(result['by_school']) == 7
+    assert result['followup_min_tested'] == 30 and result['followup_eligible_school_count'] == 5
+    ranked = result['followup_schools']
+    assert [row['school'] for row in ranked] == ['SAME_RATE_MORE_POSITIVES', 'EXACT_THIRTY', 'EXACT_RATE_HIGHER',
+                                               'ROUNDED_RATE_TIE_MORE_POSITIVES', 'ZERO_POSITIVE_ELIGIBLE']
+    assert all(row['tested_count'] >= 30 for row in ranked)
+    exact = next(row for row in ranked if row['school'] == 'EXACT_RATE_HIGHER')
+    rounded = next(row for row in ranked if row['school'] == 'ROUNDED_RATE_TIE_MORE_POSITIVES')
+    assert exact['infection_rate_percent'] == rounded['infection_rate_percent'], 'Order must use raw ratios before percentage rounding'
+
+
+def test_named_followup_is_limited_to_eight_while_full_eligible_and_school_counts_remain_available(dataset):
+    schools = [named_school(f'RANK_{number:02}', tested=100, infected=number) for number in range(1, 13)]
+    result = snapshot.dashboard(dataset=named_dataset(dataset, schools))['data']
+    assert len(result['by_school']) == 12 and result['followup_eligible_school_count'] == 12
+    assert len(result['followup_schools']) == 8
+    assert [row['infected_count'] for row in result['followup_schools']] == list(range(12, 4, -1))
+
+
+def test_school_details_do_not_leak_without_opt_in_and_projection_strips_unrelated_fields(dataset):
+    schools = [named_school('AUTHORIZED_SCHOOL', tested=30, infected=3)]
+    dataset['schools'] = schools
+    result = snapshot.dashboard(dataset=dataset)['data']
+    assert not result['named_school_statistics'] and result['by_school'] == [] and result['followup_schools'] == []
+    assert 'AUTHORIZED_SCHOOL' not in json.dumps(result)
+    selected = named_dataset(dataset, schools)
+    selected['schools'][0].update(notes='PRIVATE_NOTE_MUST_NOT_LEAK', person_name='PRIVATE_PERSON_MUST_NOT_LEAK', tambon='PRIVATE_TAMBON')
+    result = snapshot.dashboard(dataset=selected)
+    assert 'AUTHORIZED_SCHOOL' in json.dumps(result)
+    assert 'PRIVATE_' not in json.dumps(result)
+    assert all(not ({'notes', 'person_name', 'tambon', 'parasites'} & row.keys()) for row in result['data']['by_school'])
+
+
+def test_named_school_loader_rejects_duplicates_inconsistent_counts_and_unreconciled_lists(tmp_path, dataset):
+    selected = named_dataset(dataset, [named_school('AUTHORIZED_SCHOOL', tested=30, infected=3)])
+    path = tmp_path / 'named.json'
+    path.write_text(json.dumps(selected), encoding='utf-8')
+    assert snapshot.load_dataset(path)['dataset']['named_school_statistics'] is True
+    for mutate in ('duplicate', 'unreconciled', 'invalid_counts'):
+        broken = copy.deepcopy(selected)
+        if mutate == 'duplicate':
+            broken['schools'].append(copy.deepcopy(broken['schools'][0]))
+        elif mutate == 'unreconciled':
+            broken['schools'][0]['tested'] = broken['schools'][0]['enrolled'] = 31
+        else:
+            broken['schools'][0]['infected'] = 1000
+        path.write_text(json.dumps(broken), encoding='utf-8')
+        with pytest.raises(HTTPException) as caught:
+            snapshot.load_dataset(path)
+        assert caught.value.status_code == 503 and str(path) not in str(caught.value.detail)
+
+
+def test_actual_named_school_publication_and_followup_match_independent_workbook_audit():
+    artifact = snapshot.load_dataset()
+    data = snapshot.dashboard(dataset=artifact)['data']
+    assert data['named_school_statistics'] is True and data['published_school_count'] == 170
+    schools = data['by_school']
+    assert len(schools) == len({row['school_id'] for row in schools}) == 170
+    assert all(row['tested_count'] > 0 for row in schools)
+    assert sum(row['total_students_known'] for row in schools) == 17122
+    assert sum(row['tested_count'] for row in schools) == 15888
+    assert sum(row['infected_count'] for row in schools) == 698
+    assert sum(row['multiple_infections_count'] for row in schools) == 17
+    assert sum(row['infected_count'] > 0 for row in schools) == 109
+    assert data['followup_eligible_school_count'] == 108
+    assert sum(row['tested_count'] == 30 for row in schools) == 4
+    expected = [('บ้านแม่อมกิ(บ้านเคาะทีโคะ)', 35, 23), ('บ้านมอกูตู้หลวง', 31, 17),
+                ('บ้านแม่เหว่ยทะ', 90, 41), ('ชช.บ้านท่าสองยาง(ทีซอเม)*', 41, 15),
+                ('บ้านแม่อมกิ(บ้านวะหย่าโจ)', 55, 18), ('บ้านห้วยขี้หมี', 38, 12),
+                ('ศกร.ตชด.บ้านแม่ละนา', 132, 23), ('บ้านอุระโกร', 88, 11)]
+    assert [(row['school'], row['tested_count'], row['infected_count']) for row in data['followup_schools']] == expected
+    for filters in ({'province': 'พิษณุโลก'}, {'district': 'แม่สอด'}, {'affiliation': 'ตชด.34'},
+                    {'positivity_band': '20plus'}, {'record_status': 'pending'}, {'record_status': 'zero_tested'}):
+        scoped = snapshot.dashboard(filters, artifact)['data']
+        expected_rows = [row for row in artifact['schools'] if all(
+            (row['status'] == value if key == 'record_status' else row[key] == value) for key, value in filters.items())]
+        assert {row['school_id'] for row in scoped['by_school']} == {row['school_id'] for row in expected_rows}
+        assert all(row['tested_count'] >= 30 for row in scoped['followup_schools'])
+        if expected_rows:
+            assert sum(row['tested_count'] for row in scoped['by_school']) == scoped['summary']['tested_count']
+            assert sum(row['infected_count'] for row in scoped['by_school']) == scoped['summary']['infected_count']
+        else:
+            assert scoped['followup_schools'] == []

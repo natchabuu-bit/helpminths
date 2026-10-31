@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { chromium } from 'playwright'
 
-// These checks use the audited, aggregate-only 2569 import through the real API.
+// These checks use the audited 2569 import and explicitly published school statistics through the real API.
 // No synthetic screening values or private original workbook are loaded here.
 const baseURL = process.env.HELPMINTHS_TEST_URL || 'http://127.0.0.1:8082'
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined)
@@ -19,6 +19,8 @@ before(async () => {
   assert.equal(metadata.source.file_name, '2569.xlsx')
   assert.equal(metadata.refresh_seconds, 0)
   assert.equal(metadata.access, 'public_aggregates')
+  assert.equal(metadata.capabilities.named_school_statistics, true)
+  assert.equal(metadata.capabilities.published_school_count, 170)
   browser = await chromium.launch({ executablePath, headless: true, args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
 })
 after(async () => browser?.close())
@@ -149,7 +151,7 @@ test('distribution chips and keyboard scatter selection filter the whole dashboa
   } finally { await finish() }
 })
 
-test('quality notes, searchable sortable aggregate table and CSV retain source conflicts and public-only fields', async () => {
+test('quality notes and aggregate table retain source conflicts when named school statistics are also enabled', async () => {
   const { page, finish } = await openDashboard()
   try {
     const pin = page.locator('.hsd-parasite-bars > li').filter({ hasText: 'พยาธิเข็มหมุด' })
@@ -164,6 +166,8 @@ test('quality notes, searchable sortable aggregate table and CSV retain source c
     assert.match(await page.locator('.hd-quality-body').innerText(), /M111/)
     assert.match(await page.locator('.hd-quality-body').innerText(), /ชื่อไฟล์.*ไม่มีวันที่/)
     const table = page.locator('.hsd-province-table')
+    assert.equal(await table.locator('tbody tr').count(), 170)
+    await page.getByRole('group', { name: 'ระดับตารางสรุป' }).getByRole('button', { name: 'อำเภอ', exact: true }).click()
     assert.equal(await table.locator('tbody tr').count(), 10)
     await page.getByRole('group', { name: 'ระดับตารางสรุป' }).getByRole('button', { name: 'จังหวัด', exact: true }).click()
     assert.equal(await table.locator('tbody tr').count(), 4)
@@ -172,7 +176,7 @@ test('quality notes, searchable sortable aggregate table and CSV retain source c
     assert.match(await table.locator('tbody tr').first().innerText(), /ตาก.*15,136.*697/)
     await countSort.click()
     assert.match(await table.locator('tbody tr').first().innerText(), /เพชรบูรณ์.*49/)
-    await page.getByRole('searchbox', { name: 'ค้นหาตารางพื้นที่และสังกัด' }).fill('พิษณุโลก')
+    await page.getByRole('searchbox', { name: 'ค้นหาโรงเรียน พื้นที่ และสังกัด' }).fill('พิษณุโลก')
     assert.equal(await table.locator('tbody tr').count(), 1)
     const downloadEvent = page.waitForEvent('download')
     await page.getByRole('button', { name: 'ดาวน์โหลด CSV', exact: true }).click()
@@ -184,5 +188,66 @@ test('quality notes, searchable sortable aggregate table and CSV retain source c
     assert.equal(content.trim().split(/\r?\n/).length, 2, 'CSV must match the searched aggregate table')
     assert.doesNotMatch(content, /โรงเรียน|ตำบล|ชื่อผู้ป่วย/)
     assert.equal(await page.getByTestId('survey-positive').innerText(), '698', 'Searching a table must not silently change the page-wide cohort')
+  } finally { await finish() }
+})
+
+test('all 170 tested school names, exact ranked follow-up with minimum30, search and school CSV are available', async () => {
+  const { page, finish } = await openDashboard()
+  try {
+    const actual = await (await page.request.get(`${baseURL}/api/platform/operations/dashboard`)).json()
+    const schools = actual.data.by_school, ranked = actual.data.followup_schools
+    assert.equal(schools.length, 170)
+    assert.equal(actual.data.followup_eligible_school_count, 108)
+    const schoolTab = page.getByRole('group', { name: 'ระดับตารางสรุป' }).getByRole('button', { name: 'โรงเรียน / ศูนย์', exact: true })
+    assert.equal(await schoolTab.getAttribute('aria-pressed'), 'true')
+    const table = page.locator('.hsd-province-table'), allRows = table.locator('tbody tr')
+    assert.equal(await allRows.count(), 170)
+    const texts = await allRows.allTextContents()
+    assert.equal(schools.filter(school => texts.some(text => text.startsWith(school.school))).length, 170, 'Every published source school name must actually be visible in the list')
+    const followup = page.getByTestId('survey-school-followup')
+    await followup.getByRole('heading', { name: 'โรงเรียนที่ควรติดตาม', exact: true }).waitFor()
+    assert.match(await followup.innerText(), /30 คนขึ้นไป/)
+    assert.match(await followup.innerText(), /108 แห่งเข้าเกณฑ์/)
+    const items = followup.locator('.hd-top-schools > li')
+    assert.equal(await items.count(), 8)
+    for (const [index, school] of ranked.entries()) {
+      assert.ok(school.tested_count >= 30)
+      const row = await items.nth(index).innerText()
+      assert.ok(row.includes(school.school))
+      assert.ok(row.includes(`ส่งตรวจ ${school.tested_count.toLocaleString('th-TH')} คน`))
+      assert.ok(row.includes(`พบ ${school.infected_count.toLocaleString('th-TH')}`))
+    }
+    const first = ranked[0]
+    assert.equal(first.school, 'บ้านแม่อมกิ(บ้านเคาะทีโคะ)')
+    assert.equal(first.tested_count, 35)
+    assert.equal(first.infected_count, 23)
+    await followup.getByRole('button', { name: `ดู ${first.school} ในตาราง`, exact: true }).click()
+    assert.equal(await allRows.count(), 1)
+    assert.ok((await allRows.first().innerText()).startsWith(first.school))
+    assert.equal(await page.getByRole('searchbox', { name: 'ค้นหาโรงเรียน พื้นที่ และสังกัด' }).inputValue(), first.school)
+    assert.equal(await page.getByTestId('survey-positive').innerText(), '698', 'Selecting a school in the table must not relabel all project results as that school')
+    const downloaded = page.waitForEvent('download')
+    await page.getByRole('button', { name: 'ดาวน์โหลด CSV', exact: true }).click()
+    const file = await downloaded
+    assert.equal(file.suggestedFilename(), 'HelpMinths-school-summary.csv')
+    const csv = await readFile(await file.path(), 'utf8')
+    assert.ok(csv.startsWith('\ufeff'))
+    assert.ok(csv.includes(first.school))
+    assert.match(csv, /35.*23/)
+    assert.equal(csv.trim().split(/\r?\n/).length, 2, 'Downloaded school CSV must match the searched table')
+    assert.doesNotMatch(csv, /ชื่อผู้ป่วย|หมายเหตุ|PRIVATE_/)
+    await page.getByRole('button', { name: 'แสดงรายชื่อทั้งหมด', exact: true }).click()
+    assert.equal(await allRows.count(), 170)
+    await followup.getByRole('button', { name: /ดูรายชื่อที่เข้าเกณฑ์ทั้งหมด/ }).click()
+    assert.equal(await allRows.count(), 108)
+    const minimum = page.getByRole('checkbox', { name: 'เฉพาะแห่งที่ส่งตรวจตั้งแต่ 30 คน', exact: true })
+    assert.equal(await minimum.isChecked(), true)
+    assert.equal(await schoolTab.getAttribute('aria-pressed'), 'true')
+    await minimum.uncheck()
+    assert.equal(await allRows.count(), 170)
+    await page.getByRole('searchbox', { name: 'ค้นหาโรงเรียน พื้นที่ และสังกัด' }).fill('ศกร.ตชด.บ้านแม่ละนา')
+    assert.equal(await allRows.count(), 1)
+    assert.match(await allRows.innerText(), /ศกร.ตชด.บ้านแม่ละนา/)
+    assert.equal(await page.getByTestId('survey-positive').innerText(), '698')
   } finally { await finish() }
 })

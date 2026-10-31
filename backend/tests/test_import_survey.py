@@ -231,3 +231,36 @@ def test_positivity_bands_use_exact_boundaries_and_keep_undefined_rates_outside_
     assert counts == {'none': 1, 'under5': 2, '5to10': 2, '10to20': 2, '20plus': 2}
     assert sum(counts.values()) == 9
     assert sum(group['school_count'] for group in result['cubes']) == 11
+
+
+def test_school_publication_is_explicit_opt_in_and_only_tested_rows_are_published(tmp_path):
+    path = tmp_path / 'synthetic-2569.xlsx'
+    build_workbook(path)
+    aggregate_only = importer.import_workbook(path, worksheet='เขต2', year=2569, imported_at=STAMP)
+    published = importer.import_workbook(path, worksheet='เขต2', year=2569, imported_at=STAMP, include_school_details=True)
+    assert not aggregate_only['dataset'].get('named_school_statistics')
+    assert 'PRIVATE_' not in json.dumps(aggregate_only)
+    assert published['dataset']['named_school_statistics'] is True
+    assert published['dataset']['publication_scope'] == 'named_tested_school_statistics'
+    assert published['dataset']['version'] != aggregate_only['dataset']['version']
+    schools = published['schools']
+    assert len(schools) == 2
+    assert {row['school'] for row in schools} == {'PRIVATE_SCHOOL_ALPHA', 'PRIVATE_SCHOOL_NEGATIVE'}
+    assert len({row['school_id'] for row in schools}) == len(schools)
+    assert all(row['status'] == 'tested' and row['tested'] > 0 for row in schools)
+    assert all(not ({'tambon', 'reason', 'notes', 'person_name', '_row', 'parasites'} & row.keys()) for row in schools)
+    assert 'PRIVATE_SCHOOL_ZERO' not in json.dumps(published)
+    assert 'PRIVATE_CHILD_CENTER_PENDING' not in json.dumps(published)
+    assert 'PRIVATE_NOTE_MUST_NOT_BE_PUBLISHED' not in json.dumps(published)
+    assert published['cubes'] == aggregate_only['cubes'], 'Publication choice must not change reporting totals or source issues'
+    again = importer.import_workbook(path, worksheet='เขต2', year=2569, imported_at=STAMP, include_school_details=True)
+    assert again['schools'] == schools and again['dataset']['version'] == published['dataset']['version']
+
+
+def test_school_identity_remains_distinct_when_names_match_but_affiliations_differ(tmp_path):
+    path = tmp_path / 'synthetic-2569.xlsx'
+    build_workbook(path, [record(affiliation='หน่วยงาน A'), record(affiliation='หน่วยงาน B')])
+    result = importer.import_workbook(path, worksheet='เขต2', year=2569, imported_at=STAMP, include_school_details=True)
+    assert len(result['schools']) == 2
+    assert len({row['school_id'] for row in result['schools']}) == 2
+    assert {row['affiliation'] for row in result['schools']} == {'หน่วยงาน A', 'หน่วยงาน B'}

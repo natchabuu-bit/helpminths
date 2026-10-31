@@ -143,3 +143,17 @@ Verification completed against the production build on localhost8082:
 - `node scripts/capture-survey.mjs`: captured actual desktop/mobile/chart screenshots, guarded against fixtures, configured accounts or a different dataset version. No patient images or invented project values.
 
 The previous Google proxy403 verification describes that transport only. The uploaded workbook has now been verified independently, so the default public Dashboard can show real imported results without reaching Google. It remains a snapshot; file updates require reimport plus deployment. Local verification and Git updates do not themselves deploy Render (`autoDeploy:false`).
+
+## Named school follow-up and 170-school listing — 31 October 2026
+
+The owner explicitly requested named school follow-up results and all170 names after reviewing the aggregate-only dashboard. The import now has an opt-in `--include-school-details`; the default still omits names. The committed dataset uses this option and version `f8fa159f5ee78221`, including170 tested-only school/center records with names, area, affiliation and group-level counts. The original workbook, its notes, person-level records, and the names of zero-tested/pending units are not published. Artifact school counts and enrollment/tested/positive/coinfection totals reconcile with the tested-unit cubes, and API projection allows only documented fields.
+
+Independent source audit:170 tested units,108 eligible tested>=30 (including4 exactly30),62 below30. All170 sum to17,122 enrolled /15,888 tested /698 positive. The follow-up panel displays8 names ordered by the exact raw infected/tested fraction; rounding does not decide order. Equal fractions sort by positive count descending then name/stableID. Eligible zero-positive units are included (27) because the requested criterion is tested>=30. The full table initially shows170 names, including the62 below30. Clicked follow-up names select/highlight the matching table row; the view-all action shows108 eligible rows and an explicit checkbox; clearing that local option restores170 under the same global filters. School search/sort/CSV use the visible school subset. Region, status and positivity-range filters apply consistently to the named API data and follow-up panel; zero/pending scopes return no school names.
+
+Verification:
+
+- Production TypeScript/Vite build passed.
+- Full backend suite: **103 passed**. New regressions cover default omission, explicit publication, tested-only names,30/29 eligibility, exact-ratio ordering and ties, metadata/field projection, reconciliation and real-data170/108/top8/filtered scopes.
+- Dashboard browser suites on frozen localhost8083: **12 passed** (7 Google regressions,5 real snapshot checks), no JavaScript errors or API writes. They verify all170 API names in the table,108 eligibility, named top8, follow-up row selection, table checkbox, name search and matching CSV, mobile/tablet/desktop layout and retained aggregate functionality.
+- Screenshot capture from the actual versioned API succeeded with explicit170-school/108-eligible guards. Added separate follow-up and school-table images to the screenshot manifest; these school statistics are intentionally public under the owner's new request. No patient images are used.
+- `git diff --check` passed. This update does not change the clinical model, SUS, authentication or offline API-caching policy.
