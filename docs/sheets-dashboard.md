@@ -1,5 +1,7 @@
 # Dashboard โครงการ กพด. เขตสุขภาพที่ 2
 
+**ค่าเริ่มต้นปัจจุบัน:** หน้า Dashboard ใช้สถิติสรุปที่นำเข้าจาก `2569.xlsx` และหน้าตาที่ปรับจาก `helminth-dashboard.zip` ของเจ้าของโครงการ อ่าน [คู่มือชุดข้อมูลนำเข้า](surveys/IMPORTING.md) และ [การปรับหน้า Dashboard](surveys/DASHBOARD.th.md) เอกสารด้านล่างอธิบายตัวเชื่อม Google ซึ่งเลือกใช้ได้ด้วย `HELPMINTHS_DASHBOARD_SOURCE=google_sheets` สถานะการเข้าถึง Google ที่กล่าวถึงเป็นผลทดสอบก่อนรับไฟล์ Excel ไม่ใช่สถานะของชุดข้อมูลนำเข้า
+
 หน้า `/#dashboard` แสดงสถิติสรุปจาก Google Sheets ที่เจ้าของโครงการระบุ ผู้เข้าเว็บทุกคนดูได้ตามคำขอ ไม่ต้องเปิดฐานข้อมูล HelpMinths และไม่ส่งข้อมูลกลับไปแก้ไขชีต
 
 แหล่งข้อมูลที่ตั้งไว้คือ [Google Sheets ของโครงการ](https://docs.google.com/spreadsheets/d/1OlVnkehNCAJWVE0sR_5ypqi9XeuCI8-d/edit) ส่วน Dashboard จากฐานข้อมูลการตรวจ AI เดิมยังอยู่หน้าแรกและใช้สิทธิ์บัญชีเดิม ตัวเลขทั้งสองแหล่งแยกจากกัน

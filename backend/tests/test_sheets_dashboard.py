@@ -13,6 +13,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from backend.platform import sheets_dashboard as sheets
+from backend.platform import survey_snapshot
 from backend.platform.auth import router as auth_router
 from backend.platform.store import PlatformStore
 
@@ -23,6 +24,8 @@ def clean_configuration(monkeypatch):
     for name in list(os.environ):
         if name.startswith('HELPMINTHS_SHEETS_') or name == 'HELPMINTHS_GOOGLE_SERVICE_ACCOUNT_JSON':
             monkeypatch.delenv(name)
+    # Live-connector fixtures must stay independent of the real imported artifact.
+    monkeypatch.setenv('HELPMINTHS_DASHBOARD_SOURCE', 'google_sheets')
 
 
 def application(tmp_path=None):
@@ -60,6 +63,119 @@ def test_provided_source_is_public_aggregate_but_never_fabricates_failed_source(
         assert result.json()['error']['code'] == 'connection_failed'
         client.get('/api/platform/operations/dashboard')
         assert sheets.fetch_table.call_count == 1, 'Polling must respect source retry/cache interval'
+
+
+def test_auto_provider_serves_audited_public_snapshot_without_google_or_accounts(monkeypatch):
+    monkeypatch.setenv('HELPMINTHS_DASHBOARD_SOURCE', 'auto')
+    upstream = Mock(side_effect=AssertionError('Imported statistics must not request Google Sheets'))
+    monkeypatch.setattr(sheets, 'fetch_table', upstream)
+    with TestClient(application()) as client:
+        metadata = client.get('/api/platform/operations/status').json()
+        assert metadata['source']['provider'] == 'uploaded_workbook'
+        assert metadata['source']['file_name'] == '2569.xlsx'
+        assert metadata['source']['year_basis'] == 'filename'
+        assert metadata['refresh_seconds'] == 0 and metadata['access'] == 'public_aggregates'
+        result = client.get('/api/platform/operations/dashboard')
+        assert result.status_code == 200 and result.json()['status'] == 'ready'
+        data = result.json()['data']
+        assert data['summary']['school_count'] == 174
+        assert data['summary']['tested_school_count'] == 170
+        assert data['summary']['tested_count'] == 15888
+        assert data['summary']['infected_count'] == 698
+        assert data['summary']['infection_rate_percent'] == 4.3933
+        assert data['quality']['formula_error_count'] == 44
+        assert data['quality']['missing_count_cells'] == 2
+        assert data['quality']['conflicting_count'] == 1
+        assert 'schools' not in data and 'cubes' not in data
+    upstream.assert_not_called()
+
+
+def test_snapshot_routes_filter_unknowns_and_export_only_selected_aggregates(monkeypatch):
+    import csv
+    import io
+
+    monkeypatch.setenv('HELPMINTHS_DASHBOARD_SOURCE', 'snapshot')
+    with TestClient(application()) as client:
+        pending = client.get('/api/platform/operations/dashboard?record_status=pending').json()['data']
+        assert pending['summary']['school_count'] == 2
+        assert pending['summary']['tested_count'] is None
+        assert pending['summary']['infected_count'] is None
+        assert pending['summary']['coverage_percent'] is None
+        selected = client.get('/api/platform/operations/dashboard', params={'province': 'พิษณุโลก'}).json()['data']
+        assert selected['summary']['tested_count'] == 441 and selected['summary']['infected_count'] == 1
+        assert selected['quality']['issues'] == []
+        response = client.get('/api/platform/operations/export.csv', params={'province': 'พิษณุโลก'})
+        assert response.status_code == 200
+        assert response.headers['cache-control'] == 'no-store'
+        assert response.headers['content-disposition'].startswith('attachment;')
+        assert response.content.startswith(b'\xef\xbb\xbf')
+        rows = list(csv.DictReader(io.StringIO(response.content.decode('utf-8-sig'))))
+        provinces = [row for row in rows if row['dimension'] == 'province']
+        assert len(provinces) == 1 and provinces[0]['province'] == 'พิษณุโลก'
+        assert provinces[0]['tested_people'] == '441' and provinces[0]['reported_positive_people'] == '1'
+        assert all(key not in rows[0] for key in ('school', 'school_name', 'person_name', 'tambon'))
+        for params in ({'year': 2568}, {'district': 'missing'}, {'record_status': 'unknown'}, {'from_date': '2026-10-01'}):
+            assert client.get('/api/platform/operations/dashboard', params=params).status_code == 422
+
+
+def test_explicit_snapshot_missing_file_reports_unavailable_without_fallback(monkeypatch, tmp_path):
+    monkeypatch.setenv('HELPMINTHS_DASHBOARD_SOURCE', 'snapshot')
+    private_path = tmp_path / 'private-location' / 'missing-data.json'
+    monkeypatch.setattr(survey_snapshot, 'DATASET_PATH', private_path)
+    upstream = Mock(side_effect=AssertionError('Explicit snapshot cannot silently fall back to Google'))
+    monkeypatch.setattr(sheets, 'fetch_table', upstream)
+    with TestClient(application()) as client:
+        for endpoint in ('status', 'dashboard', 'export.csv'):
+            result = client.get('/api/platform/operations/' + endpoint)
+            assert result.status_code == 503
+            assert str(private_path) not in result.text
+    upstream.assert_not_called()
+
+
+def test_auto_custom_sheet_preserves_auth_and_explicit_snapshot_is_server_owned(monkeypatch, tmp_path):
+    monkeypatch.setenv('HELPMINTHS_DASHBOARD_SOURCE', 'auto')
+    monkeypatch.setenv('HELPMINTHS_SHEETS_ID', 'PRIVATE_CUSTOM_SOURCE')
+    upstream = Mock(side_effect=AssertionError('Anonymous custom source must be blocked before fetch'))
+    monkeypatch.setattr(sheets, 'fetch_table', upstream)
+    with TestClient(application(tmp_path)) as client:
+        metadata = client.get('/api/platform/operations/status').json()
+        assert metadata['access'] == 'authenticated'
+        assert metadata['source']['provider'] == 'google_sheets'
+        assert client.get('/api/platform/operations/dashboard').status_code == 401
+        assert client.get('/api/platform/operations/export.csv').status_code == 401
+        monkeypatch.setenv('HELPMINTHS_DASHBOARD_SOURCE', 'snapshot')
+        assert client.get('/api/platform/operations/dashboard').json()['source']['provider'] == 'uploaded_workbook'
+    upstream.assert_not_called()
+
+
+def test_invalid_server_provider_does_not_fabricate_a_source(monkeypatch):
+    monkeypatch.setenv('HELPMINTHS_DASHBOARD_SOURCE', 'unknown-provider')
+    with TestClient(application()) as client:
+        for endpoint in ('status', 'dashboard', 'export.csv'):
+            assert client.get('/api/platform/operations/' + endpoint).status_code == 503
+
+
+def test_snapshot_band_query_restricts_api_and_csv_without_binning_untested(monkeypatch):
+    import csv
+    import io
+
+    monkeypatch.setenv('HELPMINTHS_DASHBOARD_SOURCE', 'snapshot')
+    with TestClient(application()) as client:
+        params = {'positivity_band': '20plus'}
+        response = client.get('/api/platform/operations/dashboard', params=params)
+        assert response.status_code == 200
+        data = response.json()['data']
+        assert data['summary']['school_count'] == 11 and data['summary']['tested_school_count'] == 11
+        assert data['filters_applied']['positivity_band'] == '20plus'
+        exported = client.get('/api/platform/operations/export.csv', params=params)
+        assert exported.status_code == 200
+        rows = list(csv.DictReader(io.StringIO(exported.content.decode('utf-8-sig'))))
+        provinces = [row for row in rows if row['dimension'] == 'province']
+        assert sum(int(row['reporting_units']) for row in provinces) == 11
+        assert sum(int(row['tested_people']) for row in provinces) == data['summary']['tested_count']
+        assert all(row['selected_positivity_band'] == '20plus' for row in rows)
+        assert client.get('/api/platform/operations/dashboard', params={'positivity_band': 'unknown'}).status_code == 422
+        assert client.get('/api/platform/operations/export.csv', params={'positivity_band': 'unknown'}).status_code == 422
 
 
 def test_rows_are_not_assumed_people_and_no_free_text_is_exposed(monkeypatch):

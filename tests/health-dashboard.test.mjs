@@ -67,8 +67,13 @@ async function nav(page, label) {
   if (await menu.isVisible() && await menu.getAttribute('aria-expanded') !== 'true') await menu.click()
   await page.locator('.sidebar .nav-item').filter({ hasText: label }).click()
 }
-function card(page, key) { return page.locator(`.hsd-stat-${key} .hsd-stat-value strong`) }
-async function expectText(locator, text) { await locator.filter({ hasText: text }).waitFor(); assert.equal(await locator.innerText(), text) }
+function card(page, key) {
+  if (key === 'infected_count') return page.getByTestId('survey-positive')
+  if (key === 'infection_rate_percent') return page.getByTestId('survey-positivity')
+  if (key === 'coverage_percent') return page.locator('.hd-ring .hd-rt')
+  return page.locator(`.hsd-stat-${key} .hsd-stat-value strong`)
+}
+async function expectText(locator, text) { await locator.filter({ hasText: text }).waitFor(); assert.equal(await locator.textContent(), text) }
 
 test('public Dashboard navigation and upstream failure never manufacture screening figures', async () => {
   const { page, finish } = await openDashboard({ response: () => responseFixture('unavailable', null, { error: { code: 'connection_failed', message: 'SYNTHETIC TEST: upstream is unavailable' } }) })
@@ -76,7 +81,7 @@ test('public Dashboard navigation and upstream failure never manufacture screeni
     await page.getByRole('heading', { name: 'ยังอ่านข้อมูลจาก Google Sheets ไม่ได้', exact: true }).waitFor()
     assert.equal(await page.locator('.sidebar .nav-item').count(), 10)
     assert.equal(await page.locator('.sidebar .nav-item[aria-current="page"]').innerText(), 'Dashboard')
-    for (const key of ['total_students', 'tested_count', 'infected_count', 'infection_rate_percent', 'coverage_percent']) assert.equal(await card(page, key).innerText(), '—')
+    for (const key of ['total_students', 'tested_count', 'infected_count', 'infection_rate_percent', 'coverage_percent']) assert.equal(await card(page, key).textContent(), '—')
     assert.equal(await page.locator('.hsd-status.is-ready').count(), 0)
     assert.equal(await page.locator('.hsd-province-table tbody tr').count(), 0)
     assert.equal(await page.locator('.hsd-update strong').innerText(), 'ยังไม่มีการอ่านข้อมูลสำเร็จ')
@@ -87,7 +92,7 @@ test('public Dashboard navigation and upstream failure never manufacture screeni
     await nav(page, 'ภาพรวม')
     await page.locator('.page-home').waitFor()
     await nav(page, 'Dashboard')
-    await page.getByRole('heading', { name: 'สถานการณ์การติดพยาธิ', exact: true }).waitFor()
+    await page.getByRole('heading', { name: 'ผลตรวจพยาธิในเด็กและเยาวชน', exact: true }).waitFor()
   } finally { await finish() }
 })
 
@@ -96,10 +101,11 @@ test('aggregate figures, coinfection cautions, source-driven filters and respons
   try {
     await expectText(card(page, 'tested_count'), '100')
     await expectText(card(page, 'infected_count'), '14')
-    await expectText(card(page, 'coverage_percent'), '66.7')
-    await expectText(card(page, 'infection_rate_percent'), '14')
+    await expectText(card(page, 'coverage_percent'), '66.7%')
+    await expectText(card(page, 'infection_rate_percent'), '14%')
+    await page.getByRole('group', { name: 'ระดับตารางสรุป' }).getByRole('button', { name: 'จังหวัด', exact: true }).click()
     assert.equal(await page.locator('.hsd-province-table tbody tr').count(), 2)
-    assert.match(await page.locator('.hsd-data-footer').innerText(), /จำนวนแถวไม่เท่ากับจำนวนคน/)
+    assert.match(await page.locator('.hsd-data-footer').innerText(), /กลุ่มผู้ส่งตรวจ.*ไม่ใช้แทนความชุกของประชากร/)
     assert.match(await page.locator('.hsd-parasite-bars').locator('xpath=..').innerText(), /ผู้ติดพยาธิหลายชนิด.*ไม่รวม/)
     assert.equal(await page.getByRole('combobox', { name: 'ปีข้อมูล Dashboard' }).isDisabled(), true, 'No year may be invented when the supplied schema has no year')
     const province = page.getByRole('combobox', { name: 'จังหวัด Dashboard' })
@@ -116,9 +122,9 @@ test('aggregate figures, coinfection cautions, source-driven filters and respons
       await page.setViewportSize({ width, height: 1000 })
       const size = await page.evaluate(() => ({ viewport: innerWidth, actual: document.documentElement.scrollWidth }))
       assert.ok(size.actual <= size.viewport + 1, `Dashboard must not overflow ${width}px (${size.actual})`)
-      assert.equal(await page.getByRole('heading', { name: 'สถานการณ์การติดพยาธิ', exact: true }).isVisible(), true)
+      assert.equal(await page.getByRole('heading', { name: 'ผลตรวจพยาธิในเด็กและเยาวชน', exact: true }).isVisible(), true)
     }
-    assert.equal(await card(page, 'infected_count').innerText(), '14', 'The unique infected-person total must not be replaced by 9+7 parasite findings')
+    assert.equal(await card(page, 'infected_count').textContent(), '14', 'The unique infected-person total must not be replaced by 9+7 parasite findings')
   } finally { await finish() }
 })
 
@@ -133,7 +139,7 @@ test('actual 30-second polling retains a labelled stale snapshot and the last su
     await page.clock.fastForward(1)
     await page.getByRole('heading', { name: 'ข้อมูลอาจยังไม่เป็นปัจจุบัน', exact: true }).waitFor()
     assert.equal(requests.length, 2)
-    assert.equal(await card(page, 'tested_count').innerText(), '100')
+    assert.equal(await card(page, 'tested_count').textContent(), '100')
     assert.equal(await page.locator('.hsd-update strong').innerText(), originalTimestamp)
     assert.equal(await page.locator('.hsd-status.is-stale').count(), 1)
     assert.equal(await page.locator('.hsd-status.is-ready').count(), 0)
@@ -170,7 +176,7 @@ test('an authenticated source never starts a data request from an anonymous dash
   try {
     await page.getByRole('heading', { name: 'แหล่งข้อมูลนี้ต้องเข้าสู่ระบบ', exact: true }).waitFor()
     assert.equal(requests.length, 0)
-    assert.equal(await card(page, 'tested_count').innerText(), '—')
+    assert.equal(await card(page, 'tested_count').textContent(), '—')
     assert.equal(await page.locator('.hsd-province-table tbody tr').count(), 0)
   } finally { await finish() }
 })
@@ -185,7 +191,7 @@ test('a permission change clears old aggregates rather than retaining them under
     await page.getByRole('button', { name: 'รีเฟรชข้อมูล Dashboard', exact: true }).click()
     await page.getByRole('heading', { name: 'แหล่งข้อมูลนี้ต้องเข้าสู่ระบบ', exact: true }).waitFor()
     assert.equal(requests.length, 2)
-    assert.equal(await card(page, 'tested_count').innerText(), '—')
+    assert.equal(await card(page, 'tested_count').textContent(), '—')
     assert.equal(await page.locator('.hsd-province-table tbody tr').count(), 0)
     assert.equal(await page.locator('.hsd-status.is-ready').count(), 0)
   } finally { await finish() }
@@ -203,8 +209,8 @@ test('changing the spreadsheet source clears old aggregates before reporting the
     await page.getByRole('button', { name: 'รีเฟรชข้อมูล Dashboard', exact: true }).click()
     await page.getByRole('heading', { name: 'ยังอ่านข้อมูลจาก Google Sheets ไม่ได้', exact: true }).waitFor()
     assert.equal(requests.length, 2)
-    assert.equal(await card(page, 'tested_count').innerText(), '—', 'An old source value must not be attributed to its replacement')
-    assert.equal(await card(page, 'infected_count').innerText(), '—')
+    assert.equal(await card(page, 'tested_count').textContent(), '—', 'An old source value must not be attributed to its replacement')
+    assert.equal(await card(page, 'infected_count').textContent(), '—')
     assert.equal(await page.locator('.hsd-update strong').innerText(), 'ยังไม่มีการอ่านข้อมูลสำเร็จ')
     assert.equal(await page.locator('.hsd-province-table tbody tr').count(), 0)
     assert.equal(await page.getByRole('link', { name: 'เปิดแหล่งข้อมูล' }).getAttribute('href'), replacement.url)

@@ -62,7 +62,7 @@ try {
   await page.getByRole('button', { name: 'Dashboard', exact: true }).click()
   await page.getByTestId('health-survey-dashboard').waitFor()
   await page.locator('.hsd-update button:not(:disabled)').waitFor()
-  await capture('health-dashboard.png', 'Dashboard กพด. เขตสุขภาพที่ 2 แสดงสถานะแหล่งข้อมูลจริง ไม่มีสถิติโครงการจำลอง')
+  await capture('health-dashboard.png', 'Dashboard กพด. เขตสุขภาพที่ 2 หน้าตาจาก ZIP ของเจ้าของ แสดงสถานะแหล่งข้อมูลจริง ไม่มีสถิติโครงการจำลอง')
   if (errors.length) throw new Error(`Browser errors during capture: ${errors.join('; ')}`)
   await writeFile(resolve(directory, 'manifest.json'), JSON.stringify({
     capturedAt: new Date().toISOString(), timezone: 'Asia/Bangkok', viewport: { width: 1440, height: 1000 },

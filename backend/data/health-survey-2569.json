@@ -1,0 +1,4075 @@
+{
+  "schema_version": 1,
+  "dataset": {
+    "id": "kpd-2569",
+    "version": "127cfb59ea094824",
+    "transform_version": "kpd-workbook-aggregate-v2",
+    "file_name": "2569.xlsx",
+    "file_sha256": "ddb914156866ec537f7c1d104422f278414d437b49e32b72b73142ccef1d7361",
+    "worksheet": "เขต2",
+    "year": 2569,
+    "year_basis": "filename",
+    "band_partitioned": true,
+    "imported_at": "2026-10-31T03:51:15+00:00"
+  },
+  "cubes": [
+    {
+      "province": "ตาก",
+      "district": "ท่าสองยาง",
+      "affiliation": "ตชด.34",
+      "status": "tested",
+      "positivity_band": "10to20",
+      "school_count": 1,
+      "positive_school_count": 1,
+      "enrolled": 132,
+      "tested": 132,
+      "infected": 23,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 15,
+          "consistent": 15,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 8,
+          "consistent": 8,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "ท่าสองยาง",
+      "affiliation": "ตชด.34",
+      "status": "tested",
+      "positivity_band": "5to10",
+      "school_count": 4,
+      "positive_school_count": 4,
+      "enrolled": 503,
+      "tested": 503,
+      "infected": 32,
+      "coinfection": 1,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 19,
+          "consistent": 19,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 14,
+          "consistent": 14,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "ท่าสองยาง",
+      "affiliation": "ตชด.34",
+      "status": "tested",
+      "positivity_band": "under5",
+      "school_count": 5,
+      "positive_school_count": 5,
+      "enrolled": 623,
+      "tested": 622,
+      "infected": 21,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 9,
+          "consistent": 9,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 12,
+          "consistent": 12,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "ท่าสองยาง",
+      "affiliation": "ศศช.ตาก",
+      "status": "tested",
+      "positivity_band": "10to20",
+      "school_count": 12,
+      "positive_school_count": 12,
+      "enrolled": 411,
+      "tested": 411,
+      "infected": 50,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 1,
+          "consistent": 1,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 37,
+          "consistent": 37,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 11,
+          "consistent": 11,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 1,
+          "consistent": 1,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "ท่าสองยาง",
+      "affiliation": "ศศช.ตาก",
+      "status": "tested",
+      "positivity_band": "20plus",
+      "school_count": 7,
+      "positive_school_count": 7,
+      "enrolled": 233,
+      "tested": 231,
+      "infected": 100,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 8,
+          "consistent": 8,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 73,
+          "consistent": 73,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 19,
+          "consistent": 19,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "ท่าสองยาง",
+      "affiliation": "ศศช.ตาก",
+      "status": "tested",
+      "positivity_band": "5to10",
+      "school_count": 10,
+      "positive_school_count": 10,
+      "enrolled": 239,
+      "tested": 236,
+      "infected": 15,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 9,
+          "consistent": 9,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 5,
+          "consistent": 5,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 1,
+          "consistent": 1,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "ท่าสองยาง",
+      "affiliation": "ศศช.ตาก",
+      "status": "tested",
+      "positivity_band": "none",
+      "school_count": 26,
+      "positive_school_count": 0,
+      "enrolled": 725,
+      "tested": 724,
+      "infected": 0,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 1,
+          "tested_missing": 1
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "ท่าสองยาง",
+      "affiliation": "ศศช.ตาก",
+      "status": "tested",
+      "positivity_band": "under5",
+      "school_count": 9,
+      "positive_school_count": 9,
+      "enrolled": 431,
+      "tested": 405,
+      "infected": 10,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 5,
+          "consistent": 5,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 4,
+          "consistent": 4,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 1,
+          "consistent": 1,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "ท่าสองยาง",
+      "affiliation": "ศศช.ตาก",
+      "status": "zero_tested",
+      "positivity_band": null,
+      "school_count": 1,
+      "positive_school_count": 0,
+      "enrolled": 0,
+      "tested": 0,
+      "infected": 0,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": null,
+          "consistent": null,
+          "conflicting": 0,
+          "missing": 1,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "ท่าสองยาง",
+      "affiliation": "สพฐ.ตาก",
+      "status": "tested",
+      "positivity_band": "10to20",
+      "school_count": 1,
+      "positive_school_count": 1,
+      "enrolled": 25,
+      "tested": 25,
+      "infected": 4,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 3,
+          "consistent": 3,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 1,
+          "consistent": 1,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "ท่าสองยาง",
+      "affiliation": "สพฐ.ตาก",
+      "status": "tested",
+      "positivity_band": "20plus",
+      "school_count": 4,
+      "positive_school_count": 4,
+      "enrolled": 153,
+      "tested": 153,
+      "infected": 68,
+      "coinfection": 12,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 45,
+          "consistent": 45,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 35,
+          "consistent": 35,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "ท่าสองยาง",
+      "affiliation": "สพฐ.ตาก",
+      "status": "tested",
+      "positivity_band": "5to10",
+      "school_count": 5,
+      "positive_school_count": 5,
+      "enrolled": 672,
+      "tested": 663,
+      "infected": 45,
+      "coinfection": 2,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 20,
+          "consistent": 20,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 27,
+          "consistent": 27,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "ท่าสองยาง",
+      "affiliation": "สพฐ.ตาก",
+      "status": "tested",
+      "positivity_band": "none",
+      "school_count": 13,
+      "positive_school_count": 0,
+      "enrolled": 205,
+      "tested": 205,
+      "infected": 0,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "ท่าสองยาง",
+      "affiliation": "สพฐ.ตาก",
+      "status": "tested",
+      "positivity_band": "under5",
+      "school_count": 4,
+      "positive_school_count": 4,
+      "enrolled": 1824,
+      "tested": 1760,
+      "infected": 52,
+      "coinfection": 2,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 36,
+          "consistent": 36,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 18,
+          "consistent": 18,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "พบพระ",
+      "affiliation": "ท้องถิ่น",
+      "status": "tested",
+      "positivity_band": "under5",
+      "school_count": 1,
+      "positive_school_count": 1,
+      "enrolled": 260,
+      "tested": 260,
+      "infected": 4,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 4,
+          "consistent": 4,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "พบพระ",
+      "affiliation": "ศศช.ตาก",
+      "status": "tested",
+      "positivity_band": "none",
+      "school_count": 1,
+      "positive_school_count": 0,
+      "enrolled": 30,
+      "tested": 30,
+      "infected": 0,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "พบพระ",
+      "affiliation": "ศศช.ตาก",
+      "status": "tested",
+      "positivity_band": "under5",
+      "school_count": 1,
+      "positive_school_count": 1,
+      "enrolled": 62,
+      "tested": 62,
+      "infected": 2,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 2,
+          "consistent": 2,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "อุ้มผาง",
+      "affiliation": "ตชด.34",
+      "status": "tested",
+      "positivity_band": "under5",
+      "school_count": 4,
+      "positive_school_count": 4,
+      "enrolled": 1739,
+      "tested": 1613,
+      "infected": 45,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 1,
+          "consistent": 1,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 44,
+          "consistent": 44,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "อุ้มผาง",
+      "affiliation": "ท้องถิ่น",
+      "status": "tested",
+      "positivity_band": "under5",
+      "school_count": 1,
+      "positive_school_count": 1,
+      "enrolled": 172,
+      "tested": 161,
+      "infected": 4,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 4,
+          "consistent": 4,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "อุ้มผาง",
+      "affiliation": "ศศช.ตาก",
+      "status": "tested",
+      "positivity_band": "5to10",
+      "school_count": 1,
+      "positive_school_count": 1,
+      "enrolled": 134,
+      "tested": 127,
+      "infected": 8,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 8,
+          "consistent": 8,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "อุ้มผาง",
+      "affiliation": "ศศช.ตาก",
+      "status": "tested",
+      "positivity_band": "none",
+      "school_count": 2,
+      "positive_school_count": 0,
+      "enrolled": 61,
+      "tested": 55,
+      "infected": 0,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "อุ้มผาง",
+      "affiliation": "ศศช.ตาก",
+      "status": "tested",
+      "positivity_band": "under5",
+      "school_count": 4,
+      "positive_school_count": 4,
+      "enrolled": 495,
+      "tested": 461,
+      "infected": 18,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 17,
+          "consistent": 17,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 1,
+          "consistent": 1,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "อุ้มผาง",
+      "affiliation": "สพฐ.ตาก",
+      "status": "tested",
+      "positivity_band": "5to10",
+      "school_count": 1,
+      "positive_school_count": 1,
+      "enrolled": 78,
+      "tested": 71,
+      "infected": 7,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 7,
+          "consistent": 7,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "อุ้มผาง",
+      "affiliation": "สพฐ.ตาก",
+      "status": "tested",
+      "positivity_band": "under5",
+      "school_count": 7,
+      "positive_school_count": 7,
+      "enrolled": 3231,
+      "tested": 2941,
+      "infected": 77,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 1,
+          "consistent": 1,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 67,
+          "consistent": 67,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 4,
+          "consistent": 4,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 5,
+          "consistent": 5,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "อุ้มผาง",
+      "affiliation": "สพม.ตาก",
+      "status": "tested",
+      "positivity_band": "under5",
+      "school_count": 1,
+      "positive_school_count": 1,
+      "enrolled": 331,
+      "tested": 305,
+      "infected": 12,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 12,
+          "consistent": 12,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่ระมาด",
+      "affiliation": "ตชด.34",
+      "status": "tested",
+      "positivity_band": "5to10",
+      "school_count": 2,
+      "positive_school_count": 2,
+      "enrolled": 271,
+      "tested": 271,
+      "infected": 16,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 11,
+          "consistent": 11,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 5,
+          "consistent": 5,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่ระมาด",
+      "affiliation": "ตชด.34",
+      "status": "tested",
+      "positivity_band": "none",
+      "school_count": 2,
+      "positive_school_count": 0,
+      "enrolled": 116,
+      "tested": 116,
+      "infected": 0,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่ระมาด",
+      "affiliation": "ตชด.34",
+      "status": "tested",
+      "positivity_band": "under5",
+      "school_count": 2,
+      "positive_school_count": 2,
+      "enrolled": 255,
+      "tested": 255,
+      "infected": 4,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 1,
+          "consistent": 1,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 2,
+          "consistent": 2,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 1,
+          "consistent": 1,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่ระมาด",
+      "affiliation": "ตชด.34",
+      "status": "zero_tested",
+      "positivity_band": null,
+      "school_count": 1,
+      "positive_school_count": 0,
+      "enrolled": 0,
+      "tested": 0,
+      "infected": 0,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 1,
+          "consistent": 0,
+          "conflicting": 1,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่ระมาด",
+      "affiliation": "ท้องถิ่น",
+      "status": "tested",
+      "positivity_band": "5to10",
+      "school_count": 1,
+      "positive_school_count": 1,
+      "enrolled": 107,
+      "tested": 107,
+      "infected": 7,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 2,
+          "consistent": 2,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 5,
+          "consistent": 5,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่ระมาด",
+      "affiliation": "ท้องถิ่น",
+      "status": "tested",
+      "positivity_band": "none",
+      "school_count": 1,
+      "positive_school_count": 0,
+      "enrolled": 132,
+      "tested": 132,
+      "infected": 0,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่ระมาด",
+      "affiliation": "ท้องถิ่น",
+      "status": "tested",
+      "positivity_band": "under5",
+      "school_count": 1,
+      "positive_school_count": 1,
+      "enrolled": 24,
+      "tested": 24,
+      "infected": 1,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 1,
+          "consistent": 1,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่ระมาด",
+      "affiliation": "ศศช.ตาก",
+      "status": "tested",
+      "positivity_band": "10to20",
+      "school_count": 1,
+      "positive_school_count": 1,
+      "enrolled": 30,
+      "tested": 30,
+      "infected": 3,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 3,
+          "consistent": 3,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่ระมาด",
+      "affiliation": "ศศช.ตาก",
+      "status": "tested",
+      "positivity_band": "5to10",
+      "school_count": 6,
+      "positive_school_count": 6,
+      "enrolled": 280,
+      "tested": 270,
+      "infected": 19,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 1,
+          "consistent": 1,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 16,
+          "consistent": 16,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 1,
+          "consistent": 1,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 1,
+          "consistent": 1,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่ระมาด",
+      "affiliation": "ศศช.ตาก",
+      "status": "tested",
+      "positivity_band": "none",
+      "school_count": 5,
+      "positive_school_count": 0,
+      "enrolled": 190,
+      "tested": 176,
+      "infected": 0,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่ระมาด",
+      "affiliation": "ศศช.ตาก",
+      "status": "tested",
+      "positivity_band": "under5",
+      "school_count": 3,
+      "positive_school_count": 3,
+      "enrolled": 145,
+      "tested": 145,
+      "infected": 5,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 5,
+          "consistent": 5,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่ระมาด",
+      "affiliation": "สพฐ.ตาก",
+      "status": "tested",
+      "positivity_band": "none",
+      "school_count": 1,
+      "positive_school_count": 0,
+      "enrolled": 124,
+      "tested": 124,
+      "infected": 0,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่ระมาด",
+      "affiliation": "สพฐ.ตาก",
+      "status": "tested",
+      "positivity_band": "under5",
+      "school_count": 2,
+      "positive_school_count": 2,
+      "enrolled": 558,
+      "tested": 558,
+      "infected": 8,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 8,
+          "consistent": 8,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่สอด",
+      "affiliation": "ตชด.34",
+      "status": "tested",
+      "positivity_band": "under5",
+      "school_count": 2,
+      "positive_school_count": 2,
+      "enrolled": 190,
+      "tested": 190,
+      "infected": 7,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 3,
+          "consistent": 3,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 2,
+          "consistent": 2,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 2,
+          "consistent": 2,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่สอด",
+      "affiliation": "ท้องถิ่น",
+      "status": "tested",
+      "positivity_band": "5to10",
+      "school_count": 1,
+      "positive_school_count": 1,
+      "enrolled": 173,
+      "tested": 144,
+      "infected": 10,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 1,
+          "consistent": 1,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 4,
+          "consistent": 4,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 3,
+          "consistent": 3,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 2,
+          "consistent": 2,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่สอด",
+      "affiliation": "ท้องถิ่น",
+      "status": "tested",
+      "positivity_band": "none",
+      "school_count": 1,
+      "positive_school_count": 0,
+      "enrolled": 25,
+      "tested": 25,
+      "infected": 0,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่สอด",
+      "affiliation": "ท้องถิ่น",
+      "status": "tested",
+      "positivity_band": "under5",
+      "school_count": 1,
+      "positive_school_count": 1,
+      "enrolled": 104,
+      "tested": 104,
+      "infected": 5,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 2,
+          "consistent": 2,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 1,
+          "consistent": 1,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 2,
+          "consistent": 2,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่สอด",
+      "affiliation": "พระปริยัติ",
+      "status": "pending",
+      "positivity_band": null,
+      "school_count": 1,
+      "positive_school_count": 0,
+      "enrolled": null,
+      "tested": null,
+      "infected": null,
+      "coinfection": null,
+      "parasites": {
+        "hookworm": {
+          "reported": null,
+          "consistent": null,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": null,
+          "consistent": null,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": null,
+          "consistent": null,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": null,
+          "consistent": null,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": null,
+          "consistent": null,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": null,
+          "consistent": null,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": null,
+          "consistent": null,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": null,
+          "consistent": null,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่สอด",
+      "affiliation": "ศูนย์เด็กวัยเตาะแตะ",
+      "status": "tested",
+      "positivity_band": "5to10",
+      "school_count": 1,
+      "positive_school_count": 1,
+      "enrolled": 114,
+      "tested": 73,
+      "infected": 5,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 3,
+          "consistent": 3,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 1,
+          "consistent": 1,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 1,
+          "consistent": 1,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่สอด",
+      "affiliation": "ศูนย์เด็กวัยเตาะแตะ",
+      "status": "tested",
+      "positivity_band": "none",
+      "school_count": 1,
+      "positive_school_count": 0,
+      "enrolled": 27,
+      "tested": 16,
+      "infected": 0,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่สอด",
+      "affiliation": "ศูนย์เด็กวัยเตาะแตะ",
+      "status": "tested",
+      "positivity_band": "under5",
+      "school_count": 1,
+      "positive_school_count": 1,
+      "enrolled": 21,
+      "tested": 21,
+      "infected": 1,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 1,
+          "consistent": 1,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่สอด",
+      "affiliation": "สพฐ.ตาก",
+      "status": "tested",
+      "positivity_band": "under5",
+      "school_count": 1,
+      "positive_school_count": 1,
+      "enrolled": 222,
+      "tested": 199,
+      "infected": 9,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 6,
+          "consistent": 6,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 1,
+          "consistent": 1,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 2,
+          "consistent": 2,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "ตาก",
+      "district": "แม่สอด",
+      "affiliation": "เอกชนสอนศาสนา",
+      "status": "pending",
+      "positivity_band": null,
+      "school_count": 1,
+      "positive_school_count": 0,
+      "enrolled": null,
+      "tested": null,
+      "infected": null,
+      "coinfection": null,
+      "parasites": {
+        "hookworm": {
+          "reported": null,
+          "consistent": null,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": null,
+          "consistent": null,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": null,
+          "consistent": null,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": null,
+          "consistent": null,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": null,
+          "consistent": null,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": null,
+          "consistent": null,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": null,
+          "consistent": null,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": null,
+          "consistent": null,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "พิษณุโลก",
+      "district": "ชาติตระการ",
+      "affiliation": "ตชด.31",
+      "status": "tested",
+      "positivity_band": "none",
+      "school_count": 3,
+      "positive_school_count": 0,
+      "enrolled": 85,
+      "tested": 85,
+      "infected": 0,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "พิษณุโลก",
+      "district": "นครไทย",
+      "affiliation": "ตชด.31",
+      "status": "tested",
+      "positivity_band": "none",
+      "school_count": 1,
+      "positive_school_count": 0,
+      "enrolled": 42,
+      "tested": 42,
+      "infected": 0,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "พิษณุโลก",
+      "district": "นครไทย",
+      "affiliation": "ราชประชานุเคราะห์",
+      "status": "tested",
+      "positivity_band": "under5",
+      "school_count": 1,
+      "positive_school_count": 1,
+      "enrolled": 807,
+      "tested": 314,
+      "infected": 1,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 1,
+          "consistent": 1,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "อุตรดิตถ์",
+      "district": "น้ำปาด",
+      "affiliation": "ราชประชานุเคราะห์",
+      "status": "tested",
+      "positivity_band": "none",
+      "school_count": 1,
+      "positive_school_count": 0,
+      "enrolled": 147,
+      "tested": 147,
+      "infected": 0,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "อุตรดิตถ์",
+      "district": "บ้านโคก",
+      "affiliation": "ตชด.31",
+      "status": "tested",
+      "positivity_band": "none",
+      "school_count": 2,
+      "positive_school_count": 0,
+      "enrolled": 115,
+      "tested": 115,
+      "infected": 0,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    },
+    {
+      "province": "เพชรบูรณ์",
+      "district": "ชนแดน",
+      "affiliation": "ตชด.31",
+      "status": "tested",
+      "positivity_band": "none",
+      "school_count": 1,
+      "positive_school_count": 0,
+      "enrolled": 49,
+      "tested": 49,
+      "infected": 0,
+      "coinfection": 0,
+      "parasites": {
+        "hookworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "ascaris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "trichuris": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "liver_fluke": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "pinworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "tapeworm": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "medium_intestinal": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        },
+        "strongyloides": {
+          "reported": 0,
+          "consistent": 0,
+          "conflicting": 0,
+          "missing": 0,
+          "tested_missing": 0
+        }
+      }
+    }
+  ],
+  "issues": [
+    {
+      "id": "row-37-source_count_conflict-pinworm",
+      "province": "ตาก",
+      "district": "แม่ระมาด",
+      "affiliation": "ตชด.34",
+      "status": "zero_tested",
+      "positivity_band": null,
+      "code": "source_count_conflict",
+      "severity": "warning",
+      "parasite": "pinworm",
+      "title": "จำนวนแยกชนิดขัดกับยอดรวม",
+      "message": "S37 รายงาน 1 คน แต่ยอดส่งตรวจ 0 และยอดตรวจพบ 0 คน คงค่ารายงานไว้โดยแยกรายการที่ขัดกัน",
+      "count": 1,
+      "reported": 1,
+      "consistent": 0,
+      "cell_refs": [
+        "S37"
+      ]
+    },
+    {
+      "id": "row-37-formula_error-all",
+      "province": "ตาก",
+      "district": "แม่ระมาด",
+      "affiliation": "ตชด.34",
+      "status": "zero_tested",
+      "positivity_band": null,
+      "code": "formula_error",
+      "severity": "info",
+      "title": "สูตรร้อยละต้นทางไม่มีตัวหาร",
+      "message": "คำนวณร้อยละใหม่จากจำนวนคน กรณีตัวหารศูนย์หรือยังไม่มีข้อมูลจะแสดงว่าไม่สามารถคำนวณได้",
+      "count": 11,
+      "cell_refs": [
+        "H37",
+        "J37",
+        "L37",
+        "N37",
+        "P37",
+        "R37",
+        "T37",
+        "V37",
+        "X37",
+        "Z37",
+        "AB37"
+      ]
+    },
+    {
+      "id": "row-111-missing_parasite_count-ascaris",
+      "province": "ตาก",
+      "district": "ท่าสองยาง",
+      "affiliation": "ศศช.ตาก",
+      "status": "zero_tested",
+      "positivity_band": null,
+      "code": "missing_parasite_count",
+      "severity": "warning",
+      "parasite": "ascaris",
+      "title": "ช่องจำนวนแยกชนิดยังว่าง",
+      "message": "M111 ไม่ระบุจำนวน ไม่ตีความว่าเป็นศูนย์ ผลรวมชนิดนี้อ้างเฉพาะช่องที่มีตัวเลข",
+      "count": 1,
+      "cell_refs": [
+        "M111"
+      ]
+    },
+    {
+      "id": "row-111-formula_error-all",
+      "province": "ตาก",
+      "district": "ท่าสองยาง",
+      "affiliation": "ศศช.ตาก",
+      "status": "zero_tested",
+      "positivity_band": null,
+      "code": "formula_error",
+      "severity": "info",
+      "title": "สูตรร้อยละต้นทางไม่มีตัวหาร",
+      "message": "คำนวณร้อยละใหม่จากจำนวนคน กรณีตัวหารศูนย์หรือยังไม่มีข้อมูลจะแสดงว่าไม่สามารถคำนวณได้",
+      "count": 11,
+      "cell_refs": [
+        "H111",
+        "J111",
+        "L111",
+        "N111",
+        "P111",
+        "R111",
+        "T111",
+        "V111",
+        "X111",
+        "Z111",
+        "AB111"
+      ]
+    },
+    {
+      "id": "row-142-missing_parasite_count-tapeworm",
+      "province": "ตาก",
+      "district": "ท่าสองยาง",
+      "affiliation": "ศศช.ตาก",
+      "status": "tested",
+      "positivity_band": "none",
+      "code": "missing_parasite_count",
+      "severity": "warning",
+      "parasite": "tapeworm",
+      "title": "ช่องจำนวนแยกชนิดยังว่าง",
+      "message": "U142 ไม่ระบุจำนวน ไม่ตีความว่าเป็นศูนย์ ผลรวมชนิดนี้อ้างเฉพาะช่องที่มีตัวเลข",
+      "count": 1,
+      "cell_refs": [
+        "U142"
+      ]
+    },
+    {
+      "id": "row-167-pending_counts-all",
+      "province": "ตาก",
+      "district": "แม่สอด",
+      "affiliation": "เอกชนสอนศาสนา",
+      "status": "pending",
+      "positivity_band": null,
+      "code": "pending_counts",
+      "severity": "info",
+      "title": "หน่วยรายงานรอข้อมูล",
+      "message": "ยังไม่มีจำนวนนักเรียนและผลตรวจ ไม่แทนช่องว่างเป็นศูนย์",
+      "count": 1,
+      "cell_refs": [
+        "F167",
+        "G167",
+        "I167"
+      ]
+    },
+    {
+      "id": "row-167-formula_error-all",
+      "province": "ตาก",
+      "district": "แม่สอด",
+      "affiliation": "เอกชนสอนศาสนา",
+      "status": "pending",
+      "positivity_band": null,
+      "code": "formula_error",
+      "severity": "info",
+      "title": "สูตรร้อยละต้นทางไม่มีตัวหาร",
+      "message": "คำนวณร้อยละใหม่จากจำนวนคน กรณีตัวหารศูนย์หรือยังไม่มีข้อมูลจะแสดงว่าไม่สามารถคำนวณได้",
+      "count": 11,
+      "cell_refs": [
+        "H167",
+        "J167",
+        "L167",
+        "N167",
+        "P167",
+        "R167",
+        "T167",
+        "V167",
+        "X167",
+        "Z167",
+        "AB167"
+      ]
+    },
+    {
+      "id": "row-178-pending_counts-all",
+      "province": "ตาก",
+      "district": "แม่สอด",
+      "affiliation": "พระปริยัติ",
+      "status": "pending",
+      "positivity_band": null,
+      "code": "pending_counts",
+      "severity": "info",
+      "title": "หน่วยรายงานรอข้อมูล",
+      "message": "ยังไม่มีจำนวนนักเรียนและผลตรวจ ไม่แทนช่องว่างเป็นศูนย์",
+      "count": 1,
+      "cell_refs": [
+        "F178",
+        "G178",
+        "I178"
+      ]
+    },
+    {
+      "id": "row-178-formula_error-all",
+      "province": "ตาก",
+      "district": "แม่สอด",
+      "affiliation": "พระปริยัติ",
+      "status": "pending",
+      "positivity_band": null,
+      "code": "formula_error",
+      "severity": "info",
+      "title": "สูตรร้อยละต้นทางไม่มีตัวหาร",
+      "message": "คำนวณร้อยละใหม่จากจำนวนคน กรณีตัวหารศูนย์หรือยังไม่มีข้อมูลจะแสดงว่าไม่สามารถคำนวณได้",
+      "count": 11,
+      "cell_refs": [
+        "H178",
+        "J178",
+        "L178",
+        "N178",
+        "P178",
+        "R178",
+        "T178",
+        "V178",
+        "X178",
+        "Z178",
+        "AB178"
+      ]
+    }
+  ],
+  "audit": {
+    "source_detail_rows": 174,
+    "detail_row_range": [
+      5,
+      178
+    ],
+    "excluded_summary_rows": [
+      179,
+      189
+    ],
+    "excluded_province_summary_rows": [
+      185,
+      186,
+      187,
+      188
+    ],
+    "summary_reconciled": true,
+    "formula_error_count": 44,
+    "formula_cells": 1991,
+    "missing_count_cells": 2,
+    "exact_duplicate_units": 0,
+    "public_dimensions": [
+      "province",
+      "district",
+      "affiliation",
+      "status",
+      "positivity_band"
+    ]
+  }
+}

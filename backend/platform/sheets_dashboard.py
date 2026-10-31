@@ -25,8 +25,10 @@ from datetime import date, datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import Response
 
 from .auth import require_user
+from . import survey_snapshot
 
 router = APIRouter(prefix='/api/platform/operations', tags=['Google Sheets project dashboard'])
 PROJECT_SHEET_ID = '1OlVnkehNCAJWVE0sR_5ypqi9XeuCI8-d'
@@ -626,18 +628,45 @@ class SheetsCache:
             return {**base, 'status': status, 'warnings': [*self.warnings, *warnings], 'data': data}
 
 
+def dashboard_provider() -> str:
+    """Select a server-owned source; imported statistics never impersonate live data."""
+    mode = os.getenv('HELPMINTHS_DASHBOARD_SOURCE', 'auto').strip().lower() or 'auto'
+    if mode not in {'auto', 'snapshot', 'google_sheets'}:
+        raise HTTPException(503, 'ตั้งค่าแหล่งข้อมูล Dashboard ไม่ถูกต้อง ใช้ auto, snapshot หรือ google_sheets')
+    if mode != 'auto':
+        return mode
+    configured_sheet = os.getenv('HELPMINTHS_SHEETS_ID', '').strip()
+    # An operator's custom/private Google source must retain its existing access
+    # policy instead of silently switching to the bundled public project snapshot.
+    if configured_sheet and configured_sheet != PROJECT_SHEET_ID:
+        return 'google_sheets'
+    return 'snapshot' if survey_snapshot.available() else 'google_sheets'
+
+
 @router.get('/status')
 def operations_status():
+    if dashboard_provider() == 'snapshot':
+        return survey_snapshot.metadata()
     return SheetsConfig.from_environment().metadata()
 
 
 @router.get('/dashboard')
 def operations_dashboard(request: Request, year: int | None = Query(None, ge=1900, le=2743),
                          province: str | None = Query(None, max_length=60), from_date: str | None = Query(None, max_length=10),
-                         to_date: str | None = Query(None, max_length=10), status: str | None = Query(None, max_length=20)):
+                         to_date: str | None = Query(None, max_length=10), status: str | None = Query(None, max_length=20),
+                         district: str | None = Query(None, max_length=160),
+                         affiliation: str | None = Query(None, max_length=160),
+                         record_status: str | None = Query(None, max_length=20),
+                         positivity_band: str | None = Query(None, max_length=20)):
+    if dashboard_provider() == 'snapshot':
+        return survey_snapshot.dashboard(dict(year=year, province=province, district=district,
+                                              affiliation=affiliation, record_status=record_status, positivity_band=positivity_band,
+                                              from_date=from_date, to_date=to_date, status=status))
     config = SheetsConfig.from_environment()
     if not config.public:
         require_user(request)
+    if any(value for value in (district, affiliation, record_status, positivity_band)):
+        raise HTTPException(422, 'ตัวกรองอำเภอ สังกัด สถานะหน่วยรายงาน และช่วงร้อยละตรวจพบใช้ได้กับชุดข้อมูลไฟล์นำเข้าเท่านั้น')
     if not config.enabled:
         return {'status': 'not_configured', 'source': config.source(), 'refresh_seconds': config.refresh_seconds,
                 'fetched_at': None, 'last_attempt_at': None, 'error': None, 'warnings': [], 'data': None}
@@ -676,3 +705,23 @@ def operations_dashboard(request: Request, year: int | None = Query(None, ge=190
             # Keep only the current configuration: source data are not an archive.
             request.app.state.sheets_caches = {signature: (cache := SheetsCache())}
     return cache.snapshot(config, filters)
+
+
+@router.get('/export.csv')
+def export_operations_csv(request: Request, year: int | None = Query(None, ge=1900, le=2743),
+                          province: str | None = Query(None, max_length=60),
+                          district: str | None = Query(None, max_length=160),
+                          affiliation: str | None = Query(None, max_length=160),
+                          record_status: str | None = Query(None, max_length=20),
+                          positivity_band: str | None = Query(None, max_length=20)):
+    """Export aggregate snapshot dimensions only; never raw source/school records."""
+    if dashboard_provider() != 'snapshot':
+        config = SheetsConfig.from_environment()
+        if not config.public:
+            require_user(request)
+        raise HTTPException(422, 'การส่งออก CSV นี้รองรับเฉพาะสถิติสรุปจากไฟล์นำเข้า')
+    payload = survey_snapshot.export_csv(dict(year=year, province=province, district=district,
+                                             affiliation=affiliation, record_status=record_status, positivity_band=positivity_band))
+    return Response(payload, media_type='text/csv; charset=utf-8',
+                    headers={'Content-Disposition': 'attachment; filename="HelpMinths-health-survey.csv"',
+                             'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'})

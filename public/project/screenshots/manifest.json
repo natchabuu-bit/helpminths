@@ -51,9 +51,40 @@
     },
     {
       "filename": "health-dashboard.png",
-      "description": "Dashboard กพด. เขตสุขภาพที่ 2 แสดงสถานะแหล่งข้อมูลจริง ไม่มีสถิติโครงการจำลอง",
-      "source": "actual running prototype",
+      "capturedAt": "2026-10-31T04:00:27.882Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "description": "Dashboard จาก helminth-dashboard.zip ใช้สถิติจริงจาก 2569.xlsx (1440px)",
+      "source": "actual running prototype; uploaded workbook aggregate API",
+      "datasetVersion": "127cfb59ea094824",
+      "privatePatientImages": false
+    },
+    {
+      "filename": "health-dashboard-charts.png",
+      "capturedAt": "2026-10-31T04:00:27.882Z",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "description": "กราฟกระจาย อำเภอ สังกัด ชนิดพยาธิ และการกระจายช่วงร้อยละ จากสถิติจริง",
+      "source": "actual running prototype; uploaded workbook aggregate API",
+      "datasetVersion": "127cfb59ea094824",
+      "privatePatientImages": false
+    },
+    {
+      "filename": "health-dashboard-mobile.png",
+      "capturedAt": "2026-10-31T04:00:31.466Z",
+      "viewport": {
+        "width": 375,
+        "height": 900
+      },
+      "description": "Dashboard จาก helminth-dashboard.zip ใช้สถิติจริงจาก 2569.xlsx (375px)",
+      "source": "actual running prototype; uploaded workbook aggregate API",
+      "datasetVersion": "127cfb59ea094824",
       "privatePatientImages": false
     }
-  ]
+  ],
+  "updatedAt": "2026-10-31T04:00:31.490Z"
 }

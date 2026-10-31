@@ -12,7 +12,8 @@
     "test:feedback": "node --test tests/feedback.test.mjs",
     "test:offline": "node --test tests/offline.test.mjs",
     "test:platform": "node --test tests/platform.test.mjs",
-    "test:health-dashboard": "node --test tests/health-dashboard.test.mjs"
+    "test:health-dashboard": "node --test tests/health-dashboard.test.mjs",
+    "test:health-snapshot": "node --test tests/health-snapshot.test.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
