@@ -21,7 +21,20 @@ class ModelNotReadyError(RuntimeError):
 
 class YOLOModelService:
     def __init__(self, model_path: str | None = None) -> None:
-        self._path = model_path if model_path is not None else os.getenv("HELPMINTHS_MODEL_PATH", "")
+        if model_path is not None:
+            # An explicit empty argument deliberately disables loading (including
+            # for ephemeral/test services), even if a default checkpoint exists.
+            self._path = model_path
+        else:
+            configured = os.getenv("HELPMINTHS_MODEL_PATH", "").strip()
+            if configured:
+                self._path = configured
+            else:
+                # Resolve against the application, not the server's launch cwd.
+                # A missing checkpoint stays unconfigured; YOLO is never asked
+                # to resolve/download an absent filename or generic model.
+                checkpoint = Path(__file__).resolve().parents[1] / "models" / "parasite_yolo.pt"
+                self._path = str(checkpoint) if checkpoint.is_file() else ""
         self._model: Any = None
         self._lock = threading.Lock()
         self.ready = False

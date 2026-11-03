@@ -16,6 +16,18 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 COPY backend/requirements.lock ./backend/requirements.lock
 RUN python -m pip install --no-cache-dir -r backend/requirements.lock
 COPY backend ./backend
+COPY models ./models
+# Keep the ordinary application lightweight until the owner's named checkpoint
+# is present. A model build installs CPU wheels, never a CUDA dependency stack.
+RUN if [ -f /app/models/parasite_yolo.pt ]; then \
+      apt-get update && \
+      apt-get install -y --no-install-recommends libgl1 libglib2.0-0 && \
+      rm -rf /var/lib/apt/lists/* && \
+      python -m pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch torchvision && \
+      python -m pip freeze | grep -Ei '^(torch|torchvision)==' > /tmp/helpminths-cpu-constraints.txt && \
+      python -m pip install --no-cache-dir -c /tmp/helpminths-cpu-constraints.txt -c backend/requirements.lock -r backend/requirements-model.txt && \
+      python -m pip check && rm /tmp/helpminths-cpu-constraints.txt; \
+    fi
 COPY --from=frontend /build/dist ./dist
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s \

@@ -3,8 +3,10 @@ backups/
 .venv
 node_modules
 dist
-models
+models/*
+!models/README.md
 *.pt
+!models/parasite_yolo.pt
 *.onnx
 *.log
 .env

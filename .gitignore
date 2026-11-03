@@ -10,6 +10,7 @@ __pycache__/
 !.env.example
 models/*
 !models/.gitkeep
+!models/README.md
 *.pt
 *.onnx
 *.log

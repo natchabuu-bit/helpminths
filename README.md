@@ -22,7 +22,7 @@ Blueprint ใช้ Docker ให้เว็บและ API อยู่ใน
 
 การเผยแพร่ครั้งแรกเปิดใช้งานเว็บ Atlas และโหมดสาธิตได้ ส่วน AI ตรวจภาพจริงยังต้องเชื่อม trained weights ที่เข้ากันได้ตามหัวข้อโมเดลด้านล่าง
 
-Blueprint แผน Free ยังไม่เชื่อมพื้นที่ถาวร และ Dockerfile ไม่ติดตั้ง YOLO runtime/weights ต้องเลือกโฮสต์/แผนที่รองรับ persistent volume ก่อนเก็บผลตรวจจริง ตั้ง `HELPMINTHS_DATA_DIR` ไปยัง volume แล้วสร้างบัญชีแรกด้วย CLI การตั้ง `HELPMINTHS_STORAGE_DURABLE=1` เป็นเพียงคำประกาศผู้ดูแล ไม่ได้สร้าง disk หรือสำรองข้อมูล อ่านขั้นตอนในคู่มือแพลตฟอร์ม อย่าเก็บข้อมูลจริงไว้บน filesystem ชั่วคราวของ Render
+Blueprint แผน Free ยังไม่เชื่อมพื้นที่ถาวร Dockerfile จะติดตั้ง YOLO runtime แบบ CPU เฉพาะเมื่อมี `models/parasite_yolo.pt` จริงอยู่ใน build context และไม่มีการดาวน์โหลด weights มาแทน ต้องเลือกโฮสต์/แผนที่รองรับ persistent volume ก่อนเก็บผลตรวจจริง ตั้ง `HELPMINTHS_DATA_DIR` ไปยัง volume แล้วสร้างบัญชีแรกด้วย CLI การตั้ง `HELPMINTHS_STORAGE_DURABLE=1` เป็นเพียงคำประกาศผู้ดูแล ไม่ได้สร้าง disk หรือสำรองข้อมูล อ่านขั้นตอนในคู่มือแพลตฟอร์ม อย่าเก็บข้อมูลจริงไว้บน filesystem ชั่วคราวของ Render
 
 ## ใช้งานโดยไม่ต่ออินเทอร์เน็ต
 
@@ -70,7 +70,7 @@ docker build -t helpminths .
 docker run --rm -p 8080:8000 helpminths
 ```
 
-Dockerfile ไม่รวมไฟล์โมเดล รหัสลับ หรือภาพของผู้ใช้ การตรวจ AI จริงยังต้องติดตั้ง runtime ของโมเดลและเชื่อม trained weights แยกต่างหาก Dockerfile เป็น configuration สำหรับ deployment; อ่านรายงานการทดสอบปัจจุบันก่อนถือว่า image ได้ build ในเครื่องใดแล้ว
+Dockerfile ไม่รวมรหัสลับหรือภาพผู้ใช้ และรองรับโมเดลเฉพาะ `models/parasite_yolo.pt` เมื่อผู้ดูแลส่งมอบไฟล์จริงเข้า build context หากพบไฟล์นี้จะติดตั้ง PyTorch/torchvision แบบ CPU และ YOLO runtime ก่อนเริ่ม API เมื่อยังไม่มีไฟล์จะใช้แอปรุ่นเบาและแจ้งว่าโมเดลยังไม่พร้อม อ่าน [ตำแหน่งโมเดลและวิธีส่งมอบ](models/README.md) และรายงานทดสอบก่อนอ้างว่าโมเดลจริงใช้งานได้
 
 ผลทดสอบของแพลตฟอร์มและขอบเขตหลักฐานอยู่ใน [รายงานการตรวจสอบ](docs/platform/VALIDATION.md) การบันทึกโค้ดบน GitHub ยังไม่ใช่การยืนยันว่าเว็บไซต์บน Render deploy รุ่นล่าสุดแล้ว และการผ่านการทดสอบซอฟต์แวร์ไม่ได้ยืนยันความแม่นยำของ YOLO จริง
 
@@ -126,10 +126,13 @@ API มี adapter เสริมสำหรับ **Ultralytics YOLO detectio
 ```bash
 cd /workspace/helpminths
 .venv/bin/python -m pip install -r backend/requirements-model.txt
-# วาง best.pt ของโปรเจกต์ไว้ใน models/ โดยไม่เพิ่มไฟล์ใหญ่ลง Git
-export HELPMINTHS_MODEL_PATH=/workspace/helpminths/models/best.pt
+# วางไฟล์โมเดลจริงใน models/parasite_yolo.pt เพื่อให้ระบบค้นพบอัตโนมัติ
+# หากใช้ชื่อหรือตำแหน่งอื่น ให้กำหนดพาธเองก่อนเริ่ม API:
+# export HELPMINTHS_MODEL_PATH=/private/models/approved-detection.pt
 bash scripts/start.sh
 ```
+
+ไฟล์ `models/parasite_yolo.pt` ที่ผู้ใช้ระบุยังไม่ปรากฏใน GitHub/ไฟล์ที่เปิดอ่านได้ ณ 3 พฤศจิกายน 2569 จึงเตรียมการโหลดและแพ็ก runtime ไว้แล้ว แต่ยังไม่ได้ตรวจสถาปัตยกรรม ชื่อคลาส หรือทดสอบ inference ของ checkpoint นั้น
 
 ชื่อคลาสดึงจาก `model.names` โดยตรง ไม่มีการเดาชื่อชนิดหรือใช้โมเดล COCO ทั่วไปแทนโมเดลไข่พยาธิ เมื่อไม่มีโมเดล `/api/health` จะตอบ `model_ready: false` และการส่งภาพตรวจจริงจะได้รับ HTTP 503 พร้อมคำอธิบาย ไม่ได้สร้างผลตรวจปลอม
 

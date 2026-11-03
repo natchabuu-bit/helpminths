@@ -95,6 +95,8 @@ API เดิม `POST /api/analyze` ยังทำงานชั่วคร�
 
 ## โมเดลและการประเมิน
 
+API ค้นหา `models/parasite_yolo.pt` อัตโนมัติจากราก repository เมื่อมีไฟล์จริงและไม่ได้กำหนด `HELPMINTHS_MODEL_PATH` เป็นค่าอื่น พาธที่กำหนดเองมีลำดับสูงกว่าและหากผิดจะไม่เปลี่ยนไปใช้ไฟล์อื่นโดยเงียบ ๆ Docker รองรับไฟล์ชื่อนี้ใน build context พร้อมติดตั้ง CPU runtime เฉพาะเมื่อมีไฟล์ แต่ยังไม่มี checkpoint ดังกล่าวให้ตรวจจริง อ่าน [รายละเอียดการส่งมอบโมเดล](../models/README.md)
+
 ```bash
 .venv/bin/python -m pip install -r backend/requirements-model.txt
 export HELPMINTHS_MODEL_PATH=/private/models/best.pt
