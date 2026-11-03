@@ -66,7 +66,7 @@ test('uploaded design renders actual totals, interactive aggregate charts and cl
     assert.equal(await page.getByRole('img', { name: 'ความครอบคลุมส่งตรวจ 92.8%' }).count(), 1)
     assert.match(await page.locator('.hd-hero-note').innerText(), /ส่งตรวจศูนย์ 2 หน่วย.*รอข้อมูล 2 หน่วย/)
     assert.match(await page.locator('.hd-hero-note').innerText(), /พบมากกว่า 1 ชนิด 17 คน/)
-    assert.equal(await page.locator('.hd-scatter [role="button"]').count(), 10)
+    assert.equal(await page.locator('.hd-scatter [role="button"]').count(), 170)
     assert.equal(await page.locator('.hd-chips button').count(), 5)
     assert.deepEqual(await page.locator('.hd-chips strong').allTextContents(), ['61', '51', '32', '15', '11'])
     assert.match(await page.locator('.hsd-status').innerText(), /ข้อมูลจากไฟล์นำเข้า/)
@@ -129,7 +129,7 @@ test('area, affiliation and status filters recompute real counts while preservin
   } finally { await finish() }
 })
 
-test('distribution chips and keyboard scatter selection filter the whole dashboard rather than only changing chart decoration', async () => {
+test('distribution chips and area bars filter the whole dashboard while keyboard school points select the correct table row', async () => {
   const { page, requests, finish } = await openDashboard()
   try {
     const high = page.locator('.hd-chips').getByRole('button', { name: /ตั้งแต่ 20%/ })
@@ -141,13 +141,23 @@ test('distribution chips and keyboard scatter selection filter the whole dashboa
     assert.equal(await high.getAttribute('aria-pressed'), 'true')
     assert.deepEqual(await page.locator('.hd-chips strong').allTextContents(), ['61', '51', '32', '15', '11'])
     await reset(page)
-    const point = page.locator('.hd-scatter [role="button"]').filter({ has: page.locator('title', { hasText: 'แม่สอด' }) }).first()
-    const scoped = await changed(page, async () => { await point.focus(); await point.press('Enter') })
+    const point = page.locator('.hd-scatter [role="button"]').filter({ has: page.locator('title', { hasText: 'บ้านแม่อมกิ(บ้านเคาะทีโคะ)' }) }).first()
+    const beforeRequests = requests.length
+    await point.focus(); await point.press('Enter')
+    const table = page.locator('.hsd-province-table')
+    await table.locator('tbody tr').filter({ hasText: 'บ้านแม่อมกิ(บ้านเคาะทีโคะ)' }).waitFor()
+    assert.equal(await table.locator('tbody tr').count(), 1)
+    assert.equal(await page.getByTestId('survey-positive').innerText(), '698')
+    assert.equal(requests.length, beforeRequests, 'Selecting a named scatter point navigates the local table; it must not silently change the global cohort')
+    const areaBars = page.locator('.hd-card').filter({ has: page.getByRole('heading', { name: 'ร้อยละที่พบ แยกตามอำเภอ', exact: true }) })
+    const scoped = await changed(page, () => areaBars.getByRole('button', { name: /แม่สอด/ }).click())
     assert.equal(requests.at(-1).searchParams.get('province'), 'ตาก')
     assert.equal(requests.at(-1).searchParams.get('district'), 'แม่สอด')
-    await text(value(page, 'tested_count'), scoped.summary.tested_count.toLocaleString('th-TH'))
+    assert.equal(scoped.summary.tested_count, 772)
+    assert.equal(scoped.summary.infected_count, 37)
+    await text(value(page, 'tested_count'), '772')
     assert.equal(await page.getByRole('combobox', { name: 'อำเภอ Dashboard' }).inputValue(), 'แม่สอด')
-    assert.equal(await page.locator('.hd-scatter [role="button"]').count(), 1)
+    assert.equal(await page.locator('.hd-scatter [role="button"]').count(), scoped.by_school.length)
   } finally { await finish() }
 })
 
@@ -164,7 +174,7 @@ test('quality notes and aggregate table retain source conflicts when named schoo
     assert.match(await page.locator('.hd-quality-body').innerText(), /S37/)
     assert.match(await page.locator('.hd-quality-body').innerText(), /U142/)
     assert.match(await page.locator('.hd-quality-body').innerText(), /M111/)
-    assert.match(await page.locator('.hd-quality-body').innerText(), /ชื่อไฟล์.*ไม่มีวันที่/)
+    assert.match(await page.locator('.hd-quality-body').innerText(), /ชื่อไฟล์ต้นทาง.*สถิติประจำปี.*ไม่ใช่ข้อมูลรายวัน/)
     const table = page.locator('.hsd-province-table')
     assert.equal(await table.locator('tbody tr').count(), 170)
     await page.getByRole('group', { name: 'ระดับตารางสรุป' }).getByRole('button', { name: 'อำเภอ', exact: true }).click()

@@ -157,3 +157,24 @@ Verification:
 - Dashboard browser suites on frozen localhost8083: **12 passed** (7 Google regressions,5 real snapshot checks), no JavaScript errors or API writes. They verify all170 API names in the table,108 eligibility, named top8, follow-up row selection, table checkbox, name search and matching CSV, mobile/tablet/desktop layout and retained aggregate functionality.
 - Screenshot capture from the actual versioned API succeeded with explicit170-school/108-eligible guards. Added separate follow-up and school-table images to the screenshot manifest; these school statistics are intentionally public under the owner's new request. No patient images are used.
 - `git diff --check` passed. This update does not change the clinical model, SUS, authentication or offline API-caching policy.
+
+## Multi-year Dashboard from the second owner archive — 3 November 2026
+
+Completed the prior Dashboard request against `helminth-dashboard (1).zip`, SHA-256 `20f47291b10157625fb2efae2eb2dedd08d37ec70413e4acd683c17b3781f530`. The attached scripts were read as reference and were not executed. The application now includes annual selection2568/2569, school-level scatter, a global school/tambon search, extended school table, all five year-comparison KPIs, district/species paired bars, matched-school scatter, largest increase/decrease rankings, thirteen-year trend controls/legends/year inspection, both heatmaps, separate species-share denominators, ten descriptive history insights, and source quality/provenance notes. No iframe or external font/script dependency was introduced.
+
+Source boundaries: 2569 remains independently audited from `2569.xlsx` with unknown species cells and the reported pinworm contradiction retained. The v4 importer adds institution tambon and per-school type counts behind the extended-publication flag; current version is `dc48437479a72eda`. The169 tested 2568 records and older annual percentages come from the owner's JSON, with explicit original-workbook-unverified/zero-imputation limitations. The2568/history artifact version is `e1ec3662027ec99a`. No patient records, original workbook files, excluded/pending institution names or free-text source notes are published.
+
+Independent reconciliation: 2568 has174 listed/169 tested units,16,799 enrollment,15,106 tested,974 positive,91 multiple infections,110 units tested>=30; 2569 remains174/170,17,122/15,888/698/17,108 eligible. Default year is2569 alone, not a sum across years. Exactly167 schools match by school/tambon/province (including a district move);102 pairs meet tested>=30 in both years. The overall rate delta is computed from raw counts as−2.054516pp, displayed−2.05pp. Using±0.5pp descriptively produces92 decreasing/44 increasing/31 stable pairs. Missing cohorts remain unknown, and ambiguous identities are not paired.
+
+Historical source checks preserve the reported2567 province/agency total discrepancies andพบพระ2565 coverage115.43%. The latest two years are recomputed from counts, retaining original reported values in quality entries; this corrects the supplied child-centre2569 0/0 to coverage67.90% and positivity5.45%. Broad affiliation grouping and the child-centre spelling alias are documented. Historical controls have their own scope: no denominators are fabricated from old percentages and no lines connect missing points. Species history uses reported-positive people as denominator; annual/comparison species rates use tested people.
+
+Verified on3 November2026 against the frozen production build and fresh localhost8085 backend:
+
+- `npm run build`: TypeScript/Vite passed.
+- `.venv/bin/python -m pytest -q backend/tests`: **117 passed**; one pre-existing Starlette/httpx deprecation warning.
+- `HELPMINTHS_TEST_URL=http://127.0.0.1:8085 node --test tests/health-dashboard.test.mjs tests/health-snapshot.test.mjs tests/history-dashboard.test.mjs`: **17 passed** (7 Google regressions,5 real snapshot cases,5 real history cases), no browser errors or API writes.
+- `HELPMINTHS_TEST_URL=http://127.0.0.1:8085 npm run test:offline`: **2 passed**, including preparation of previously unvisited application features and update-integrity handling.
+- `pip check`, browser-script syntax and `git diff --check`: passed.
+- `scripts/capture-survey.mjs`:8 actual screenshot captures with source-version,170-school/108-eligible,167-matched and13-year guards, including comparison/trend/past-year views. Archive-origin limitations remain stated; these are not model or participant-evaluation evidence.
+
+The source/model diagnosis integration files were not changed by this Dashboard work. Optional clinical AI remains dependent on a separately configured trusted detection model; Dashboard survey statistics do not provide trained weights or clinical accuracy evidence. Render still uses manual deployment, so Git updates alone do not update the public service.

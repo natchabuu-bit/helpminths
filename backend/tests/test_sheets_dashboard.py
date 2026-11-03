@@ -123,7 +123,7 @@ def test_snapshot_routes_filter_unknowns_and_export_only_selected_aggregates(mon
         assert len(provinces) == 1 and provinces[0]['province'] == 'พิษณุโลก'
         assert provinces[0]['tested_people'] == '441' and provinces[0]['reported_positive_people'] == '1'
         assert all(key not in rows[0] for key in ('school', 'school_name', 'person_name', 'tambon'))
-        for params in ({'year': 2568}, {'district': 'missing'}, {'record_status': 'unknown'}, {'from_date': '2026-10-01'}):
+        for params in ({'year': 2567}, {'district': 'missing'}, {'record_status': 'unknown'}, {'from_date': '2026-10-01'}):
             assert client.get('/api/platform/operations/dashboard', params=params).status_code == 422
 
 

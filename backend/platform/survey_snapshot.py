@@ -11,6 +11,7 @@ import csv
 import io
 import json
 import math
+import unicodedata
 from collections import defaultdict
 from fractions import Fraction
 from pathlib import Path
@@ -38,13 +39,46 @@ POSITIVITY_BANDS = (
     {'key': '20plus', 'label': '20% ขึ้นไป'},
 )
 BAND_KEYS = {item['key'] for item in POSITIVITY_BANDS}
-FILTERS = {'year', 'province', 'district', 'affiliation', 'record_status', 'positivity_band'}
+FILTERS = {'year', 'province', 'district', 'affiliation', 'record_status', 'positivity_band', 'school_search'}
 FOLLOWUP_MIN_TESTED = 30
 FOLLOWUP_LIMIT = 8
 
 
 def available(path: str | Path | None = None) -> bool:
     return (Path(path) if path is not None else DATASET_PATH).is_file()
+
+
+def year_datasets() -> dict[int, dict]:
+    """Read only known adjacent artifacts; never construct a path from a query."""
+    primary = load_dataset()
+    result = {primary['dataset']['year']: primary}
+    previous_path = Path(DATASET_PATH).with_name('health-survey-2568.json')
+    if previous_path != Path(DATASET_PATH) and previous_path.is_file():
+        previous = load_dataset(previous_path)
+        if previous['dataset']['year'] != 2568:
+            raise HTTPException(503, 'ปีของชุดข้อมูลย้อนหลังไม่ตรงกับทะเบียน')
+        result[2568] = previous
+    return result
+
+
+def load_year_dataset(year: int | None = None) -> dict:
+    snapshots = year_datasets()
+    selected = max(snapshots) if year is None else _year(year)
+    if selected not in snapshots:
+        raise HTTPException(422, 'ไม่มีปีชุดข้อมูลที่เลือก')
+    return snapshots[selected]
+
+
+def _year(value: Any) -> int:
+    try:
+        selected = int(value)
+        if 1900 <= selected <= 2200:
+            selected += 543
+        if not 2400 <= selected <= 2743:
+            raise ValueError
+        return selected
+    except (ValueError, TypeError):
+        raise HTTPException(422, 'ปีชุดข้อมูลไม่ถูกต้อง') from None
 
 
 def _number(value: Any, *, nullable: bool = True) -> bool:
@@ -112,21 +146,31 @@ def _source(snapshot: dict) -> dict:
         'url': None, 'format': 'snapshot', 'file_name': dataset['file_name'], 'worksheet': dataset['worksheet'],
         'version': dataset['version'], 'imported_at': dataset['imported_at'], 'year': dataset['year'],
         'year_basis': dataset.get('year_basis', 'filename'), 'data_status': 'imported_snapshot',
+        'verification_status': dataset.get('verification_status', 'workbook_totals_reconciled'
+                                           if snapshot.get('audit', {}).get('summary_reconciled') is True else 'not_independently_verified'),
+        'archive_sha256': dataset.get('archive_sha256'),
     }
 
 
-def metadata(dataset: dict | None = None) -> dict:
-    snapshot = dataset if dataset is not None else load_dataset()
+def metadata(dataset: dict | None = None, year: int | None = None) -> dict:
+    snapshots = {dataset['dataset']['year']: dataset} if dataset is not None else year_datasets()
+    selected = max(snapshots) if year is None else _year(year)
+    if selected not in snapshots:
+        raise HTTPException(422, 'ไม่มีปีชุดข้อมูลที่เลือก')
+    snapshot = snapshots[selected]
     schools = _school_records(snapshot)
     return {
         'configured': True, 'source': _source(snapshot), 'refresh_seconds': 0,
         'access': 'public_aggregates', 'mapping_configured': True,
         'capabilities': {'read_only': True, 'raw_rows_exposed': False, 'mode': 'snapshot',
                          'named_school_statistics': snapshot['dataset'].get('named_school_statistics') is True,
+                         'school_details_extended': snapshot['dataset'].get('school_details_extended') is True,
+                         'available_years': sorted(snapshots),
                          'published_school_count': len(schools),
                          'school_details_scope': 'tested_units_only' if schools else None,
                          'person_records_exposed': False,
                          'filters': ['year', 'province', 'district', 'affiliation', 'record_status']
+                                    + (['school_search'] if snapshot['dataset'].get('school_details_extended') else [])
                                     + (['positivity_band'] if snapshot['dataset'].get('band_partitioned') else []),
                          'clinical_validation_claimed': False},
     }
@@ -163,6 +207,18 @@ def _school_records(snapshot: dict, *, reconcile: bool = False) -> list[dict]:
                 raise ValueError
             if snapshot['dataset'].get('band_partitioned') and row.get('positivity_band') not in BAND_KEYS:
                 raise ValueError
+            if snapshot['dataset'].get('school_details_extended'):
+                if not isinstance(row.get('tambon'), str) or len(row['tambon']) > 160:
+                    raise ValueError
+                types = row.get('parasites')
+                if not isinstance(types, dict):
+                    raise ValueError
+                for key, _ in PARASITES:
+                    values = types.get(key)
+                    if not isinstance(values, dict) or not all(_number(values.get(field)) for field in ('reported', 'consistent')):
+                        raise ValueError
+                    if not all(_number(values.get(field), nullable=False) for field in ('conflicting', 'missing', 'tested_missing')):
+                        raise ValueError
         if reconcile:
             dimensions = ('province', 'district', 'affiliation', 'status', 'positivity_band')
             groups = defaultdict(lambda: [0, 0, 0, 0, 0])
@@ -194,7 +250,10 @@ def _schools(snapshot: dict, filters: dict) -> list[dict]:
          'total_students_known': row['enrolled'], 'tested_count': row['tested'], 'infected_count': row['infected'],
          'coverage_percent': _ratio(row['tested'], row['enrolled']),
          'infection_rate_percent': _ratio(row['infected'], row['tested']),
-         'multiple_infections_count': row['coinfection']}
+         'multiple_infections_count': row['coinfection'],
+         **({'tambon': row['tambon'],
+             'parasite_counts': {key: row['parasites'][key]['reported'] for key, _ in PARASITES}}
+            if snapshot['dataset'].get('school_details_extended') else {})}
         for row in sorted(rows, key=lambda row: (row['school'], row['province'], row['district'], row['affiliation'], row['school_id']))
     ]
 
@@ -231,7 +290,7 @@ def _summary(rows: list[dict]) -> dict:
     }
 
 
-def _clean_filters(filters: dict | None, snapshot: dict) -> dict:
+def _clean_filters(filters: dict | None, snapshot: dict, allowed_values: dict | None = None) -> dict:
     supplied = {key: value for key, value in (filters or {}).items() if value is not None and value != ''}
     if set(supplied) - FILTERS:
         raise HTTPException(422, 'ชุดข้อมูลไฟล์นี้รองรับตัวกรองจังหวัด อำเภอ สังกัด สถานะข้อมูล ช่วงร้อยละตรวจพบ และปีชุดข้อมูลเท่านั้น')
@@ -239,15 +298,18 @@ def _clean_filters(filters: dict | None, snapshot: dict) -> dict:
         if key in supplied and (not isinstance(supplied[key], str) or len(supplied[key]) > 160):
             raise HTTPException(422, 'ตัวกรองข้อมูลไม่ถูกต้อง')
     if 'year' in supplied:
-        try:
-            year = int(supplied['year'])
-            if 1900 <= year <= 2200:
-                year += 543
-            if year != snapshot['dataset']['year']:
-                raise ValueError
-            supplied['year'] = year
-        except (ValueError, TypeError):
-            raise HTTPException(422, 'ไม่มีปีชุดข้อมูลที่เลือกในไฟล์นำเข้านี้') from None
+        year = _year(supplied['year'])
+        if year != snapshot['dataset']['year']:
+            raise HTTPException(422, 'ไม่มีปีชุดข้อมูลที่เลือกในไฟล์นำเข้านี้')
+        supplied['year'] = year
+    if 'school_search' in supplied:
+        if not isinstance(supplied['school_search'], str) or len(supplied['school_search']) > 160:
+            raise HTTPException(422, 'คำค้นโรงเรียนยาวเกินขอบเขตหรือไม่ถูกต้อง')
+        supplied['school_search'] = unicodedata.normalize('NFC', supplied['school_search']).strip()
+        if not supplied['school_search']:
+            supplied.pop('school_search')
+        elif not snapshot['dataset'].get('school_details_extended'):
+            raise HTTPException(422, 'ชุดข้อมูลนี้ยังไม่มีรายละเอียดที่รองรับการค้นหาโรงเรียนทั้งหน้า')
     if supplied.get('record_status') == 'all':
         supplied.pop('record_status')
     if supplied.get('record_status') not in {None, 'tested', 'zero_tested', 'pending', 'reported'}:
@@ -257,7 +319,8 @@ def _clean_filters(filters: dict | None, snapshot: dict) -> dict:
             raise HTTPException(422, 'ช่วงร้อยละตรวจพบที่เลือกไม่ถูกต้องหรือชุดข้อมูลยังไม่รองรับ')
     rows = snapshot['cubes']
     for key in ('province', 'district', 'affiliation'):
-        if key in supplied and supplied[key] not in {row[key] for row in rows}:
+        permitted = allowed_values.get(key, set()) if allowed_values is not None else {row[key] for row in rows}
+        if key in supplied and supplied[key] not in permitted:
             raise HTTPException(422, f'ไม่พบตัวกรอง{dict(province="จังหวัด", district="อำเภอ", affiliation="สังกัด")[key]}ที่เลือกในชุดข้อมูล')
     return supplied
 
@@ -275,7 +338,19 @@ def _select(rows: list[dict], filters: dict, omit: str | None = None) -> list[di
     band = filters.get('positivity_band')
     if band and omit != 'positivity_band':
         selected = [row for row in selected if row.get('positivity_band') == band]
+    search = filters.get('school_search')
+    if search and omit != 'school_search':
+        needle = unicodedata.normalize('NFC', search).strip().casefold()
+        selected = [row for row in selected if needle in unicodedata.normalize('NFC', row.get('school', '') + ' ' + row.get('tambon', '')).casefold()]
     return selected
+
+
+def _rows_for_filters(snapshot: dict, filters: dict, omit: str | None = None) -> list[dict]:
+    """Search named tested units before aggregation; never search cube labels."""
+    if filters.get('school_search') and omit != 'school_search':
+        return [{**row, 'school_count': 1, 'positive_school_count': int(row['infected'] > 0)}
+                for row in _select(_school_records(snapshot), filters, omit)]
+    return _select(snapshot['cubes'], filters, omit)
 
 
 def _group(rows: list[dict], dimension: str) -> list[dict]:
@@ -321,8 +396,12 @@ def _quality(snapshot: dict, filters: dict, rows: list[dict], parasites: list[di
     output = []
     dimensions = ('province', 'district', 'affiliation')
     selected_groups = {tuple(row[key] for key in dimensions) for row in rows}
+    selected_school_ids = {row.get('school_id') for row in rows}
     for issue in snapshot.get('issues', []):
         if not isinstance(issue, dict):
+            continue
+        source_wide = not issue.get('school_id') and not any(issue.get(key) for key in dimensions)
+        if filters.get('school_search') and not source_wide and issue.get('school_id') not in selected_school_ids:
             continue
         if any(filters.get(key) and issue.get(key) and filters[key] != issue[key] for key in dimensions):
             continue
@@ -378,10 +457,15 @@ def _insights(summary: dict, provinces: list[dict], parasites: list[dict]) -> li
 
 
 def dashboard(filters: dict | None = None, dataset: dict | None = None) -> dict:
-    snapshot = dataset if dataset is not None else load_dataset()
-    selected_filters = _clean_filters(filters, snapshot)
+    snapshots = {dataset['dataset']['year']: dataset} if dataset is not None else year_datasets()
+    selected_year = _year(filters['year']) if filters and filters.get('year') not in (None, '') else max(snapshots)
+    if selected_year not in snapshots:
+        raise HTTPException(422, 'ไม่มีปีชุดข้อมูลที่เลือก')
+    snapshot = snapshots[selected_year]
+    allowed = {key: {row[key] for item in snapshots.values() for row in item['cubes']} for key in ('province', 'district', 'affiliation')}
+    selected_filters = _clean_filters(filters, snapshot, allowed)
     all_rows = snapshot['cubes']
-    rows = _select(all_rows, selected_filters)
+    rows = _rows_for_filters(snapshot, selected_filters)
     summary = _summary(rows)
     parasites = _parasites(rows, summary['tested_count'])
     provinces, districts, affiliations = (_group(rows, key) for key in ('province', 'district', 'affiliation'))
@@ -413,7 +497,7 @@ def dashboard(filters: dict | None = None, dataset: dict | None = None) -> dict:
     ]
     # Options cascade by other dimensions, allowing a selected control to switch
     # without first clearing itself. Only values actually present are returned.
-    options = {key + 's': sorted({row[key] for row in _select(all_rows, selected_filters, omit=key)})
+    options = {key + 's': sorted({row[key] for row in _rows_for_filters(snapshot, selected_filters, omit=key)})
                for key in ('province', 'district', 'affiliation')}
     options['provinces'] = sorted({row['province'] for row in all_rows})
     options['statuses'] = [dict(item) for item in STATUS_OPTIONS]
@@ -429,15 +513,32 @@ def dashboard(filters: dict | None = None, dataset: dict | None = None) -> dict:
         'followup_eligible_school_count': len(eligible_schools), 'followup_min_tested': FOLLOWUP_MIN_TESTED,
         'named_school_statistics': snapshot['dataset'].get('named_school_statistics') is True,
         'published_school_count': len(_school_records(snapshot)),
-        'by_positivity_band': _positivity_bands(_select(all_rows, selected_filters, omit='positivity_band'))
+        'by_positivity_band': _positivity_bands(_rows_for_filters(snapshot, selected_filters, omit='positivity_band'))
                               if snapshot['dataset'].get('band_partitioned') else [],
         'quality': quality, 'insights': _insights(summary, provinces, parasites),
-        'available_years': [snapshot['dataset']['year']], 'available_provinces': options['provinces'],
+        'available_years': sorted(snapshots), 'available_provinces': options['provinces'],
         'available_districts': options['districts'], 'available_affiliations': options['affiliations'],
         'options': options, 'filters_applied': selected_filters, 'trend': [], 'statuses': [],
         'coverage': {'dated_rows': 0, 'status_rows': summary['reported_school_count']},
         'disclaimer': 'ข้อมูลนำเข้าตามไฟล์ ไม่ใช่การติดตามสด ผลเป็นกลุ่มผู้ส่งตรวจ ไม่ใช่ความชุกประชากรทั้งหมด ค่าที่ผ่านเงื่อนไขตรวจตัวเลขไม่ใช่การยืนยันผลทางคลินิก',
     }
+    # Archive-derived historical percentages have their own source and scope.
+    # Synthetic injected snapshots stay isolated from real project artifacts.
+    if dataset is None:
+        from . import survey_history
+        previous_years = [year for year in snapshots if year < selected_year]
+        data['comparison'] = (survey_history.compare_years(snapshots[max(previous_years)], snapshot, selected_filters)
+                              if previous_years else {'available': False, 'year': selected_year, 'notes': ['ไม่มีข้อมูลรายโรงเรียนของปีก่อนหน้าสำหรับเปรียบเทียบ']})
+        history_path = Path(DATASET_PATH).with_name('health-survey-history.json')
+        if history_path.is_file():
+            try:
+                if history_path.is_symlink() or history_path.stat().st_size > 5 * 1024 * 1024:
+                    raise ValueError
+                artifact = json.loads(history_path.read_text(encoding='utf-8'))
+                data['history'] = survey_history.history_dashboard(snapshots, artifact, selected_filters)
+            except (OSError, ValueError, TypeError, KeyError, AttributeError):
+                data['history'] = None
+                warnings.append('ชุดข้อมูลแนวโน้มย้อนหลังยังไม่พร้อมใช้งาน โดยสถิติปีที่เลือกยังแสดงได้ตามปกติ')
     return {'status': 'ready' if rows else 'empty', 'source': _source(snapshot), 'refresh_seconds': 0,
             'fetched_at': imported, 'last_attempt_at': None, 'error': None, 'warnings': warnings, 'data': data}
 
@@ -454,7 +555,7 @@ def export_csv(filters: dict | None = None, dataset: dict | None = None) -> byte
     data = response['data']
     output = io.StringIO(newline='')
     writer = csv.writer(output)
-    writer.writerow(['dataset_version', 'year_from_filename', 'dimension', 'province', 'district', 'affiliation',
+    writer.writerow(['dataset_version', 'dataset_year', 'dimension', 'province', 'district', 'affiliation',
                      'reporting_units', 'reported_units', 'tested_units', 'pending_units', 'known_enrolled',
                      'tested_people', 'reported_positive_people', 'coverage_percent_known_cohort',
                      'positive_percent_among_tested', 'reported_multiple_infections', 'selected_positivity_band'])

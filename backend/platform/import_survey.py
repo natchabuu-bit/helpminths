@@ -20,7 +20,7 @@ from zipfile import BadZipFile, ZipFile
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 
-TRANSFORM_VERSION = 'kpd-workbook-aggregate-v3'
+TRANSFORM_VERSION = 'kpd-workbook-aggregate-v4'
 TYPE_COLUMNS = (
     ('hookworm', 'ปากขอ', 9), ('ascaris', 'ไส้เดือน', 11),
     ('trichuris', 'แส้ม้า', 13), ('liver_fluke', 'ใบไม้ตับ', 15),
@@ -187,9 +187,13 @@ def import_workbook(path: str | Path, *, worksheet: str, year: int, imported_at:
                                'status': status, 'positivity_band': positivity_band, **issue})
             school_identity = json.dumps([worksheet, *identity, row_number], ensure_ascii=False)
             school_id = 'school-' + hashlib.sha256(school_identity.encode()).hexdigest()[:20]
+            if include_school_details and status == 'tested':
+                for issue in issues:
+                    if issue['id'].startswith(f'row-{row_number}-'):
+                        issue['school_id'] = school_id
             records.append({**dims, 'status': status, 'positivity_band': positivity_band,
                             **core, 'parasites': parasites, '_row': row_number,
-                            '_school': name, '_school_id': school_id})
+                            '_school': name, '_tambon': _text(row[start + 1]), '_school_id': school_id})
         if not records or summary_start is None:
             raise ValueError('ไม่พบรายละเอียดหรือแถวรวมปิดตารางที่ใช้ตรวจยอด')
         check_offsets = {**CORE_COLUMNS, **{key: col for key, _, col in TYPE_COLUMNS}}
@@ -230,10 +234,11 @@ def import_workbook(path: str | Path, *, worksheet: str, year: int, imported_at:
         version_basis = json.dumps([digest, TRANSFORM_VERSION, worksheet, year, source.name, bool(include_school_details)], ensure_ascii=False)
         version = hashlib.sha256(version_basis.encode()).hexdigest()[:16]
         # Named school results are a separate, explicit publication choice. The
-        # default remains aggregate-only; no notes, pupils, tambon or source IDs
+        # default remains aggregate-only; no notes, pupils or source IDs
         # are published even when the operator selects this option.
         schools = [
-            {'school_id': record['_school_id'], 'school': record['_school'],
+            {'school_id': record['_school_id'], 'school': record['_school'], 'tambon': record['_tambon'],
+             'parasites': record['parasites'],
              **{key: record[key] for key in ('province', 'district', 'affiliation', 'status', 'positivity_band',
                                             'enrolled', 'tested', 'infected', 'coinfection')}}
             for record in records if record['status'] == 'tested'
@@ -244,6 +249,7 @@ def import_workbook(path: str | Path, *, worksheet: str, year: int, imported_at:
                         'file_name': source.name, 'file_sha256': digest, 'worksheet': worksheet, 'year': year,
                         'year_basis': 'filename', 'band_partitioned': True,
                         'named_school_statistics': bool(include_school_details),
+                        'school_details_extended': bool(include_school_details),
                         'publication_scope': 'named_tested_school_statistics' if include_school_details else 'aggregates_only',
                         'imported_at': imported_at or datetime.now(timezone.utc).isoformat(timespec='seconds')},
             'cubes': cubes, 'issues': issues, 'schools': schools,

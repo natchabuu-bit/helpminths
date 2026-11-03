@@ -241,6 +241,7 @@ def test_school_publication_is_explicit_opt_in_and_only_tested_rows_are_publishe
     assert not aggregate_only['dataset'].get('named_school_statistics')
     assert 'PRIVATE_' not in json.dumps(aggregate_only)
     assert published['dataset']['named_school_statistics'] is True
+    assert published['dataset']['school_details_extended'] is True
     assert published['dataset']['publication_scope'] == 'named_tested_school_statistics'
     assert published['dataset']['version'] != aggregate_only['dataset']['version']
     schools = published['schools']
@@ -248,7 +249,13 @@ def test_school_publication_is_explicit_opt_in_and_only_tested_rows_are_publishe
     assert {row['school'] for row in schools} == {'PRIVATE_SCHOOL_ALPHA', 'PRIVATE_SCHOOL_NEGATIVE'}
     assert len({row['school_id'] for row in schools}) == len(schools)
     assert all(row['status'] == 'tested' and row['tested'] > 0 for row in schools)
-    assert all(not ({'tambon', 'reason', 'notes', 'person_name', '_row', 'parasites'} & row.keys()) for row in schools)
+    assert all(not ({'reason', 'notes', 'person_name', '_row'} & row.keys()) for row in schools)
+    assert all(row['tambon'] == 'ตำบล A' for row in schools)
+    negative = next(row for row in schools if row['school'] == 'PRIVATE_SCHOOL_NEGATIVE')
+    assert negative['parasites']['tapeworm']['reported'] is None
+    assert negative['parasites']['tapeworm']['tested_missing'] == 1
+    positive = next(row for row in schools if row['school'] == 'PRIVATE_SCHOOL_ALPHA')
+    assert positive['parasites']['ascaris']['reported'] == 2
     assert 'PRIVATE_SCHOOL_ZERO' not in json.dumps(published)
     assert 'PRIVATE_CHILD_CENTER_PENDING' not in json.dumps(published)
     assert 'PRIVATE_NOTE_MUST_NOT_BE_PUBLISHED' not in json.dumps(published)

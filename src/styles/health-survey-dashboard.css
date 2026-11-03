@@ -113,3 +113,10 @@ button.hd-bar-row:hover{background:#f2f6f3}button.hd-bar-row[aria-pressed=true]{
 .hd-view-eligible:hover{background:#e1ede4}.hd-school-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 18px;margin-bottom:12px;color:#4c665a;font-size:.83rem}.hd-school-toolbar label{display:inline-flex;align-items:center;gap:8px;min-height:40px;cursor:pointer}.hd-school-toolbar input{width:18px;height:18px;accent-color:#14595a}.hd-school-toolbar>span{font-size:.78rem}.hd-school-toolbar>button{min-height:40px;padding:7px 11px;border:1px solid #ccd9d0;border-radius:7px;background:#fff;font-size:.82rem;color:#285c4e}
 .hd-school-table-anchor{scroll-margin-top:155px;min-width:0}.hd-school-table tbody th{min-width:240px;max-width:330px;white-space:normal;line-height:1.65}.hd-school-table td.hd-table-text{text-align:left;font-size:.82rem}.hd-school-selected{background:#e6f1e8!important}.hd-school-selected>th{box-shadow:inset 3px 0 #36816b}.hd-table-tools .hd-segments{flex-wrap:wrap}
 @media(max-width:600px){.hd-top-schools button{grid-template-columns:20px minmax(0,1fr) auto;gap:7px}.hd-top-schools .hd-name{font-size:.86rem}.hd-top-schools .hd-pill{font-size:.79rem;padding-inline:7px}.hd-school-table-anchor{scroll-margin-top:90px}.hd-school-toolbar{gap:7px 12px}.hd-table-tools .hd-segments{width:100%}.hd-table-tools .hd-segments button{padding-inline:11px;font-size:.8rem!important}.hd-school-table tbody th{min-width:220px}}
+
+/* Annual selection and whole-dashboard school/tambon search. */
+.hd-filter-row label.hd-global-search{flex:1.7;min-width:200px}
+.hd-global-search>span{display:flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--hd-line);border-radius:8px;padding:0 10px;color:var(--hd-mute)}
+.hd-global-search input{border:0;background:transparent;min-height:44px;width:100%;min-width:0;padding:8px 0;font-size:.9rem;outline-offset:0}
+.hd-school-table td.hd-table-species{white-space:normal;min-width:210px;max-width:310px;line-height:1.65;font-size:.8rem}
+@media(max-width:600px){.hd-filter-row label.hd-global-search{grid-column:1/-1;min-width:0}.hd-global-search input{font-size:.85rem}}

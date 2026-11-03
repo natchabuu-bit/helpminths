@@ -644,9 +644,9 @@ def dashboard_provider() -> str:
 
 
 @router.get('/status')
-def operations_status():
+def operations_status(year: int | None = Query(None, ge=1900, le=2743)):
     if dashboard_provider() == 'snapshot':
-        return survey_snapshot.metadata()
+        return survey_snapshot.metadata(year=year)
     return SheetsConfig.from_environment().metadata()
 
 
@@ -657,15 +657,17 @@ def operations_dashboard(request: Request, year: int | None = Query(None, ge=190
                          district: str | None = Query(None, max_length=160),
                          affiliation: str | None = Query(None, max_length=160),
                          record_status: str | None = Query(None, max_length=20),
-                         positivity_band: str | None = Query(None, max_length=20)):
+                         positivity_band: str | None = Query(None, max_length=20),
+                         school_search: str | None = Query(None, max_length=160)):
     if dashboard_provider() == 'snapshot':
         return survey_snapshot.dashboard(dict(year=year, province=province, district=district,
                                               affiliation=affiliation, record_status=record_status, positivity_band=positivity_band,
+                                              school_search=school_search,
                                               from_date=from_date, to_date=to_date, status=status))
     config = SheetsConfig.from_environment()
     if not config.public:
         require_user(request)
-    if any(value for value in (district, affiliation, record_status, positivity_band)):
+    if any(value for value in (district, affiliation, record_status, positivity_band, school_search)):
         raise HTTPException(422, 'ตัวกรองอำเภอ สังกัด สถานะหน่วยรายงาน และช่วงร้อยละตรวจพบใช้ได้กับชุดข้อมูลไฟล์นำเข้าเท่านั้น')
     if not config.enabled:
         return {'status': 'not_configured', 'source': config.source(), 'refresh_seconds': config.refresh_seconds,
@@ -713,7 +715,8 @@ def export_operations_csv(request: Request, year: int | None = Query(None, ge=19
                           district: str | None = Query(None, max_length=160),
                           affiliation: str | None = Query(None, max_length=160),
                           record_status: str | None = Query(None, max_length=20),
-                          positivity_band: str | None = Query(None, max_length=20)):
+                          positivity_band: str | None = Query(None, max_length=20),
+                          school_search: str | None = Query(None, max_length=160)):
     """Export aggregate snapshot dimensions only; never raw source/school records."""
     if dashboard_provider() != 'snapshot':
         config = SheetsConfig.from_environment()
@@ -721,7 +724,8 @@ def export_operations_csv(request: Request, year: int | None = Query(None, ge=19
             require_user(request)
         raise HTTPException(422, 'การส่งออก CSV นี้รองรับเฉพาะสถิติสรุปจากไฟล์นำเข้า')
     payload = survey_snapshot.export_csv(dict(year=year, province=province, district=district,
-                                             affiliation=affiliation, record_status=record_status, positivity_band=positivity_band))
+                                             affiliation=affiliation, record_status=record_status, positivity_band=positivity_band,
+                                             school_search=school_search))
     return Response(payload, media_type='text/csv; charset=utf-8',
                     headers={'Content-Disposition': 'attachment; filename="HelpMinths-health-survey.csv"',
                              'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'})
