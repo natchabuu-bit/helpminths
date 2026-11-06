@@ -241,6 +241,10 @@ test('authenticated quality gate, saved predictions, expert decisions, audit, re
     const feedback = await feedbackResponse.json()
     assert.equal(feedback.category, 'incorrect_classification'); assert.equal(feedback.analysis_id, original.id); assert.equal(feedback.status, 'pending')
 
+    // Wait for the feedback list refresh triggered by the successful submission;
+    // otherwise that in-flight request can be the first legitimate expired401,
+    // clearing identity before the Dashboard request this scenario observes.
+    await page.waitForLoadState('networkidle')
     // Real expired cookie (not a stubbed 401) must clear the React identity and
     // the previously selected private analysis without reloading the document.
     await context.clearCookies()

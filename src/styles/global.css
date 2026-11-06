@@ -2,14 +2,16 @@
   font-family: 'Inter Variable', 'Noto Sans Thai Variable', sans-serif;
   font-size: 100%; line-height: 1.75; color: var(--text); background: var(--bg);
   font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased;
-  --bg: #f4f7fb; --surface: #fff; --surface-2: #edf3f9; --text: #142b48;
-  --muted: #496078; --teal: #155ea6; --accent: #155ea6; --border: #d4dfeb;
-  --accent-soft: #e3f5f0; --purple: #6655a4; --purple-soft: #f0edfb; --blue: #376eab; --warning: #805016; --warning-soft: #fff6e6;
-  --danger: #a12b37; --danger-soft: #fff0f1; --shadow: 0 6px 24px #243f6010;
+  --bg: #f1fbfa; --surface: #fff; --surface-2: #e7f4f2; --text: #0e3a3d;
+  --muted: #4b6f72; --teal: #0d786e; --accent: #0d786e; --border: #cde2e0;
+  --accent-soft: #e0f3ef; --purple: #6655a4; --purple-soft: #f0edfb; --blue: #376eab; --warning: #805016; --warning-soft: #fff6e6;
+  --coral: #ff5a3c; --coral-ink: #b83f2b; --aqua: #46c9bf;
+  --mono: ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --danger: #a12b37; --danger-soft: #fff0f1; --shadow: 0 8px 28px #174f4c0a;
   color-scheme: light;
 }
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; font-size: 1.125rem; background: radial-gradient(ellipse at 95% 0, #eeeafb90, transparent 42%), var(--bg); }
+body { margin: 0; min-width: 320px; font-size: 1.125rem; background: radial-gradient(ellipse at 60% 0, #ffffffd9, transparent 58%), linear-gradient(150deg, var(--bg), #e3f4f3); }
 button, input, select, textarea { font: inherit; }
 button { color: inherit; border: 0; cursor: pointer; touch-action: manipulation; }
 button:disabled { cursor: not-allowed; }

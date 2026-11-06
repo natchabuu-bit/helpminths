@@ -6,3 +6,47 @@
 .scan-storage-context,.scan-object-counts,.scan-uncertain-section{padding:18px;margin:16px 0;border:1px solid var(--border);border-radius:13px;background:#fff;font-size:1rem;line-height:1.8}.scan-storage-context h2,.scan-object-counts h3,.scan-uncertain-section h3{font-size:1.125rem;margin:0 0 10px}.scan-storage-context p{font-size:.9375rem;margin:8px 0;color:var(--muted)}.scan-storage-fields{display:grid;grid-template-columns:1fr 1fr;gap:14px}.scan-storage-fields label{display:grid;gap:7px;font-size:.9375rem}.scan-storage-fields input{min-width:0;width:100%;border:1px solid #a8bdce;border-radius:9px;padding:11px;background:white;color:var(--text);font-size:1rem;min-height:46px}
 .scan-object-counts dl{display:grid;grid-template-columns:1fr auto;gap:6px 15px;margin:0;font-size:.9375rem}.scan-object-counts dd{margin:0;font-weight:600}.scan-object-counts>p,.scan-uncertain-section>p{font-size:.875rem;color:var(--muted);margin:10px 0 0}.scan-uncertain-section{background:#fff9ec;border-color:#dec999}.scan-uncertain-section button{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;width:100%;text-align:left;background:#fff;border:1px solid #dbc99c;border-radius:8px;padding:10px;margin-top:9px;font-size:.9375rem;color:#6c4a1e}.scan-clear-row{display:flex;justify-content:flex-end;gap:12px;margin-top:14px}.scan-clear-row button{min-height:44px;font-size:.9375rem;background:#fff;border:1px solid var(--border);border-radius:9px;padding:10px 14px;color:var(--muted)}
 @media(max-width:680px){.image-quality-panel{padding:17px 14px}.image-quality-heading{align-items:flex-start;flex-direction:column}.image-quality-heading button{width:100%}.image-quality-checks li{padding:10px;gap:8px}.scan-storage-fields{grid-template-columns:1fr}.scan-object-counts dl{font-size:.875rem}.scan-clear-row{flex-wrap:wrap}.scan-clear-row button{flex:1}.image-quality-checks b{white-space:normal;text-align:right;max-width:50px}}
+
+/* Companion panels use the same pale instrument surfaces as the image viewer. */
+.image-quality-panel {
+  padding: 22px; border-color: #c7ded4; border-radius: 10px;
+  background: #f3faf5e6; color: #0e3a3d; box-shadow: 0 5px 20px #275c4804;
+}
+.image-quality-heading h2 { font-weight: 650; }
+.image-quality-heading svg { color: #137f67; }
+.image-quality-panel > p { color: #456b61; font-size: 1rem; }
+.image-quality-summary { border-radius: 7px; border-color: #add3bc; background: #e9f6ed; color: #245e3e; }
+.image-quality-summary > svg { flex-shrink: 0; }
+.image-quality-summary.is-warning { color: #79511b; background: #fff7e9; border-color: #dbc493; }
+.image-quality-checks li { background: #ffffffc9; border-color: #d0e3d8; padding: 13px; border-radius: 7px; }
+.image-quality-checks li > svg { color: #2d7459; flex-shrink: 0; }
+.image-quality-checks strong { color: #1a4b3c; }
+.image-quality-checks span { font-size: .9375rem; color: #456b61; line-height: 1.8; }
+.image-quality-checks b { color: #365f4e; padding: 1px 8px; border-radius: 4px; background: #edf5ed; }
+.image-quality-override { background: #fff8ea; border-color: #dec89a; border-radius: 8px; padding: 17px; }
+.image-quality-override label { font-size: 1rem; color: #644b27; }
+.image-quality-override input { width: 22px; height: 22px; accent-color: #0e7d68; }
+.image-quality-override textarea { border-color: #bdc8b4; border-radius: 6px; background: #fffefa; color: #0e3a3d; }
+.image-quality-override textarea:focus-visible { outline: 3px solid #c34c32; outline-offset: 3px; }
+.image-quality-notice { font-size: .9375rem !important; }
+.scan-storage-context, .scan-object-counts, .scan-uncertain-section {
+  padding: 19px; border-color: #c7ded4; border-radius: 9px; background: #ffffffbd;
+}
+.scan-storage-context h2, .scan-object-counts h3, .scan-uncertain-section h3 { font-weight: 650; color: #16463b; }
+.scan-storage-context p, .scan-object-counts > p, .scan-uncertain-section > p { font-size: .9375rem; color: #456b61; }
+.scan-storage-fields label { font-size: 1rem; }
+.scan-storage-fields input { border-color: #a9c5b7; border-radius: 6px; color: #16463b; }
+.scan-object-counts dl { font-size: 1rem; }
+.scan-object-counts dt { overflow-wrap: anywhere; }
+.scan-object-counts dd { font-weight: 650; font-variant-numeric: tabular-nums; }
+.scan-uncertain-section { background: #fff9ec; border-color: #dec999; }
+.scan-uncertain-section button { min-height: 46px; background: #ffffffe6; border-radius: 6px; padding: 11px; }
+.scan-uncertain-section button > span { overflow-wrap: anywhere; }
+.scan-clear-row button { background: #ffffffd9; border-color: #b8d1c5; border-radius: 6px; color: #456b61; }
+.scan-clear-row button:hover { background: #e8f4ed; color: #19583f; }
+@media (max-width: 680px) {
+  .image-quality-panel { padding: 18px 14px; }
+  .image-quality-checks li { padding: 11px 10px; }
+  .scan-object-counts dl { font-size: .9375rem; }
+  .image-quality-checks b { max-width: 62px; }
+}

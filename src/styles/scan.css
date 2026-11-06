@@ -162,3 +162,130 @@
 .scan-export-button:hover{background:#eef6f7}
 .scan-no-results button{border-radius:11px;background:#edf5f7;border-color:#b9cfd5}
 @media(max-width:680px){.scan-viewer-card,.scan-results-card{border-radius:18px}.scan-quality-tip{border-radius:15px}.scan-upload-zone{padding-top:30px;padding-bottom:30px}.scan-card-title{gap:10px}.scan-icon-tile{width:34px;height:34px;border-radius:10px}}
+
+/* Aqua instrument surfaces preserve the image plane and diagnostic controls. */
+.scan-workspace {
+  --scan-bg: rgba(255, 255, 255, .82);
+  --scan-border: #cce3e0;
+  --scan-text: #0e3a3d;
+  --scan-muted: #456b6d;
+  --scan-accent: #087d70;
+  --scan-coral: #ff5a3c;
+  color: var(--scan-text);
+}
+.scan-section-heading { gap: 20px; margin-bottom: 26px; }
+.scan-eyebrow { color: #456b6d; font-size: .875rem; letter-spacing: .1em; }
+.scan-eyebrow > span { width: 7px; height: 7px; border-radius: 1px; background: var(--scan-coral); }
+.scan-section-heading h1 { color: var(--scan-text); font-weight: 700; }
+.scan-heading-dot { color: #c4442c; }
+.scan-section-heading p { color: var(--scan-muted); font-size: 1rem; }
+.scan-health { padding: 9px 14px; border-radius: 6px; background: #edf8f4; border-color: #aed9cc; color: #17614f; box-shadow: none; }
+.scan-health--checking { color: var(--scan-muted); background: #f1f9f8; border-color: var(--scan-border); }
+.scan-health--unavailable, .scan-health--offline { color: #78501f; background: #fff8eb; border-color: #ddc799; }
+.scan-status-dot { width: 7px; height: 7px; background: #617f7b; }
+.scan-health--ready .scan-status-dot { background: #0f917f; box-shadow: 0 0 0 3px #0f917f16; }
+.scan-grid { grid-template-columns: minmax(0, 1.55fr) minmax(315px, .95fr); gap: 22px; }
+.scan-viewer-card, .scan-results-card {
+  border: 1px solid var(--scan-border); border-radius: 12px;
+  background: var(--scan-bg); backdrop-filter: blur(12px); box-shadow: 0 9px 30px #225d5a08;
+}
+.scan-card-header { padding: 16px 20px; min-height: 72px; background: linear-gradient(110deg, #ffffffb8, #eff9f6b8); border-color: var(--scan-border); }
+.scan-card-title { gap: 11px; color: var(--scan-text); font-weight: 650; }
+.scan-icon-tile { width: 36px; height: 36px; border-radius: 6px; background: #e6f5f1; color: #087d70; border-left: 3px solid var(--scan-coral); }
+.scan-card-caption { color: #517578; letter-spacing: .08em; font-size: .8125rem; }
+.scan-upload-zone {
+  padding: 43px 22px 34px; min-height: 505px; background-color: #f6fcfa;
+  background-image: radial-gradient(ellipse at 50% 36%, #ffffffee, #f1fbf600 70%),
+    linear-gradient(#9bc6bf14 1px, transparent 1px), linear-gradient(90deg, #9bc6bf14 1px, transparent 1px);
+  background-size: 100% 100%, 32px 32px, 32px 32px;
+}
+.scan-upload-orbit { width: 170px; height: 160px; margin-bottom: 12px; }
+.scan-upload-symbol {
+  height: 86px; width: 86px; border-radius: 16px; transform: none;
+  background: #0e3a3d; color: #fff; border-color: #0e3a3d;
+  box-shadow: 0 11px 25px #0e3a3d1a, inset 0 -3px 0 #ff5a3c;
+}
+.scan-upload-symbol svg { transform: none; }
+.scan-orbit { width: 132px; height: 132px; border-color: #b3d3cc; }
+.scan-orbit-two { width: 170px; height: 170px; border-color: #b3d3cc; opacity: .85; }
+.scan-orbit-node { width: 6px; height: 6px; background: var(--scan-coral); box-shadow: 0 0 0 4px #ff5a3c0d; }
+.scan-orbit-node-one { top: 23px; right: 24px; }
+.scan-orbit-node-two { bottom: 18px; left: 25px; background: #0f9d8a; }
+.scan-orbit-cross { color: #cc4c34; top: 30px; left: 1px; }
+.scan-upload-zone h2 { font-size: 1.625rem; font-weight: 650; color: var(--scan-text); }
+.scan-upload-zone > p { color: var(--scan-muted); line-height: 1.9; }
+.scan-upload-actions { gap: 10px; }
+.scan-button { min-height: 48px; border-radius: 7px; font-weight: 600; }
+.scan-button-primary { background: #0e3a3d; color: #fff; box-shadow: 0 5px 13px #0e3a3d14; }
+.scan-button-primary:hover:not(:disabled) { background: #176361; }
+.scan-button-secondary { border-color: #adcac4; background: #ffffffeb; color: #174e4e; }
+.scan-button-secondary:hover:not(:disabled) { background: #e6f6f1; border-color: #7eafa4; }
+.scan-demo-link { color: #b63d2a; text-decoration-color: #e5a092; }
+.scan-demo-link:hover { color: #8f2d1e; }
+.scan-upload-divider > span { background: #cee2dc; }
+.scan-quality-tip { border-radius: 10px; background: #eef8f5b8; border-color: #cae3d9; }
+.scan-tip-icon { border-radius: 6px; background: #deeee6; color: #0e7062; }
+.scan-quality-tip strong { color: #1d5c4f; }
+.scan-tip-decoration { color: #e17b62; }
+.scan-results-empty-icon { border-radius: 12px; color: #0c7f72; background: #eef9f5; border-color: #c1ded3; }
+.scan-results-empty-icon:after { border-color: #d3e8e1; border-radius: 17px; }
+.scan-results-empty h3 { color: var(--scan-text); font-weight: 600; }
+.scan-how-it-works { border-color: var(--scan-border); }
+.scan-step-number { border-radius: 5px; background: #eff8f4; border-color: #cadecf; color: #366354; }
+.scan-step-number--done { color: #11644e; background: #e1f3e9; border-color: #a5cdbc; }
+.scan-model-note, .scan-demo-banner { border-radius: 8px; background: #fff8ec; border-color: #dcc698; }
+.scan-demo-banner > button { border-radius: 5px; }
+.scan-error { border-radius: 8px; background: #fff2ed; color: #942f23; border-color: #e3b4a6; }
+.scan-error > button { color: #942f23; }
+.scan-image-toolbar { background: #eef7f3; border-color: var(--scan-border); }
+.scan-view-controls button { border-radius: 5px; color: #416966; }
+.scan-view-controls button:hover { color: #0e6256; background: #dcefe6; }
+.scan-view-controls .scan-control-active { background: #d9eee3; color: #0b6753; }
+.scan-image-scroll { background: #e5eeea; scrollbar-color: #a6c8bb #f1f8f4; }
+.scan-viewer-bottom { background: #f1f8f4; border-color: var(--scan-border); }
+.scan-mini-dot { background: #0c8976; }
+.scan-mini-dot--muted { background: #67837b; }
+.scan-analyze-row { background: #edf8f3d9; border-color: #b9d8ca; border-radius: 9px; }
+.scan-analysis-overlay { background: #f2faf4e8; color: #0e7f69; }
+.scan-result-badge { background: #e6f4eb; color: #21674d; border-color: #b5d5c4; border-radius: 5px; }
+.scan-result-badge--demo { background: #fff5e5; color: #78501f; border-color: #dcc698; }
+.scan-results-summary { padding-top: 24px; padding-bottom: 24px; border-color: var(--scan-border); }
+.scan-results-summary strong { font-weight: 650; color: var(--scan-text); }
+.scan-summary-divider { background: var(--scan-border); }
+.scan-summary-icon { background: #e3f2e9; border-color: #c4ded0; color: #17765b; border-radius: 9px; }
+.scan-confidence-control { border-color: var(--scan-border); }
+.scan-confidence-control label { color: var(--scan-text); }
+.scan-confidence-control label > strong { color: #0e715d; background: #e4f3e9; border-radius: 5px; }
+.scan-confidence-control input { background: linear-gradient(to right, #0e7d68 var(--range-progress), #d5e5dc var(--range-progress)); }
+.scan-confidence-control input::-webkit-slider-thumb { background: #0e7d68; box-shadow: 0 0 0 1px #0e7d68; }
+.scan-confidence-control input::-moz-range-thumb { background: #0e7d68; }
+.scan-detection-item { border-radius: 7px; }
+.scan-detection-item:hover { background: #edf8f3; }
+.scan-detection-item--selected { background: #e7f4ed; border-color: #a8cfba; box-shadow: inset 3px 0 0 #ff5a3c; }
+.scan-detection-number { border-radius: 5px; }
+.scan-detections-list { scrollbar-color: #a5cbbb #f2f9f5; }
+.scan-atlas-link { border-radius: 8px; background: #edf8f2; border-color: #b8d8c6; color: #174f40; }
+.scan-atlas-link-icon { background: #dceee2; color: #147451; border-radius: 6px; }
+.scan-results-footer { border-color: var(--scan-border); }
+.scan-export-button { border-radius: 7px; background: #ffffffeb; color: #0e6954; border-color: #9fc3b2; }
+.scan-export-button:hover { background: #e8f5ed; }
+.scan-no-results button { border-radius: 6px; color: #0e6f57; background: #e6f4eb; border-color: #accfbb; }
+.scan-workspace button:focus-visible, .scan-workspace input:focus-visible,
+.scan-detection-box:focus-visible { outline: 3px solid #c34c32; outline-offset: 3px; }
+@media (max-width: 1100px) {
+  .scan-grid { grid-template-columns: minmax(0, 1fr); }
+  .scan-results-empty { min-height: auto; }
+  .scan-detections-list { max-height: none; }
+}
+@media (max-width: 680px) {
+  .scan-viewer-card, .scan-results-card { border-radius: 10px; }
+  .scan-upload-zone { min-height: auto; padding: 29px 16px; }
+  .scan-upload-zone h2 { font-size: 1.5rem; }
+  .scan-upload-orbit { width: 155px; height: 150px; }
+  .scan-orbit-two { width: 158px; height: 158px; }
+  .scan-card-header { padding: 14px 16px; }
+  .scan-card-caption { font-size: .8125rem; }
+  .scan-quality-tip { border-radius: 9px; }
+  .scan-view-controls button { min-width: 44px; min-height: 44px; }
+  .scan-view-controls button:nth-last-child(2) { display: flex; }
+}
