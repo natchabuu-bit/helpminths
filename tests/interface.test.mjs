@@ -79,7 +79,7 @@ test('the overview has an honest 2D fallback and keeps camera/upload one action 
   } finally { await page.close() }
 })
 
-test('the instrument layout fits phone, tablet and desktop with all original navigation entries', { timeout: 90_000 }, async () => {
+test('the instrument layout fits phone, tablet and desktop with all nine remaining navigation entries', { timeout: 90_000 }, async () => {
   for (const width of [320, 375, 768, 1024, 1440]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, reducedMotion: 'reduce', serviceWorkers: 'block' })
     try {
@@ -87,7 +87,8 @@ test('the instrument layout fits phone, tablet and desktop with all original nav
       await page.locator('.field-model-stage canvas').waitFor()
       const dimensions = await page.evaluate(() => ({ viewport: innerWidth, content: document.documentElement.scrollWidth }))
       assert.ok(dimensions.content <= dimensions.viewport + 1, `Home overflows ${width}px: ${dimensions.content}`)
-      assert.equal(await page.locator('.sidebar .nav-item').count(), 10)
+      assert.equal(await page.locator('.sidebar .nav-item').count(), 9)
+      assert.equal(await page.getByRole('button', { name: 'ห้องเรียนพยาธิ', exact: true }).count(), 0)
       const menu = page.getByRole('button', { name: 'เปิดเมนู', exact: true })
       if (await menu.isVisible()) await menu.click()
       await page.locator('.sidebar .nav-item').filter({ hasText: 'ประเมินและข้อเสนอแนะ' }).click()

@@ -13,7 +13,7 @@ import uuid
 from collections import Counter
 from datetime import datetime, time as daytime, timedelta, timezone
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 _CODE = re.compile(r"^[A-Za-z0-9_-]{1,40}$")
 _IMAGE_ID = re.compile(r"^[a-f0-9]{32}$")
 THAI_TIME = timezone(timedelta(hours=7))
+ACTIVE_REFERRAL_STATUSES = ("pending", "in_review", "needs_more")
 
 
 class _AnalysisLimiter:
@@ -69,9 +70,20 @@ def analysis_filter_sql(user: dict[str, Any], filters: dict[str, Any] | None = N
         raise ValueError("Invalid internal SQL alias")
     supplied = filters or {}
     clauses, parameters = [f"{alias}.kind='analysis'", f"{alias}.deleted_at IS NULL"], []
-    if user["role"] not in {"admin", "reviewer"}:
+    scope = supplied.get("scope", "permitted")
+    referral_state = supplied.get("referral_state", "all")
+    if scope not in {"permitted", "mine"} or referral_state not in {"all", "not_pending", "pending"}:
+        raise HTTPException(422, "ตัวกรองประวัติหรือคลังส่งต่อไม่ถูกต้อง")
+    # Ordinary history is always private to its owner. Cross-owner expert lists
+    # additionally require the session-bound verification attached by auth.
+    cross_owner = user["role"] in {"admin", "reviewer"} and user.get("_expert_verified") is True
+    if scope == "mine" or not cross_owner:
         clauses.append(f"{alias}.owner_id=?")
         parameters.append(user["id"])
+    if referral_state != "all":
+        condition = "IN" if referral_state == "pending" else "NOT IN"
+        clauses.append(f"COALESCE(json_extract({alias}.data,'$.referral_status'),'') {condition} (?,?,?)")
+        parameters.extend(ACTIVE_REFERRAL_STATUSES)
     for key in ("status", "review_status", "model_version", "site_code"):
         value = supplied.get(key)
         if value:
@@ -259,11 +271,54 @@ async def create_analysis(
 
 
 @router.get("/analyses")
-def analysis_list(request: Request, user: Annotated[dict[str, Any], Depends(require_user)], limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0), analysis_id: str | None = Query(None, max_length=100), q: str | None = Query(None, max_length=100), start_date: str | None = Query(None, max_length=40), end_date: str | None = Query(None, max_length=40), date_from: str | None = Query(None, max_length=40), date_to: str | None = Query(None, max_length=40), predicted_class: str | None = Query(None, max_length=160), status: str | None = Query(None, max_length=40), review_status: str | None = Query(None, max_length=40), model_version: str | None = Query(None, max_length=160), site_code: str | None = Query(None, max_length=40)) -> dict[str, Any]:
+def analysis_list(
+    request: Request,
+    user: Annotated[dict[str, Any], Depends(require_user)],
+    limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0),
+    analysis_id: str | None = Query(None, max_length=100), q: str | None = Query(None, max_length=100),
+    start_date: str | None = Query(None, max_length=40), end_date: str | None = Query(None, max_length=40),
+    date_from: str | None = Query(None, max_length=40), date_to: str | None = Query(None, max_length=40),
+    predicted_class: str | None = Query(None, max_length=160), status: str | None = Query(None, max_length=40),
+    review_status: str | None = Query(None, max_length=40), model_version: str | None = Query(None, max_length=160),
+    site_code: str | None = Query(None, max_length=40),
+    scope: Literal["permitted", "mine"] = "permitted",
+    referral_state: Literal["all", "not_pending", "pending"] = "all",
+) -> dict[str, Any]:
     store = get_store(request)
-    filters = {key: value for key, value in locals().items() if key in {"analysis_id", "q", "start_date", "end_date", "date_from", "date_to", "predicted_class", "status", "review_status", "model_version", "site_code"} and value is not None}
+    filters = {key: value for key, value in locals().items() if key in {"analysis_id", "q", "start_date", "end_date", "date_from", "date_to", "predicted_class", "status", "review_status", "model_version", "site_code", "scope", "referral_state"} and value is not None}
     documents, total = list_analysis_documents(store, user, filters, limit, offset)
     return {"items": [present_analysis(store, item) for item in documents], "total": total, "limit": limit, "offset": offset}
+
+
+@router.get("/history/days")
+def history_days(
+    request: Request,
+    user: Annotated[dict[str, Any], Depends(require_user)],
+    date_from: str | None = Query(None, max_length=40),
+    date_to: str | None = Query(None, max_length=40),
+    limit: int = Query(31, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+) -> dict[str, Any]:
+    """Owner-only daily counts; active expert referrals live in their own queue."""
+    store = get_store(request)
+    filters = {"scope": "mine", "referral_state": "not_pending", "date_from": date_from, "date_to": date_to}
+    where, params = analysis_filter_sql(user, filters)
+    # Server timestamps are UTC. Group at the same Thai midnight used by the
+    # date filters, without inventing zero-count days between actual records.
+    day = "date(d.created_at,'+7 hours')"
+    with store.connection() as conn:
+        totals = conn.execute(
+            f"SELECT COUNT(DISTINCT {day}) AS total_days,COUNT(*) AS total_analyses FROM documents d WHERE {where}", params,
+        ).fetchone()
+        rows = conn.execute(
+            f"SELECT {day} AS date,COUNT(*) AS total,"
+            "SUM(CASE WHEN json_extract(d.data,'$.status')='completed' THEN 1 ELSE 0 END) AS completed,"
+            "SUM(CASE WHEN json_extract(d.data,'$.status')='failed' THEN 1 ELSE 0 END) AS failed "
+            f"FROM documents d WHERE {where} GROUP BY {day} ORDER BY date DESC LIMIT ? OFFSET ?",
+            [*params, limit, offset],
+        ).fetchall()
+    return {"items": [dict(row) for row in rows], "total_days": totals["total_days"],
+            "total_analyses": totals["total_analyses"], "limit": limit, "offset": offset, "timezone": "Asia/Bangkok"}
 
 
 @router.get("/analyses/{analysis_id}")

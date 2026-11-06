@@ -123,7 +123,8 @@ def test_dashboard_uses_owner_scope_shared_bangkok_dates_and_partial_object_deci
     assert own['summary']['confirmed_objects'] == 1
     assert own['summary']['completed_expert_reviews'] == 0
     assert own['charts']['review_errors'] == []
-    assert dashboard_data(store, admin)['summary']['total_analyses'] == 2
+    assert dashboard_data(store, admin)['summary']['total_analyses'] == 0, 'Unverified administrators see only their own analyses'
+    assert dashboard_data(store, {**admin, '_expert_verified': True})['summary']['total_analyses'] == 2
     filtered = dashboard_data(store, owner, {'date_from': '2026-10-29', 'date_to': '2026-10-29'})
     assert filtered['sample_size'] == 1
     assert filtered['charts']['analyses_by_date'][0]['date'] == '2026-10-29'
@@ -166,7 +167,7 @@ def test_bbox_only_correction_is_not_classification_error_evidence(store_and_use
     feedback = store.create_document('feedback', {'analysis_id': first['id'], 'object_id': 'd1', 'category': 'incorrect_classification', 'message': 'test-only review', 'status': 'pending'}, owner['id'], owner['id'])
     request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(platform_store=store)))
     with pytest.raises(HTTPException) as problem:
-        triage_feedback(feedback['id'], FeedbackTriage(expected_revision=1, status='verified_error', reviewer_comment='test-only evidence review'), request, admin)
+        triage_feedback(feedback['id'], FeedbackTriage(expected_revision=1, status='verified_error', reviewer_comment='test-only evidence review'), request, {**admin, '_expert_verified': True})
     assert problem.value.status_code == 422
     assert store.get_document('feedback', feedback['id'])['revision'] == 1
 

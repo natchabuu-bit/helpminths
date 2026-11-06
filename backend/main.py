@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import io
 import os
 import time
 import uuid
@@ -11,11 +12,11 @@ from typing import Annotated, Any
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from backend.images import decode_image, read_upload
+from backend.images import MAX_IMAGE_PIXELS, MAX_UPLOAD_BYTES, decode_image, decode_image_details, read_upload, supported_image_formats
 from backend.model import ModelNotReadyError, YOLOModelService
 from backend.request_limits import RequestBodyLimitMiddleware
 from backend.platform.auth import require_user, router as auth_router
@@ -104,10 +105,45 @@ def create_app(
         return HealthResponse(status="ok", model_ready=model_service.ready,
                               model_name=model_service.name, message=model_service.message)
 
+    @app.get("/api/images/formats")
+    def image_formats() -> dict[str, Any]:
+        return {"formats": supported_image_formats(), "max_bytes": MAX_UPLOAD_BYTES,
+                "max_pixels": MAX_IMAGE_PIXELS, "frame_policy": "first_frame"}
+
+    @app.post("/api/images/normalize")
+    async def normalize_image(image: Annotated[UploadFile, File()]) -> Response:
+        """Decode browser-incompatible rasters without storing uploaded pixels."""
+        class BoundedPNG(io.BytesIO):
+            def write(self, chunk):
+                if self.tell() + len(chunk) > MAX_UPLOAD_BYTES:
+                    raise HTTPException(413, "ภาพหลังแปลงมีขนาดเกิน 20 MB กรุณาลดความละเอียดหรือส่งออกเป็นภาพขนาดเล็กลง")
+                return super().write(chunk)
+
+        def convert(data: bytes):
+            decoded, details = decode_image_details(data)
+            try:
+                with BoundedPNG() as output:
+                    decoded.save(output, format="PNG", exif=b"", icc_profile=None)
+                    return output.getvalue(), details
+            finally:
+                decoded.close()
+
+        try:
+            with image_work_slot():
+                pixels, details = await run_in_threadpool(convert, await read_upload(image))
+            return Response(pixels, media_type="image/png", headers={
+                "Cache-Control": "no-store",
+                "X-Image-Source-Format": details["source_format"],
+                "X-Image-Multiple-Frames": "1" if details["multiple_frames"] else "0",
+                "X-Image-Normalization-Notes": ",".join(details["normalization_notes"]),
+            })
+        finally:
+            await image.close()
+
     @app.post("/api/analyze", response_model=AnalysisResponse)
     async def analyze(
         request: Request,
-        image: Annotated[UploadFile, File(description="JPEG, PNG or WebP, up to 20 MB; temporary analysis only")],
+        image: Annotated[UploadFile, File(description="Supported raster image decoded by content, up to 20 MB; temporary analysis only")],
         confidence: Annotated[float, Form(ge=0.01, le=0.99)] = 0.15,
         acknowledge_quality: Annotated[bool, Form()] = False,
         quality_comment: Annotated[str, Form(max_length=1000)] = "",

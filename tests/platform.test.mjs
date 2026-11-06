@@ -66,6 +66,12 @@ async function login(page, role) {
   assert.equal(response.status(), 200, await response.text())
   await page.getByRole('button', { name: 'ออกจากระบบ', exact: true }).waitFor()
   assert.equal((await response.json()).user.username, `fixture-${role}`)
+  if (['admin', 'reviewer'].includes(role)) {
+    const verified = await mutate(page, '/expert-login', { password: testPassword })
+    fixtureHeader(verified)
+    assert.equal(verified.status(), 200, await verified.text())
+    assert.equal((await verified.json()).verified, true, 'Privileged clinical access requires a real password step-up')
+  }
 }
 async function logout(page) {
   await nav(page, 'ตั้งค่าและบัญชี')
@@ -159,6 +165,9 @@ test('authenticated quality gate, saved predictions, expert decisions, audit, re
     assert.equal(await page.getByRole('button', { name: 'บันทึกผลตรวจทาน', exact: true }).count(), 0, 'Lab users can read but cannot adjudicate')
     const denied = await mutate(page, `/analyses/${original.id}/reviews`, { expected_revision: original.revision, status: 'in_review', annotations: [] })
     assert.equal(denied.status(), 403)
+    const referred = await mutate(page, `/analyses/${original.id}/referrals`, { expected_revision: original.revision, reason: 'SYNTHETIC TEST: send the saved chart for expert adjudication.' })
+    assert.equal(referred.status(), 201, await referred.text())
+    assert.equal((await referred.json()).status, 'pending')
 
     // Shared-device regression: same mounted application, explicit logout, other owner.
     await logout(page)
@@ -171,11 +180,9 @@ test('authenticated quality gate, saved predictions, expert decisions, audit, re
     }
     await logout(page)
     await login(page, 'reviewer')
-    await nav(page, 'ประวัติการตรวจ')
-    await page.getByLabel('Analysis ID', { exact: true }).fill(original.id)
-    await page.getByRole('button', { name: 'ใช้ตัวกรอง', exact: true }).click()
-    const record = page.locator('.platform-record').filter({ hasText: original.id })
-    await record.getByRole('button', { name: 'เปิดรายการ', exact: true }).click()
+    await nav(page, 'ทบทวนโดยผู้เชี่ยวชาญ')
+    const record = page.locator('.expert-referral-card').filter({ hasText: sampleCode })
+    await record.getByRole('button', { name: 'เปิดภาพและตรวจทาน', exact: true }).click()
     await page.getByLabel('การดำเนินการ').selectOption('correct')
     await page.getByLabel('ชนิดที่ตรวจทาน', { exact: true }).fill('TEST FIXTURE corrected A')
     await page.getByLabel('หมายเหตุสำหรับวัตถุนี้').fill('SYNTHETIC TEST: reviewer changes the first chart label.')
@@ -259,71 +266,27 @@ test('authenticated quality gate, saved predictions, expert decisions, audit, re
   } finally { await finish() }
 })
 
-test('Learning Lab scores only after explicit reference approval, with real attempts and role restrictions', { timeout: 180_000 }, async () => {
+test('the removed Learning Lab route returns home while read-only account restrictions remain enforced', { timeout: 90_000 }, async () => {
   const { page, finish } = await fixturePage()
   try {
-    // Withdraw previous synthetic-suite approvals so this test also reruns cleanly.
-    await login(page, 'reviewer')
-    let catalog = await (await page.request.get(`${fixtureURL}/api/platform/learning/catalog`)).json()
-    for (const reference of catalog.items.filter(item => item.approval?.approved)) {
-      const response = await mutate(page, '/learning/approvals', { reference_id: reference.id, expected_revision: reference.approval.revision, approved: false, rights_confirmed: true, label_reviewed: true, limitations_reviewed: true, notes: 'Synthetic browser test resets prior educational approval, not production data.' })
-      assert.equal(response.status(), 200, await response.text())
-    }
-    await logout(page)
     await login(page, 'student')
-    await nav(page, 'ห้องเรียนพยาธิ')
-    await page.getByRole('button', { name: 'แบบฝึกหัดมีคะแนน', exact: true }).click()
-    await page.getByText(/ยังไม่มีภาพที่ผู้ตรวจยืนยันสำหรับแบบฝึกหัด/).waitFor()
-    assert.equal(await page.getByRole('button', { name: 'เริ่มทำแบบฝึกหัด', exact: true }).isDisabled(), true)
-    const quizDenied = await mutate(page, '/learning/quizzes', { mode: 'pretest', question_count: 1 })
-    assert.equal(quizDenied.status(), 409)
-    catalog = await (await page.request.get(`${fixtureURL}/api/platform/learning/catalog`)).json()
-    const approvalDenied = await mutate(page, '/learning/approvals', { reference_id: catalog.items[0].id, approved: true, rights_confirmed: true, label_reviewed: true, limitations_reviewed: true, notes: 'Synthetic student must not approve educational ground truth.' })
-    assert.equal(approvalDenied.status(), 403)
+    assert.equal(await page.locator('.sidebar .nav-item').count(), 9)
+    assert.equal(await page.getByRole('button', { name: 'ห้องเรียนพยาธิ', exact: true }).count(), 0)
+    await nav(page, 'Atlas 3D')
+    await page.locator('.atlas-workspace').waitFor()
+    assert.equal(await page.locator('.atlas-learning-entry').count(), 0, 'Atlas must not link to the removed classroom')
+    await page.goto(`${fixtureURL}/#learning`, { waitUntil: 'networkidle' })
+    await page.reload({ waitUntil: 'networkidle' })
+    await page.locator('.page-home').waitFor()
+    assert.equal(await page.locator('.learning-page').count(), 0)
     await nav(page, 'ประวัติการตรวจ')
     await page.getByRole('heading', { name: 'บัญชีนี้ไม่มีสิทธิ์ในส่วนนี้', exact: true }).waitFor()
-    await logout(page)
-    await login(page, 'reviewer')
-    await nav(page, 'ห้องเรียนพยาธิ')
-    await page.locator('.learning-approval').waitFor()
-    await page.locator('.learning-approval input[type="checkbox"]').nth(0).check()
-    await page.locator('.learning-approval input[type="checkbox"]').nth(1).check()
-    await page.locator('.learning-approval input[type="checkbox"]').nth(2).check()
-    await page.getByLabel('คำอธิบายการตรวจสำหรับผู้เรียน (แสดงร่วมกับภาพ)').fill('SYNTHETIC UI TEST ONLY: verifies the approval workflow, not a real clinical expert endorsement.')
-    const approvalPromise = page.waitForResponse(response => response.url().endsWith('/learning/approvals') && response.request().method() === 'POST')
-    await page.getByRole('button', { name: 'บันทึกการตรวจยืนยัน', exact: true }).click()
-    const approvalResponse = await approvalPromise
-    assert.equal(approvalResponse.status(), 200, await approvalResponse.text())
-    const approval = await approvalResponse.json()
-    assert.equal(approval.approved, true)
-    await logout(page)
-    await login(page, 'student')
-    const priorProgress = await (await page.request.get(`${fixtureURL}/api/platform/learning/progress`)).json()
-    await nav(page, 'ห้องเรียนพยาธิ')
-    await page.getByRole('button', { name: 'แบบฝึกหัดมีคะแนน', exact: true }).click()
-    await page.getByLabel('จำนวนภาพสูงสุด').selectOption('1')
-    await page.getByLabel('รูปแบบ').selectOption('pretest')
-    const quizPromise = page.waitForResponse(response => response.url().endsWith('/learning/quizzes') && response.request().method() === 'POST')
-    await page.getByRole('button', { name: 'เริ่มทำแบบฝึกหัด', exact: true }).click()
-    const quizResponse = await quizPromise
-    assert.equal(quizResponse.status(), 200, await quizResponse.text())
-    const quiz = await quizResponse.json()
-    assert.equal(quiz.questions.length, 1)
-    assert.equal(Object.hasOwn(quiz.questions[0], 'correct_species_id'), false, 'Quiz response must not include a fabricated/revealed answer')
-    await page.getByRole('radio', { name: 'ยังไม่สามารถระบุได้', exact: true }).check()
-    const attemptPromise = page.waitForResponse(response => response.url().endsWith(`/learning/quizzes/${quiz.id}/submit`) && response.request().method() === 'POST')
-    await page.getByRole('button', { name: 'บันทึกคำตอบและดูผล', exact: true }).click()
-    const attemptResponse = await attemptPromise
-    assert.equal(attemptResponse.status(), 200, await attemptResponse.text())
-    const attempt = await attemptResponse.json()
-    assert.equal(attempt.total, 1); assert.equal(attempt.correct, 0); assert.equal(attempt.percentage_correct, 0)
-    assert.equal(attempt.results[0].reference_id, approval.reference_id)
-    assert.equal(attempt.results[0].reviewer_id, approval.reviewer_id)
-    await page.getByRole('heading', { name: 'ผลแบบฝึกหัด: 0 / 1', exact: true }).waitFor()
-    const progress = await (await page.request.get(`${fixtureURL}/api/platform/learning/progress`)).json()
-    assert.equal(progress.attempt_count, priorProgress.attempt_count + 1)
-    await page.getByRole('button', { name: 'ความก้าวหน้าของฉัน', exact: true }).click()
-    await page.getByText(`มีคำตอบที่บันทึกจริง ${progress.attempt_count} ชุด`, { exact: true }).waitFor()
+    const ownList = await page.request.get(`${fixtureURL}/api/platform/analyses?scope=mine`)
+    fixtureHeader(ownList)
+    assert.equal(ownList.status(), 200)
+    assert.equal((await ownList.json()).total, 0, 'The read-only account must not receive another owner’s clinical records')
+    const denied = await mutate(page, '/expert-login', { password: testPassword })
+    assert.equal(denied.status(), 403, 'Removing the classroom must not grant a read-only account expert permissions')
   } finally { await finish() }
 })
 
@@ -363,7 +326,7 @@ test('unconfigured platform pages remain truthful and usable at 375px and 1440px
       await page.setViewportSize({ width, height: 1000 })
       page.on('pageerror', error => errors.push(error.message))
       await page.goto(`${defaultURL}/#home`, { waitUntil: 'networkidle' })
-      const pages = { home: 'ภาพรวม', history: 'ประวัติการตรวจ', verification: 'ทบทวนโดยผู้เชี่ยวชาญ', reports: 'รายงาน', performance: 'ประเมินและข้อเสนอแนะ', learning: 'ห้องเรียนพยาธิ', settings: 'ตั้งค่าและบัญชี', scan: 'ตรวจวิเคราะห์' }
+      const pages = { home: 'ภาพรวม', history: 'ประวัติการตรวจ', verification: 'ทบทวนโดยผู้เชี่ยวชาญ', reports: 'รายงาน', performance: 'ประเมินและข้อเสนอแนะ', settings: 'ตั้งค่าและบัญชี', scan: 'ตรวจวิเคราะห์' }
       for (const [id, label] of Object.entries(pages)) {
         await nav(page, label)
         await page.waitForFunction(expected => location.hash === `#${expected}`, id)

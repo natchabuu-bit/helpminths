@@ -79,7 +79,7 @@ test('public Dashboard navigation and upstream failure never manufacture screeni
   const { page, finish } = await openDashboard({ response: () => responseFixture('unavailable', null, { error: { code: 'connection_failed', message: 'SYNTHETIC TEST: upstream is unavailable' } }) })
   try {
     await page.getByRole('heading', { name: 'ยังอ่านข้อมูลจาก Google Sheets ไม่ได้', exact: true }).waitFor()
-    assert.equal(await page.locator('.sidebar .nav-item').count(), 10)
+    assert.equal(await page.locator('.sidebar .nav-item').count(), 9)
     assert.equal(await page.locator('.sidebar .nav-item[aria-current="page"]').innerText(), 'Dashboard')
     for (const key of ['total_students', 'tested_count', 'infected_count', 'infection_rate_percent', 'coverage_percent']) assert.equal(await card(page, key).textContent(), '—')
     assert.equal(await page.locator('.hsd-status.is-ready').count(), 0)

@@ -39,12 +39,12 @@ Passwords เป็น salted scrypt; เก็บเฉพาะ hash ของ
 
 `GET /api/platform/session` คืน user และ `csrf_token` ให้ client บน origin เดียวกัน ทุก authenticated POST/PATCH/DELETE ต้องส่ง `X-CSRF-Token` คู่กับ cookie ตรวจ Origin ของคำขอเบราว์เซอร์ด้วย ไม่เปิด wildcard CORS ใช้ frontend API client ที่รวมไว้ได้เลย Vite proxy รักษา Host เดิมเพื่อการตรวจ Origin ให้เข้าเว็บด้วย hostname เดิมตลอดเซสชัน เช่นใช้ localhost สม่ำเสมอ
 
-Lab เข้าถึงรายการของตนเอง Reviewer/admin เข้าถึงรายการเพื่อทบทวนตามหน้าที่ นักศึกษาใช้ Learning Lab แต่สร้างรายการตรวจหรือยืนยันผลไม่ได้ จัดการผู้ใช้เฉพาะ admin ลบรายการเฉพาะเจ้าของหรือ admin โดยตรวจ revision
+Lab เข้าถึงรายการของตนเอง Reviewer/admin ต้องยืนยันรหัสผ่านผู้เชี่ยวชาญเพิ่มก่อนอ่านข้อมูลผู้อื่นหรือตรวจทาน บัญชี student เดิมอ่านได้แต่สร้างรายการตรวจหรือยืนยันผลไม่ได้ จัดการผู้ใช้เฉพาะ admin ลบรายการเฉพาะเจ้าของหรือ admin โดยตรวจ revision
 
 ## สถานะ configuration
 
 - ไม่ตั้ง data directory: session คืน `configured:false`; endpoints ฐานข้อมูลตอบ503; Atlas/สาธิต/quality ยังใช้ได้ API เดิม `/api/analyze` ไม่เก็บภาพ/ผลลงดิสก์
-- ตั้ง data directory แต่ไม่มีผู้ใช้: สร้าง schema เปล่าและ private image directory; `bootstrap_required:true`; ต้องใช้ CLI สร้าง admin
+- ตั้ง data directory แต่ไม่มีผู้ใช้: สร้าง schema เปล่าและ private image directory; `bootstrap_required:true`; สร้าง admin ผ่าน CLI หรือเส้นทางตั้งผู้ดูแลที่ต้องมี host secret
 - ไม่มีโมเดลพร้อมใช้: health/status รายงาน readyfalse; inference ตอบ503 ไม่มีคำทำนายทดแทน
 - ส่งตรงไป persistent inference ขณะโมเดลไม่พร้อม: อาจสร้างรายการ **failed** พร้อม quality/image ตามจริง คืน `analysis_id` เพื่อการตรวจสอบ ไม่ได้คืนผล AI สำเร็จ
 
@@ -85,7 +85,7 @@ List endpoints ใช้ `limit`/`offset` ประวัติกรอง Anal
 
 ## ภาพและผลตรวจ
 
-รองรับ JPEG/PNG/WebP ไม่เกิน20MB/40ล้านพิกเซล ตรวจ bytes/format/decode/decompression limit และหมุนตาม EXIF ก่อนใช้ พิกัด `[x1,y1,x2,y2]` เป็นพิกเซลบนภาพที่แก้ orientation แล้ว Prediction มี `{id,class_id,label,confidence,bbox}`
+รองรับภาพราสเตอร์ JPEG/PNG/WebP/HEIC/HEIF/AVIF/TIFF/BMP/GIF และชนิดที่ปลอดภัยตามตัวถอดรหัส ไม่เกิน20MB/40ล้านพิกเซล ตรวจ bytes/format/decode/decompression limit และหมุนตาม EXIF ก่อนใช้ พิกัด `[x1,y1,x2,y2]` เป็นพิกเซลบนภาพที่แก้ orientation แล้ว Prediction มี `{id,class_id,label,confidence,bbox}`
 
 ก่อน persistent inference จะประเมิน quality อีกครั้งบน backend ภาพ warning ต้องมี `acknowledge_quality=true` พร้อมเหตุผลไม่ว่างเมื่อเปิด override ถ้าปิด override จะข้ามไม่ได้ ผล quality ถูกบันทึกสำหรับ workflow จริง
 
@@ -127,3 +127,7 @@ SQLite schema version1 สร้างเมื่อเปิด private direct
 ครอบคลุม upload/EXIF, quality, auth/CSRF/ACL, immutable prediction/review/audit, counting, learning, Thai PDF/CSV, SQL aggregation และ evaluation math ด้วยภาพสังเคราะห์/predictor ที่ฉีดเฉพาะ tests อ่าน [หลักฐานตรวจสอบ](../docs/platform/VALIDATION.md) การผ่าน tests ไม่ยืนยันความแม่นยำ YOLO หรือรับรองการใช้งานทางคลินิก
 
 `backend.tests.ui_fixture` เป็น server เฉพาะทดสอบ ต้องเปิดด้วย env ใช้ temporary DB/บัญชี/ตัวทำนายสังเคราะห์ ห้ามใช้เป็น production app หรือหลักฐานความแม่นยำ ดูวิธีรันในคู่มือแพลตฟอร์ม
+
+## บัญชีและคลังส่งต่อรุ่นใหม่
+
+ดู [คู่มือบัญชีและส่งต่อ](../docs/platform/ACCOUNTS-AND-REFERRALS.th.md) สำหรับการสมัคร แก้บัญชี โทเคนตั้งผู้ดูแล พื้นที่ถาวร และข้อจำกัด Render Free APIs เพิ่ม `/register`, `/account`, `/admin-setup`, `/expert-login`, `/expert-session`, `/history/days`, `/referrals` และ `/analyses/{id}/referrals` ภายใต้ `/api/platform`; การแปลงภาพไม่บันทึกใช้ `/api/images/normalize` และตรวจรูปแบบที่ติดตั้งจริงด้วย `/api/images/formats`

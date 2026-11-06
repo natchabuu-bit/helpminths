@@ -6,7 +6,7 @@
 
 React19/TypeScript/Vite แสดงเว็บภาษาไทยและ Atlas Three.js; FastAPI/Pillow ตรวจภาพและเรียก optional Ultralytics YOLO; SQLite เก็บบัญชี/ผล/ประวัติ; normalized PNG อยู่ใน private filesystem Docker รวมเว็บและ API บน origin เดียวกัน ไม่มีบริการ AI ภายนอกที่ส่งภาพให้อัตโนมัติ
 
-เมนูมีหน้าหลัก ตรวจภาพ Atlas ประวัติ ตรวจโดยผู้เชี่ยวชาญ ห้องเรียน รายงาน ประเมินและข้อเสนอแนะ และบัญชี/ตั้งค่า ไม่มีเมนูโครงงานหรือป้ายพื้นที่ทำงาน แบบประเมินการใช้งานยังมี SUS10ข้อ/ช่อง feedback แยกจากข้อผิดพลาดโมเดล
+เมนูมีหน้าหลัก Dashboard ตรวจภาพ Atlas ประวัติรายวัน คลังผู้เชี่ยวชาญ รายงาน ประเมินและข้อเสนอแนะ และบัญชี/ตั้งค่า ไม่มีเมนูโครงงานหรือป้ายพื้นที่ทำงาน แบบประเมินการใช้งานยังมี SUS10ข้อ/ช่อง feedback แยกจากข้อผิดพลาดโมเดล
 
 | ส่วน | สิ่งที่มีและสิ่งที่ต้องเตรียม |
 | --- | --- |
@@ -46,18 +46,18 @@ export HELPMINTHS_COOKIE_SECURE=0
 PORT=8080 bash scripts/start-production.sh
 ```
 
-CLI ถามรหัสผ่าน/ยืนยันผ่าน terminal อย่างน้อย12ตัวอักษร ไม่ใส่ password ใน command line หรือ Git สร้างได้เมื่อยังไม่มีผู้ใช้เท่านั้น จากนั้นเปิดหน้า **บัญชีและการตั้งค่า** เข้าสู่ระบบ แล้ว admin สร้างบัญชีรายคนและกำหนดบทบาท
+CLI ถามรหัสผ่าน/ยืนยันผ่าน terminal อย่างน้อย12ตัวอักษร ไม่ใส่ password ใน command line หรือ Git สร้างได้เมื่อยังไม่มีผู้ดูแลที่ใช้งานอยู่ แม้จะมีผู้ใช้ทั่วไปสมัครแล้ว จากนั้นเปิดหน้า **ตั้งค่าและบัญชี** เข้าสู่ระบบและอนุมัติบทบาทผู้เชี่ยวชาญ ผู้ใช้ทั่วไปสมัครบัญชีตนเองผ่านเว็บได้ อีกทางสำหรับเจ้าของโฮสต์คือโทเคนตั้งผู้ดูแลใน [คู่มือบัญชีและส่งต่อ](ACCOUNTS-AND-REFERRALS.th.md)
 
 `COOKIE_SECURE=0` ใช้เฉพาะ HTTP local เว็บจริงต้อง HTTPS/ค่า1 ห้ามเปิด HTTP สาธารณะพร้อมข้อมูลจริง พาธตัวอย่างไม่ได้ทำให้ข้อมูล workspace คงอยู่หลังลบเครื่อง
 
 | บทบาท | ความสามารถ |
 | --- | --- |
-| student | เรียนรู้/ทำแบบฝึกหัด/ดูประวัติการเรียนตน ไม่สร้างรายการตรวจหรือยืนยันผล |
-| lab | อัปโหลด ดูประวัติ รายงาน/feedback รายการของตน และ Learning Lab |
-| reviewer | ตรวจทานผล อนุมัติภาพเรียนรู้ ตรวจ feedback และชุดประเมินตามหน้าที่ |
+| student | บัญชีอ่านอย่างเดียวเดิม ใช้ Atlas ไม่สร้างรายการตรวจหรือยืนยันผล |
+| lab | ผู้ใช้ทั่วไป อัปโหลด ดูประวัติรายวัน ส่งภาพให้ผู้เชี่ยวชาญ และอ่านคำตอบ/รายงานของตน |
+| reviewer | ผู้เชี่ยวชาญที่ผู้ดูแลอนุมัติ ยืนยันรหัสผ่านซ้ำก่อนเปิดภาพผู้อื่นและตรวจทาน |
 | admin | สิทธิ์ reviewer และจัดการบัญชี/metadata รุ่นโมเดล/ลบตามสิทธิ์ผู้ดูแล |
 
-Backend ตรวจสิทธิ์ทุกครั้ง รวม `/api/analyze` เดิมเมื่อเปิดฐานข้อมูล: ต้องเป็น lab/reviewer/admin และส่ง CSRF เช่นกัน Lab ไม่เห็นภาพบัญชีอื่น Reviewer/admin มี scope กว้างเพื่อทบทวน จึงให้สิทธิ์เฉพาะผู้ได้รับมอบหมาย ไม่มี public registration, MFA, SSO หรือ email reset password ในรุ่นนี้ การปิดบัญชี เปลี่ยนบทบาท/รหัสผ่านเพิกถอน sessions เดิม และต้องเหลือ admin ที่ใช้งานได้อย่างน้อยหนึ่งคน
+Backend ตรวจสิทธิ์ทุกครั้ง รวม `/api/analyze` เดิมเมื่อเปิดฐานข้อมูล: ต้องเป็น lab/reviewer/admin และส่ง CSRF เช่นกัน Lab ไม่เห็นภาพบัญชีอื่น Reviewer/admin มี scope กว้างหลังยืนยันรหัสผ่านผู้เชี่ยวชาญซ้ำ จึงให้สิทธิ์เฉพาะผู้ได้รับมอบหมาย Public registration สร้างได้เฉพาะบัญชี lab ไม่มี MFA, SSO หรือ email reset password ในรุ่นนี้ การปิดบัญชี เปลี่ยนบทบาท/รหัสผ่านเพิกถอน sessions เดิม และต้องเหลือ admin ที่ใช้งานได้อย่างน้อยหนึ่งคน
 
 ## Configuration
 
@@ -119,7 +119,9 @@ Restart แล้วตรวจ `/api/health` และ `/api/platform/status` 
 
 คำนวณ one-to-one IoU matching ตาม confidence มี precision/recall/F1/AP101point/mAP50–95 และ confusion matrix พร้อม threshold/sample size ใช้ saved predictions หลัง inference threshold จึงไม่เทียบเท่า official COCO evaluator และไม่ดึงวัตถุที่กรองทิ้งกลับมา สูงสุด200ภาพ/ground truth5000วัตถุต่อชุด รอบคำนวณจำกัด prediction+ground truth รวม5000วัตถุ Feedback งานประจำไม่เป็น independent ground truth อัตโนมัติ ไม่มีชุดที่ผ่านเงื่อนไขแสดง unavailable
 
-## Learning Lab และสิทธิ์ภาพ
+## Learning Lab เดิมและสิทธิ์ภาพ
+
+เมนูห้องเรียนพยาธิถูกนำออกจากเว็บแล้วตามคำขอ ส่วน backend/catalog เดิมคงไว้เพื่อความเข้ากันได้ ย่อหน้าต่อไปนี้เป็นข้อมูลของระบบเดิมและสิทธิ์ภาพ ไม่ใช่ฟังก์ชันที่เปิดจากเมนูปัจจุบัน
 
 คลังปัจจุบันใช้ภาพจริง11ภาพ9กลุ่มจาก Atlas พร้อมผู้สร้าง URL และคำบรรยายภายใต้ **CC BY-NC4.0 สำหรับการใช้ที่ไม่ใช่เชิงพาณิชย์** คงเครดิตและตรวจสิทธิ์ก่อนวิจัย/เผยแพร่/ใช้เชิงพาณิชย์ OV/MIF/Echinostoma ยังไม่มีภาพยืนยันในคลัง ห้ามเผยภาพส่วนตัวเพียงเพราะเคยใช้ทดสอบ
 
@@ -173,15 +175,15 @@ Restore บนพื้นที่ private ที่หยุด writer คง 
 
 `render.yaml` ใช้ Docker แผน Free, `autoDeploy:false`, health check `/api/health` Git push ไม่ทำให้เว็บใหม่ Live อัตโนมัติ เปิดบริการ Render → **Manual Deploy → Deploy latest commit** → รอ Live แล้วตรวจ commit/หน้าเว็บ/status จริง
 
-Blueprint ไม่ mount persistent disk ไม่ติดตั้ง YOLO runtime/weights และไม่ bootstrap บัญชี ให้คง data directory ว่างหากยังไม่มี volume ถาวร การตั้ง path บน filesystem ชั่วคราวเปิด SQLite ได้แต่ข้อมูลอาจหายหลัง restart/redeploy ตั้ง durable1 ไม่แก้ปัญหานี้
+Blueprint ไม่ mount persistent disk และไม่สร้างบัญชีเริ่มต้น Docker ดาวน์โหลดโมเดลจาก `models/source.json` และติดตั้ง/ตรวจ CPU runtime เมื่อ build ผ่าน ให้คง data directory ว่างหากยังไม่มี volume ถาวร การตั้ง path บน filesystem ชั่วคราวเปิด SQLite ได้แต่ข้อมูลอาจหายหลัง restart/redeploy ตั้ง durable1 ไม่แก้ปัญหานี้
 
-ใช้ผลตรวจจริงต้องเลือกแผน/โฮสต์ที่รองรับ volume ก่อน ตั้ง path ไป volume ใช้ HTTPS/Securecookie1 สร้าง admin ผ่าน operator CLI ใน environment ที่ mount พื้นที่เดียวกัน ทดสอบ backup/restore และจัดทรัพยากรโมเดล หากไม่มี terminal/volume ห้ามทำ public bootstrap endpoint ให้ใช้ช่องทาง operator ที่โฮสต์รองรับ
+ใช้ผลตรวจจริงต้องเลือกแผน/โฮสต์ที่รองรับ volume ก่อน ตั้ง path ไป volume ใช้ HTTPS/Securecookie1 สร้าง admin ผ่าน operator CLI หรือเส้นทางตั้งผู้ดูแลที่ต้องมี `HELPMINTHS_ADMIN_SETUP_TOKEN` ของเจ้าของโฮสต์ ไม่มีการให้ผู้สมัครคนแรกเป็น admin อัตโนมัติ ทดสอบ backup/restore และจัดทรัพยากรโมเดล
 
-Dockerfile เริ่มต้นรวม basic/PDF dependencies เท่านั้น ต้องเตรียม image/runtime แยกสำหรับ YOLO ไม่รวมภาพผู้ใช้/secrets ลง image ค่า durable เป็น declaration ไม่มีการตรวจสัญญาโฮสต์อัตโนมัติ
+Dockerfile รวมเว็บ/basic/PDF dependencies พร้อมขั้นตอนดึงและตรวจโมเดลที่เลือก การดึงหรือทดสอบ inference ไม่ผ่านจะหยุด build ไม่รวมภาพผู้ใช้/secrets ลง image ค่า durable เป็น declaration ไม่มีการตรวจสัญญาโฮสต์อัตโนมัติ
 
 ## ออฟไลน์และทดสอบ
 
-Service worker production เก็บ app assets/Atlas/ภาพประกอบหลังเตรียมออนไลน์สำเร็จ ไม่ cache API/private image Atlas/บัตรฝึก/สาธิตใช้ offline ได้ ส่วน login/history/scored quiz/report/AI ต้องเชื่อม backend ใช้ LAN ได้หากเตรียม server/runtime/weights และอุปกรณ์เข้าถึงกันได้ ยังไม่มี YOLO ในโทรศัพท์โดยตรง
+Service worker production เก็บ app assets/Atlas/ภาพประกอบหลังเตรียมออนไลน์สำเร็จ ไม่ cache API/private image Atlas/สาธิตใช้ offline ได้ ส่วน login/history/คลังภาพส่งต่อ/report/AI และการแปลงภาพที่เบราว์เซอร์อ่านไม่ได้ต้องเชื่อม backend ใช้ LAN ได้หากเตรียม server/runtime/weights และอุปกรณ์เข้าถึงกันได้ ยังไม่มี YOLO ในโทรศัพท์โดยตรง
 
 ```bash
 npm run build

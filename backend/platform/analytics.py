@@ -65,7 +65,7 @@ def dashboard_data(store, user: dict, filters: dict | None = None) -> dict:
                     errors[(label, annotation['action'])] += 1
     average = row['latency']
     return {
-        'configured': True, 'scope': 'all' if user['role'] in ('admin', 'reviewer') else 'own', 'sample_size': row['total'],
+        'configured': True, 'scope': 'all' if user['role'] in ('admin', 'reviewer') and user.get('_expert_verified') is True else 'own', 'sample_size': row['total'],
         'summary': {'total_analyses': row['total'], 'successful_analyses': row['successful'] or 0, 'failed_analyses': row['failed'] or 0,
                     'total_detected_objects': sum(item['count'] for item in predicted), 'confirmed_objects': sum(confirmed.values()),
                     'uncertain_objects': uncertain, 'pending_expert_reviews': pending, 'completed_expert_reviews': completed,

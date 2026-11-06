@@ -86,6 +86,9 @@ def platform(tmp_path, monkeypatch):
             response = client.post("/api/platform/login", json={"username": user["username"], "password": PASSWORD})
             assert response.status_code == 200, response.text
             actors[role] = Actor(client, user, response.json()["csrf_token"])
+            if role in {"admin", "reviewer"}:
+                verified = actors[role].write("POST", "/api/platform/expert-login", json={"password": PASSWORD})
+                assert verified.status_code == 200, verified.text
         yield app, store, actors
 
 

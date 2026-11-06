@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
 import { existsSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
 import { chromium } from 'playwright'
 
 const baseURL = process.env.HELPMINTHS_TEST_URL || 'http://127.0.0.1:5173'
@@ -36,7 +35,7 @@ test('live API health reports actual readiness', async () => {
   } finally { await page.close() }
 })
 
-test('demo overlays filter, select, export labelled data, and retain session history', async () => {
+test('demo overlays filter, select, omit JSON export, and retain session history', async () => {
   const page = await openPage()
   try {
     await page.getByRole('button', { name: 'ดูตัวอย่าง', exact: true }).click()
@@ -54,13 +53,9 @@ test('demo overlays filter, select, export labelled data, and retain session his
     await page.getByRole('button', { name: 'ซ่อนกรอบ', exact: true }).click()
     assert.equal(await page.locator('.scan-detection-box').count(), 0)
     await page.getByRole('button', { name: 'แสดงกรอบ', exact: true }).click()
-    const downloadPromise = page.waitForEvent('download')
-    await page.getByRole('button', { name: 'ส่งออกรายงาน JSON' }).click()
-    const download = await downloadPromise
-    const report = JSON.parse(await readFile(await download.path(), 'utf8'))
-    assert.equal(report.mode, 'demo')
-    assert.equal(report.detections.length, 3)
-    assert.match(report.notice, /ไม่ใช่ผลตรวจจาก AI/)
+    assert.equal(await page.getByRole('button', { name: 'ส่งออกรายงาน JSON' }).count(), 0, 'The removed JSON export action must not return')
+    assert.equal(await page.locator('.scan-detection-box').count(), 3)
+    assert.deepEqual(await page.locator('.scan-detection-name strong').allTextContents(), ['Ascaris lumbricoides', 'Ascaris lumbricoides', 'Trichuris trichiura'])
     await page.getByRole('button', { name: /ประวัติการตรวจ/ }).click()
     assert.equal(await page.locator('.history-card').count(), 1)
     await page.locator('.history-card').click()
@@ -77,7 +72,7 @@ test('upload stays available without a model, and unsupported files are rejected
     const input = page.getByLabel('เลือกภาพจากอุปกรณ์')
     await input.setInputFiles({ name: 'wrong.txt', mimeType: 'text/plain', buffer: Buffer.from('text') })
     await page.getByRole('alert').waitFor()
-    assert.match(await page.getByRole('alert').innerText(), /JPG, PNG หรือ WEBP/)
+    assert.match(await page.getByRole('alert').innerText(), /ไม่ใช่ภาพราสเตอร์|ไฟล์ภาพที่สมบูรณ์/)
     await input.setInputFiles({ name: 'slide.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==', 'base64') })
     await page.locator('.scan-image-svg').waitFor()
     assert.equal(await page.getByRole('button', { name: 'เริ่มวิเคราะห์ภาพ' }).isDisabled(), true)
@@ -150,10 +145,8 @@ test('mocked inference preserves exact model labels and links only supported tax
       }
     }
     assert.equal(await page.locator('.scan-demo-banner').count(), 0)
-    const downloadPromise = page.waitForEvent('download')
-    await page.getByRole('button', { name: 'ส่งออกรายงาน JSON' }).click()
-    const report = JSON.parse(await readFile(await (await downloadPromise).path(), 'utf8'))
-    assert.deepEqual(report.detections.map(item => item.label), labels, 'Atlas aliases must not rewrite exported model labels')
+    assert.equal(await page.getByRole('button', { name: 'ส่งออกรายงาน JSON' }).count(), 0)
+    assert.deepEqual(await page.locator('.scan-detection-name strong').allTextContents(), labels, 'Atlas aliases must not rewrite displayed model labels')
     // Navigate via real result links, then reopen the session record. This checks
     // the specimen reached, rather than merely whether a link is present.
     for (const name of ['Opisthorchis viverrini', ...newReferences.map(item => item.name)]) {

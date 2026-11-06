@@ -1,19 +1,29 @@
 """Expert review snapshots never overwrite the original model detections."""
 from __future__ import annotations
 
+import json
 import math
 import uuid
+from datetime import datetime
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
-from .analyses import get_analysis, present_analysis
-from .auth import get_store, require_roles, require_user
-from .store import flatten_document, utc_now
+from .analyses import _date_bound, analysis_image_path, effective_counts, get_analysis, present_analysis
+from .auth import get_store, require_expert_verification, require_roles, require_user
+from .store import PlatformStore, flatten_document, utc_now
 
 router = APIRouter(prefix="/api/platform", tags=["Expert verification"])
 Action = Literal["confirm", "correct", "correct_class", "false_positive", "missed", "missed_detection", "uncertain", "request_review"]
+ReferralStatus = Literal["pending", "in_review", "needs_more", "confirmed"]
+OPEN_REFERRAL_STATUSES = ("pending", "in_review", "needs_more")
+
+
+class ReferralRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_revision: int = Field(ge=1)
+    reason: str = Field(min_length=1, max_length=4000)
 
 
 class ReviewAnnotation(BaseModel):
@@ -91,7 +101,7 @@ def validate_annotations(data: dict[str, Any], request: ReviewRequest) -> list[d
 
 
 @router.post("/analyses/{analysis_id}/reviews", status_code=201)
-def save_review(analysis_id: str, body: ReviewRequest, request: Request, user: Annotated[dict[str, Any], Depends(require_roles("admin", "reviewer"))]) -> dict[str, Any]:
+def save_review(analysis_id: str, body: ReviewRequest, request: Request, user: Annotated[dict[str, Any], Depends(require_expert_verification)]) -> dict[str, Any]:
     store = get_store(request)
     # A full snapshot with a revision guard makes simultaneous reviews explicit.
     with store.transaction() as conn:
@@ -107,6 +117,18 @@ def save_review(analysis_id: str, body: ReviewRequest, request: Request, user: A
             status = "needs_additional_review"
         review = store.create_document("review", {"analysis_id": analysis_id, "analysis_revision": analysis["revision"], "reviewer_id": user["id"], "reviewer_username": user["username"], "reviewed_at": utc_now(), "model_version": data.get("model_version"), "status": status, "full_image_reviewed": body.full_image_reviewed, "comment": body.comment.strip(), "annotations": annotations, "previous_review_id": data.get("latest_review_id")}, analysis["owner_id"], user["id"], conn=conn)
         updated = {**data, "review_status": status, "latest_review_id": review["id"]}
+        referral_id = data.get("referral_id")
+        if referral_id:
+            referral = store.get_document("referral", referral_id, conn=conn)
+            if referral is None or referral["data"].get("analysis_id") != analysis_id or referral["owner_id"] != analysis["owner_id"]:
+                raise HTTPException(409, "รายการส่งต่อนี้ไม่ตรงกับผลวิเคราะห์ กรุณาโหลดข้อมูลล่าสุด")
+            referral_status = {"verified": "confirmed", "in_review": "in_review", "needs_additional_review": "needs_more"}[status]
+            response_data = {**referral["data"], "status": referral_status,
+                             "reviewer_id": user["id"], "reviewer_username": user["username"],
+                             "response_comment": body.comment.strip(), "responded_at": utc_now(),
+                             "latest_review_id": review["id"]}
+            store.update_document("referral", referral_id, response_data, user["id"], expected_revision=referral["revision"], conn=conn)
+            updated["referral_status"] = referral_status
         analysis = store.update_document("analysis", analysis_id, updated, user["id"], expected_revision=body.expected_revision, conn=conn)
     return present_analysis(store, analysis)
 
@@ -120,3 +142,132 @@ def review_history(analysis_id: str, request: Request, user: Annotated[dict[str,
         rows = conn.execute("SELECT id FROM documents WHERE kind='review' AND deleted_at IS NULL AND json_extract(data,'$.analysis_id')=? ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?", (analysis_id, limit, offset)).fetchall()
         items = [flatten_document(store.get_document("review", row["id"], conn=conn)) for row in rows]
     return {"items": items, "total": total, "limit": limit, "offset": offset}
+
+
+def _present_referral(store: PlatformStore, referral: dict[str, Any], analysis: dict[str, Any], *, conn=None) -> dict[str, Any]:
+    """A referral points to one private image; it never creates a public copy."""
+    data = analysis["data"]
+    latest_review_id = data.get("latest_review_id")
+    latest_review = store.get_document("review", latest_review_id, conn=conn) if latest_review_id else None
+    return {**flatten_document(referral), "analysis": {
+        "id": analysis["id"], "sample_code": data.get("sample_code"),
+        "created_at": analysis["created_at"], "revision": analysis["revision"],
+        "status": data.get("status"), "review_status": data.get("review_status"),
+        "image_url": f"/api/platform/analyses/{analysis['id']}/image" if data.get("image_filename") else None,
+        "model_version": data.get("model_version"), "counts": effective_counts(analysis, latest_review),
+    }}
+
+
+def _get_referral(store: PlatformStore, referral_id: str, user: dict[str, Any], *, conn=None) -> tuple[dict[str, Any], dict[str, Any]]:
+    referral = store.get_document("referral", referral_id, conn=conn)
+    if referral is None:
+        raise HTTPException(404, "ไม่พบรายการส่งต่อ")
+    analysis = get_analysis(store, referral["data"].get("analysis_id", ""), user, conn=conn)
+    if analysis["owner_id"] != referral["owner_id"]:
+        raise HTTPException(404, "ไม่พบรายการส่งต่อที่เชื่อมกับผลวิเคราะห์นี้")
+    # get_analysis/assert_access enforces owner or freshly verified expert access.
+    return referral, analysis
+
+
+@router.post("/analyses/{analysis_id}/referrals", status_code=201)
+def refer_analysis(analysis_id: str, body: ReferralRequest, request: Request, response: Response,
+                   user: Annotated[dict[str, Any], Depends(require_roles("admin", "reviewer", "lab"))]) -> dict[str, Any]:
+    store = get_store(request)
+    reason = body.reason.strip()
+    if not reason:
+        raise HTTPException(422, "ระบุสิ่งที่ไม่มั่นใจหรือคำถามที่ต้องการให้ผู้เชี่ยวชาญตรวจ")
+    with store.transaction() as conn:
+        analysis = get_analysis(store, analysis_id, user, conn=conn)
+        if analysis["owner_id"] != user["id"]:
+            raise HTTPException(403, "ส่งต่อได้เฉพาะภาพและผลตรวจของบัญชีตนเอง")
+        if analysis["data"].get("status") != "completed":
+            raise HTTPException(409, "ส่งต่อได้เฉพาะผลวิเคราะห์ที่ประมวลผลสำเร็จ")
+        analysis_image_path(store, analysis)
+        # The write transaction serializes retries and concurrent referral clicks.
+        existing = conn.execute(
+            "SELECT id FROM documents WHERE kind='referral' AND deleted_at IS NULL "
+            "AND json_extract(data,'$.analysis_id')=? AND json_extract(data,'$.status') IN ('pending','in_review','needs_more') "
+            "ORDER BY created_at DESC,id DESC LIMIT 1", (analysis_id,)).fetchone()
+        if existing:
+            referral = store.get_document("referral", existing["id"], conn=conn)
+            assert referral is not None
+            response.status_code = 200
+            return _present_referral(store, referral, analysis, conn=conn)
+        if analysis["revision"] != body.expected_revision:
+            raise HTTPException(409, "ผลนี้เปลี่ยนไปแล้ว กรุณาโหลดผลล่าสุดก่อนส่งต่อ")
+        referral = store.create_document("referral", {
+            "analysis_id": analysis_id, "analysis_revision_at_referral": analysis["revision"],
+            "status": "pending", "reason": reason, "submitted_by": user["id"],
+            "submitted_at": utc_now(), "reviewer_id": None, "reviewer_username": None,
+            "response_comment": None, "responded_at": None, "latest_review_id": None,
+        }, analysis["owner_id"], user["id"], conn=conn)
+        analysis = store.update_document("analysis", analysis_id, {**analysis["data"], "referral_id": referral["id"],
+                                                                  "referral_status": "pending"}, user["id"],
+                                         expected_revision=body.expected_revision, conn=conn)
+        return _present_referral(store, referral, analysis, conn=conn)
+
+
+@router.get("/referrals")
+def list_referrals(request: Request, user: Annotated[dict[str, Any], Depends(require_user)],
+                   scope: Literal["mine", "expert"] = "mine", status: ReferralStatus | None = None,
+                   q: str | None = Query(None, max_length=100), date_from: str | None = None, date_to: str | None = None,
+                   limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0)) -> dict[str, Any]:
+    if scope == "expert":
+        require_expert_verification(request, user)
+    store = get_store(request)
+    clauses = ["r.kind='referral'", "r.deleted_at IS NULL", "a.kind='analysis'", "a.deleted_at IS NULL", "a.owner_id=r.owner_id"]
+    parameters: list[Any] = []
+    if scope == "mine":
+        clauses.append("r.owner_id=?")
+        parameters.append(user["id"])
+    if status:
+        clauses.append("json_extract(r.data,'$.status')=?")
+        parameters.append(status)
+    else:
+        clauses.append("json_extract(r.data,'$.status') IN ('pending','in_review','needs_more')")
+    if q:
+        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        clauses.append("(r.id LIKE ? ESCAPE '\\' OR a.id LIKE ? ESCAPE '\\' OR json_extract(a.data,'$.sample_code') LIKE ? ESCAPE '\\')")
+        parameters.extend([f"%{escaped}%"] * 3)
+    start = _date_bound(date_from) if date_from else None
+    end = _date_bound(date_to, end=True) if date_to else None
+    if start and end and datetime.fromisoformat(start) > datetime.fromisoformat(end):
+        raise HTTPException(422, "วันเริ่มต้นต้องไม่อยู่หลังวันสิ้นสุด")
+    if start:
+        clauses.append("julianday(r.created_at)>=julianday(?)")
+        parameters.append(start)
+    if end:
+        clauses.append("julianday(r.created_at)<=julianday(?)")
+        parameters.append(end)
+    where = " AND ".join(clauses)
+    joined = " FROM documents r JOIN documents a ON a.id=json_extract(r.data,'$.analysis_id') WHERE " + where
+    with store.connection() as conn:
+        total = conn.execute("SELECT COUNT(*)" + joined, parameters).fetchone()[0]
+        rows = conn.execute("SELECT r.*" + joined + " ORDER BY r.created_at ASC,r.id ASC LIMIT ? OFFSET ?", [*parameters, limit, offset]).fetchall()
+        items = []
+        for row in rows:
+            referral = {**dict(row), "data": json.loads(row["data"])}
+            analysis = store.get_document("analysis", referral["data"]["analysis_id"], conn=conn)
+            assert analysis is not None
+            items.append(_present_referral(store, referral, analysis, conn=conn))
+    return {"items": items, "total": total, "limit": limit, "offset": offset, "scope": scope}
+
+
+@router.get("/referrals/{referral_id}")
+def referral_detail(referral_id: str, request: Request, user: Annotated[dict[str, Any], Depends(require_user)]) -> dict[str, Any]:
+    store = get_store(request)
+    referral, analysis = _get_referral(store, referral_id, user)
+    return _present_referral(store, referral, analysis)
+
+
+@router.get("/analyses/{analysis_id}/referral")
+def analysis_referral(analysis_id: str, request: Request, user: Annotated[dict[str, Any], Depends(require_user)]) -> dict[str, Any]:
+    store = get_store(request)
+    analysis = get_analysis(store, analysis_id, user)
+    referral_id = analysis["data"].get("referral_id")
+    if not referral_id:
+        return {"referral": None}
+    referral, analysis = _get_referral(store, referral_id, user)
+    if analysis["id"] != analysis_id:
+        raise HTTPException(404, "ไม่พบรายการส่งต่อที่เชื่อมกับผลวิเคราะห์นี้")
+    return {"referral": _present_referral(store, referral, analysis)}

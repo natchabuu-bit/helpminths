@@ -25,8 +25,8 @@ def main() -> int:
         parser.error("Passwords do not match")
     try:
         with store.transaction() as conn:
-            if conn.execute("SELECT 1 FROM users LIMIT 1").fetchone() is not None:
-                parser.error("Accounts already exist. Sign in as an administrator to manage users.")
+            if conn.execute("SELECT 1 FROM users WHERE active=1 AND role='admin' LIMIT 1").fetchone() is not None:
+                parser.error("An active administrator already exists. Sign in as an administrator to manage users.")
             store.create_user(args.username, password, "admin", conn=conn)
     except HTTPException as error:
         parser.error(str(error.detail))

@@ -69,6 +69,9 @@ def login(client, username):
     response = client.post("/api/platform/login", json={"username": username, "password": "Synthetic-test-password-2026"})
     assert response.status_code == 200, response.text
     client.headers["X-CSRF-Token"] = response.json()["csrf_token"]
+    if response.json()["user"]["role"] in {"admin", "reviewer"}:
+        verified = client.post("/api/platform/expert-login", json={"password": "Synthetic-test-password-2026"})
+        assert verified.status_code == 200, verified.text
 
 
 def create(client, **data):

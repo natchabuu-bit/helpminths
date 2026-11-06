@@ -129,7 +129,13 @@ def test_document_transactions_conflicts_soft_delete_and_immutable_audit(store):
         original = store.create_document("analysis", {"status": "completed", "detections": []}, user["id"], user["id"], conn=conn)
     assert original["revision"] == 1
     assert flatten_document(original)["status"] == "completed"
-    assert_access(reviewer, original)
+    with pytest.raises(HTTPException) as unverified:
+        assert_access(reviewer, original)
+    assert unverified.value.status_code == 403
+    assert unverified.value.detail["code"] == "expert_verification_required"
+    # Direct unit inputs mirror the server-attached flag after session re-auth;
+    # public registration and ordinary login never supply this permission.
+    assert_access({**reviewer, "_expert_verified": True}, original)
     assert_access(user, original)
     with pytest.raises(HTTPException):
         assert_access({"id": "another-user", "role": "lab"}, original)

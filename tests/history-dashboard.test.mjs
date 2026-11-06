@@ -197,6 +197,8 @@ test('species history uses positive-person denominators, gaps and flagged report
   try {
     const panel = page.getByTestId('survey-history')
     await panel.getByRole('heading', { name: 'ชนิดพยาธิรายปี · ร้อยละของผู้ตรวจพบพยาธิ', exact: true }).waitFor()
+    assert.equal(await page.getByRole('heading', { name: 'ข้อค้นพบสำคัญจากข้อมูลรายปี', exact: true }).count(), 0)
+    assert.equal(await page.locator('.shp-insights').count(), 0)
     assert.match(await panel.innerText(), /ผลรวมแต่ละชนิดอาจเกิน 100%/)
     const ascaris = heatRow(page, 'history-species-heatmap', 'พยาธิไส้เดือน')
     assert.equal(await ascaris.locator('td').first().getAttribute('data-missing'), 'true')

@@ -37,6 +37,11 @@
 .shell-caption { color: #5a7c7b; font: 500 .625rem/1.6 var(--mono); letter-spacing: 1.2px; }
 .instrument-shell .breadcrumb strong { font-size: 1rem; font-weight: 600; }
 .instrument-shell .topbar-right { gap: 15px; }
+.instrument-shell .topbar-account { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 9px 13px; border: 1px solid #a9cfc2; border-radius: 7px; background: #e1f2eb; color: #125a4f; font-size: .9375rem; white-space: nowrap; }
+.instrument-shell .topbar-account:hover { background: #cfe9dd; }
+.instrument-shell .breadcrumb { flex: 1; min-width: 0; }
+.instrument-shell .breadcrumb > div { min-width: 0; }
+.instrument-shell .breadcrumb strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .instrument-shell .education-badge { color: #3c6965; background: #f9fdfb; border: 1px solid #ccdfd9; border-radius: 4px; padding: 5px 9px; font-size: .8125rem; }
 .instrument-shell .icon-button { color: #416d6a; border-radius: 6px; }
 .instrument-shell .icon-button:hover { background: #dfefe9; }
@@ -139,6 +144,7 @@
   .instrument-shell .topbar-help { display: grid; }
   .instrument-shell .topbar-avatar { width: 32px; height: 32px; }
   .instrument-shell .shell-caption { font-size: .5625rem; letter-spacing: .7px; }
+  .instrument-shell .topbar-account { font-size: .875rem; gap: 6px; padding: 8px 10px; }
   .instrument-shell .breadcrumb strong { font-size: .9375rem; }
   .instrument-shell .main-content { padding: 18px 16px 0; }
   .instrument-shell .capability-strip { margin-top: 22px; gap: 10px; }
@@ -153,6 +159,7 @@
   .instrument-shell .app-footer { gap: 10px; margin-top: 28px; }
   .instrument-shell .app-footer > span:first-child { font-size: .625rem; }
 }
+@media (max-width: 420px) { .instrument-shell .shell-caption, .instrument-shell .topbar-help { display: none; } }
 @media (prefers-reduced-motion: reduce) {
   .instrument-shell *, .instrument-shell *::before, .instrument-shell *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   .instrument-shell .workflow-card:hover, .instrument-shell .specimen-card:hover, .instrument-shell .button-primary:hover { transform: none; }

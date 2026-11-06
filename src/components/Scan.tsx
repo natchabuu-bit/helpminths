@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDownToLine, ArrowRight, Camera, Check, CheckCheck, ChevronRight, CircleHelp, Crosshair, Expand, Eye, EyeOff, FileImage, ImagePlus, Info, LoaderCircle, Microscope, RefreshCw, ScanLine, ShieldCheck, Sparkles, Upload, X, ZoomIn, ZoomOut } from 'lucide-react';
+import { ArrowRight, Camera, Check, CheckCheck, ChevronRight, CircleHelp, Crosshair, Expand, Eye, EyeOff, FileImage, ImagePlus, Info, LoaderCircle, Microscope, RefreshCw, ScanLine, ShieldCheck, Sparkles, Upload, X, ZoomIn, ZoomOut } from 'lucide-react';
 import '../styles/scan.css';
+import '../styles/scan-workflow.css';
 import { matchSpeciesLabel } from '../data/species';
 import ImageQualityPanel from './ImageQualityPanel';
+import ReferralPanel from './ReferralPanel';
 import { APIError, apiRequest, emptyPlatformSession } from '../platform/api';
 import type { PlatformSession, QualityAssessment } from '../platform/api';
 
@@ -43,6 +45,7 @@ interface ScanProps {
   platformSession?: PlatformSession;
   onOpenSettings?: () => void;
   onOpenReview?: (id: string) => void;
+  onOpenHistory?: () => void;
 }
 
 type HealthStatus = 'checking' | 'ready' | 'unavailable' | 'offline';
@@ -50,7 +53,48 @@ const COLORS = ['#47e2b5', '#ffbb69', '#b6a0ff', '#72c9ff', '#ff8fa2'];
 // UI ink colors contrast with light cards; vivid image boxes keep their own palette.
 const RESULT_COLORS = ['#146b55', '#84521a', '#65429a', '#246693', '#a63b50'];
 const MAX_SIZE = 20 * 1024 * 1024;
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_PIXELS = 40_000_000;
+
+async function prepareUpload(file: File, signal: AbortSignal): Promise<{ file: File; notice: string }> {
+  // Native previews work offline. Identify bytes rather than trusting a suffix.
+  const bytes = new Uint8Array(await file.slice(0, 32).arrayBuffer());
+  const text = new TextDecoder('ascii').decode(bytes);
+  const mime = bytes[0] === 0xff && bytes[1] === 0xd8 ? 'image/jpeg'
+    : bytes[0] === 0x89 && text.slice(1, 4) === 'PNG' ? 'image/png'
+    : text.startsWith('BM') ? 'image/bmp'
+    : text.startsWith('GIF87a') || text.startsWith('GIF89a') ? 'image/gif'
+    : text.startsWith('RIFF') && text.slice(8, 12) === 'WEBP' ? 'image/webp' : '';
+  if (mime && !['image/gif', 'image/webp'].includes(mime)) return { file: new File([file], file.name, { type: mime }), notice: '' };
+  if (mime && typeof createImageBitmap === 'function') {
+    // ImageBitmap selects the default/first animation frame; freeze it so boxes
+    // never move relative to an animated GIF or WebP preview.
+    let bitmap: ImageBitmap | undefined;
+    try {
+      bitmap = await createImageBitmap(new Blob([file], { type: mime }));
+      if (bitmap.width * bitmap.height > MAX_PIXELS) throw new Error('ภาพมีความละเอียดสูงเกินไป กรุณาใช้ภาพไม่เกิน 40 ล้านพิกเซล');
+      const canvas = document.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height;
+      const context = canvas.getContext('2d'); if (!context) throw new Error('เปิดตัวแปลงภาพไม่ได้');
+      context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height); context.drawImage(bitmap, 0, 0);
+      const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('แปลงภาพไม่สำเร็จ')), 'image/png'));
+      if (blob.size > MAX_SIZE) throw new Error('ภาพหลังแปลงมีขนาดเกิน 20 MB กรุณาลดความละเอียดภาพ');
+      return { file: new File([blob], file.name, { type: 'image/png' }), notice: 'ใช้ภาพแรกหรือเฟรมเริ่มต้นเป็นภาพนิ่งสำหรับตรวจ ไม่เล่นภาพเคลื่อนไหว' };
+    } catch (failure) {
+      if (failure instanceof Error && /เกิน/.test(failure.message)) throw failure;
+      // The installed server decoders cover older browsers and other rasters.
+    } finally { bitmap?.close(); }
+  }
+  const form = new FormData(); form.append('image', file);
+  const response = await fetch('/api/images/normalize', { method: 'POST', body: form, cache: 'no-store', signal });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(typeof body.detail === 'string' ? body.detail : 'เปิดภาพนี้ไม่ได้ กรุณาใช้ภาพราสเตอร์ที่ตัวถอดรหัสรองรับ');
+  }
+  const blob = await response.blob();
+  if (blob.size > MAX_SIZE || blob.type !== 'image/png') throw new Error('บริการแปลงภาพส่งไฟล์ที่อ่านไม่ได้หรือขนาดเกินกำหนด');
+  const notes = response.headers.get('x-image-normalization-notes') ?? '';
+  const details = [response.headers.get('x-image-multiple-frames') === '1' ? 'ใช้ภาพแรกของไฟล์หลายเฟรม/หลายหน้า' : '', notes.includes('16bit_to_8bit') ? 'แปลงภาพ 16 บิตเป็น 8 บิตสำหรับโมเดล' : ''].filter(Boolean);
+  return { file: new File([blob], file.name, { type: 'image/png' }), notice: [`แปลง ${response.headers.get('x-image-source-format') || 'รูปแบบต้นฉบับ'} เป็นภาพนิ่ง PNG โดยไม่บันทึกบนเซิร์ฟเวอร์`, ...details].join(' · ') };
+}
 
 function thaiName(label: string) {
   const match = matchSpeciesLabel(label);
@@ -78,14 +122,14 @@ function readImage(file: File): Promise<{ url: string; width: number; height: nu
       const url = String(reader.result);
       const img = new Image();
       img.onload = () => resolve({ url, width: img.naturalWidth, height: img.naturalHeight });
-      img.onerror = () => reject(new Error('เปิดภาพนี้ไม่ได้ กรุณาใช้ไฟล์ JPG, PNG หรือ WEBP ที่สมบูรณ์'));
+      img.onerror = () => reject(new Error('เปิดภาพนี้ไม่ได้ กรุณาเลือกไฟล์ภาพที่สมบูรณ์'));
       img.src = url;
     };
     reader.readAsDataURL(file);
   });
 }
 
-export default function Scan({ onResult, initialRecord = null, openAtlas, startDemo = false, platformSession = emptyPlatformSession, onOpenSettings, onOpenReview }: ScanProps) {
+export default function Scan({ onResult, initialRecord = null, openAtlas, startDemo = false, platformSession = emptyPlatformSession, onOpenSettings, onOpenReview, onOpenHistory }: ScanProps) {
   const [health, setHealth] = useState<HealthStatus>('checking');
   const [healthMessage, setHealthMessage] = useState('');
   const [imageUrl, setImageUrl] = useState(initialRecord?.imageUrl ?? '');
@@ -100,7 +144,7 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
   const [showBoxes, setShowBoxes] = useState(true);
   const [selectedId, setSelectedId] = useState<string | number | null>(null);
   const [zoom, setZoom] = useState(1);
-  const [exported, setExported] = useState(false);
+  const [normalizationNotice, setNormalizationNotice] = useState('');
   const [quality, setQuality] = useState<(QualityAssessment & { notice?: string }) | null>(initialRecord?.quality ?? null);
   const [qualityBusy, setQualityBusy] = useState(false);
   const [qualityAcknowledged, setQualityAcknowledged] = useState(false);
@@ -223,18 +267,19 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
   const acceptFile = async (file?: File) => {
     if (!file || working || reading || qualityBusy) return;
     setError('');
-    if (!ACCEPTED_TYPES.includes(file.type)) {
-      setError('กรุณาเลือกไฟล์ภาพ JPG, PNG หรือ WEBP หากภาพเป็น HEIC ให้แปลงเป็น JPG ก่อน');
-      return;
-    }
     if (file.size > MAX_SIZE) {
       setError('ไฟล์มีขนาดเกิน 20 MB กรุณาลดขนาดภาพแล้วลองอีกครั้ง');
       return;
     }
     setReading(true);
+    const controller = new AbortController(); requestController.current = controller;
     try {
-      const image = await readImage(file);
-      imageFile.current = file;
+      const prepared = await prepareUpload(file, controller.signal);
+      const image = await readImage(prepared.file);
+      if (image.width * image.height > MAX_PIXELS) throw new Error('ภาพมีความละเอียดสูงเกินไป กรุณาใช้ภาพไม่เกิน 40 ล้านพิกเซล');
+      if (controller.signal.aborted) return;
+      imageFile.current = prepared.file;
+      setNormalizationNotice(prepared.notice);
       setImageUrl(image.url);
       setFilename(file.name);
       setDimensions({ width: image.width, height: image.height });
@@ -244,9 +289,10 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
       setZoom(1);
       setShowBoxes(true);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'ไม่สามารถอ่านไฟล์ภาพได้');
+      if (!controller.signal.aborted) setError(cause instanceof TypeError ? 'ภาพรูปแบบนี้ต้องใช้บริการแปลงภาพ กรุณาเชื่อมต่อเซิร์ฟเวอร์แล้วลองอีกครั้ง' : cause instanceof Error ? cause.message : 'ไม่สามารถอ่านไฟล์ภาพได้');
     } finally {
       setReading(false);
+      if (requestController.current === controller) requestController.current = null;
       if (fileInput.current) fileInput.current.value = '';
       if (cameraInput.current) cameraInput.current.value = '';
     }
@@ -307,8 +353,8 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
     } finally { clearTimeout(timeout); requestController.current = null; setWorking(false); }
   };
   const clearImage = () => {
-    if (working || qualityBusy) return;
-    imageFile.current = null; setImageUrl(''); setFilename(''); setDimensions({ width: 0, height: 0 }); setRecord(null); setQuality(null); setQualityAcknowledged(false); setQualityComment(''); setError(''); setZoom(1); setSelectedId(null);
+    if (working || qualityBusy || reading) return;
+    imageFile.current = null; setImageUrl(''); setFilename(''); setDimensions({ width: 0, height: 0 }); setRecord(null); setQuality(null); setQualityAcknowledged(false); setQualityComment(''); setError(''); setNormalizationNotice(''); setZoom(1); setSelectedId(null);
   };
 
   const displayMinimum = Math.min(15, Math.max(1, Math.floor(inferenceConfidence * 100)));
@@ -323,35 +369,6 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
   const hasImage = Boolean(imageUrl);
   const demo = record?.mode === 'demo';
 
-  const exportReport = () => {
-    if (!record) return;
-    const report = {
-      application: 'HelpMinths',
-      reportVersion: 1,
-      id: record.id,
-      mode: record.mode,
-      notice: demo ? 'ข้อมูลสาธิต ไม่ใช่ผลตรวจจาก AI ภาพและกรอบทั้งหมดสร้างขึ้นเพื่อแสดงการใช้งาน' : 'ข้อมูลช่วยคัดกรอง ควรยืนยันผลโดยผู้เชี่ยวชาญ ไม่ใช่การวินิจฉัยทางการแพทย์',
-      createdAt: record.createdAt,
-      filename: record.filename,
-      width: record.width,
-      height: record.height,
-      model: record.model,
-      duration_ms: record.duration_ms,
-      confidenceThreshold: threshold / 100,
-      detectionCount: detections.length,
-      speciesCount: species.length,
-      detections,
-    };
-    const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json;charset=utf-8' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `HelpMinths-${demo ? 'DEMO-' : ''}${record.id}.json`;
-    link.click();
-    window.setTimeout(() => URL.revokeObjectURL(url), 2000);
-    setExported(true);
-    window.setTimeout(() => setExported(false), 2500);
-  };
-
   return (
     <section className="scan-workspace" aria-label="ตรวจหาไข่พยาธิ">
       <div className="scan-section-heading">
@@ -359,11 +376,12 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
         <div className={`scan-health scan-health--${health}`} title={healthMessage}><span className="scan-status-dot" />{health === 'ready' ? 'โมเดล AI พร้อมใช้งาน' : health === 'checking' ? 'กำลังเชื่อมต่อบริการ' : 'ยังไม่เชื่อมต่อโมเดล AI'}{health !== 'ready' && <button type="button" onClick={() => void checkHealth()} disabled={health === 'checking'} aria-label="ตรวจสอบการเชื่อมต่ออีกครั้ง"><RefreshCw size={13} className={health === 'checking' ? 'scan-spin' : ''} /></button>}</div>
       </div>
 
-      <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" className="scan-sr-only" onChange={(event) => void acceptFile(event.target.files?.[0])} aria-label="เลือกภาพจากอุปกรณ์" />
+      <input ref={fileInput} type="file" accept="*/*" className="scan-sr-only" onChange={(event) => void acceptFile(event.target.files?.[0])} aria-label="เลือกภาพจากอุปกรณ์" />
       <input ref={cameraInput} type="file" accept="image/*" capture="environment" className="scan-sr-only" onChange={(event) => void acceptFile(event.target.files?.[0])} aria-label="ถ่ายภาพด้วยกล้อง" />
 
       {demo && <div className="scan-demo-banner" role="status"><Sparkles size={16} /><div><strong>ข้อมูลสาธิต ไม่ใช่ผลตรวจจาก AI</strong><span>ภาพวาดจำลองและกรอบตัวอย่าง ใช้เพื่อสำรวจการทำงานของแอปเท่านั้น</span></div><button type="button" onClick={() => fileInput.current?.click()}><Upload size={14} /> ใช้ภาพของคุณ <ArrowRight size={14} /></button></div>}
       {error && <div className="scan-error" role="alert"><CircleHelp size={18} /><span>{error}</span><button type="button" onClick={() => setError('')} aria-label="ปิดข้อความ"><X size={16} /></button></div>}
+      {normalizationNotice && hasImage && !demo && <p className="platform-notice" role="status">{normalizationNotice}</p>}
 
       <div className="scan-grid">
         <div className="scan-main-column">
@@ -376,7 +394,8 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
                 <h2>{reading ? 'กำลังเตรียมภาพ…' : dragging ? 'วางภาพของคุณที่นี่' : 'เริ่มต้นด้วยภาพเพียงหนึ่งภาพ'}</h2>
                 <p>ลากภาพกล้องจุลทรรศน์มาวางที่นี่<br />หรือเลือกจากอุปกรณ์ของคุณ</p>
                 <div className="scan-upload-actions"><button type="button" className="scan-button scan-button-primary" onClick={() => fileInput.current?.click()} disabled={reading}><Upload size={17} /> เลือกรูปภาพ <ArrowRight size={16} /></button><button type="button" className="scan-button scan-button-secondary" onClick={() => cameraInput.current?.click()} disabled={reading}><Camera size={17} /> ถ่ายภาพ</button></div>
-                <span className="scan-file-formats">JPG, PNG หรือ WEBP <span>·</span> ขนาดไม่เกิน 20 MB</span>
+                <span className="scan-file-formats">JPEG, PNG, HEIC, TIFF, BMP, GIF, WebP และภาพราสเตอร์อื่น <span>·</span> ไม่เกิน 20 MB</span>
+                <p className="scan-format-note">ไม่จำกัดนามสกุล แต่ตรวจเนื้อหาภาพจริง ไฟล์ที่เบราว์เซอร์เปิดไม่ได้จะส่งไปแปลงผ่านบริการโดยไม่บันทึก ภาพหลายหน้าใช้ภาพแรก · SVG, PDF และ RAW ต้องแปลงก่อน</p>
                 <div className="scan-upload-divider"><span /> หรือทดลองใช้งาน <span /></div>
                 <button type="button" className="scan-demo-link" onClick={loadDemo}><Sparkles size={15} /> ดูตัวอย่างสาธิต <ChevronRight size={15} /></button>
               </div>
@@ -408,12 +427,12 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
           {hasImage && !demo && <>
             <ImageQualityPanel quality={quality} checking={qualityBusy} disabled={working || reading} acknowledged={qualityAcknowledged} comment={qualityComment} onCheck={() => { void checkQuality(); }} onAcknowledge={setQualityAcknowledged} onComment={setQualityComment}/>
             <section className="scan-storage-context"><h2>{persistent ? 'บันทึกเป็นรายการตรวจที่ติดตามได้' : 'การจัดเก็บผลตรวจ'}</h2>
-              {persistent && !student ? <><div className="scan-storage-fields"><label>รหัสตัวอย่างนิรนาม<input value={sampleCode} onChange={event => setSampleCode(event.target.value)} maxLength={40} placeholder="เช่น SLIDE-001" autoComplete="off"/></label><label>รหัสหน่วยงาน (ถ้ามี)<input value={siteCode} onChange={event => setSiteCode(event.target.value)} maxLength={40} placeholder="เช่น LAB-A" autoComplete="off"/></label></div><p>ภาพที่ตรวจจะเก็บในพื้นที่ส่วนตัวตามสิทธิ์บัญชี ไม่ใช้ชื่อหรือเลขประจำตัวผู้ป่วยเป็นรหัสตัวอย่าง</p></> : <p>{needsLogin ? 'เข้าสู่ระบบก่อนสร้างรายการตรวจที่บันทึกไว้ พร้อมส่งต่อให้ผู้เชี่ยวชาญและออกรายงาน' : student ? 'บัญชีผู้เรียนใช้ Atlas และห้องเรียนได้ การสร้างรายการตรวจต้องใช้บัญชีผู้ปฏิบัติงาน' : 'ยังไม่ได้ตั้งค่าฐานข้อมูล ผลตรวจจริงจากโหมดนี้อยู่เฉพาะเซสชันและไม่ส่งเข้าประวัติส่วนกลาง'}</p>}
+              {persistent && !student ? <><div className="scan-storage-fields"><label>รหัสตัวอย่างนิรนาม<input value={sampleCode} onChange={event => setSampleCode(event.target.value)} maxLength={40} placeholder="เช่น SLIDE-001" autoComplete="off"/></label><label>รหัสหน่วยงาน (ถ้ามี)<input value={siteCode} onChange={event => setSiteCode(event.target.value)} maxLength={40} placeholder="เช่น LAB-A" autoComplete="off"/></label></div><p>ภาพที่ตรวจจะเก็บในพื้นที่ส่วนตัวตามสิทธิ์บัญชี ไม่ใช้ชื่อหรือเลขประจำตัวผู้ป่วยเป็นรหัสตัวอย่าง</p></> : <p>{needsLogin ? 'เข้าสู่ระบบก่อนสร้างรายการตรวจที่บันทึกไว้ พร้อมส่งต่อให้ผู้เชี่ยวชาญและออกรายงาน' : student ? 'บัญชีอ่านอย่างเดียวใช้ Atlas ได้ การสร้างรายการตรวจต้องใช้บัญชีผู้ใช้ทั่วไป' : 'ยังไม่ได้ตั้งค่าฐานข้อมูล ผลตรวจจริงจากโหมดนี้อยู่เฉพาะเซสชันและไม่ส่งเข้าประวัติส่วนกลาง'}</p>}
               {needsLogin && <button className="scan-button scan-button-secondary" type="button" onClick={onOpenSettings}>เข้าสู่ระบบ</button>}
               {record?.storage === 'private' && <button className="scan-button scan-button-secondary" type="button" onClick={() => onOpenReview?.(record.id)}>เปิดรายการและทบทวนผล</button>}
             </section>
           </>}
-          {hasImage && !demo && <div className="scan-analyze-row"><div><ShieldCheck size={18} /><span>{health === 'ready' ? 'ภาพพร้อมแล้ว เริ่มวิเคราะห์เพื่อแสดงตำแหน่งและชนิด' : health === 'checking' ? 'กำลังตรวจสอบความพร้อมของโมเดล' : 'บันทึกภาพไว้แล้ว · ต้องเชื่อมต่อโมเดลเพื่อวิเคราะห์จริง'}</span></div><button type="button" className="scan-button scan-button-primary" disabled={working || reading || qualityBusy || needsLogin || student || health !== 'ready'} onClick={() => void analyze()}>{working ? <LoaderCircle className="scan-spin" size={17} /> : <ScanLine size={17} />}{working ? 'กำลังวิเคราะห์…' : record ? 'วิเคราะห์อีกครั้ง' : 'เริ่มวิเคราะห์ภาพ'}{!working && <ArrowRight size={16} />}</button></div>}
+          {hasImage && !demo && <div className="scan-analyze-row"><div><ShieldCheck size={18} /><span>{health === 'ready' ? 'ภาพพร้อมแล้ว เริ่มวิเคราะห์เพื่อแสดงตำแหน่งและชนิด' : health === 'checking' ? 'กำลังตรวจสอบความพร้อมของโมเดล' : 'เลือกภาพแล้ว · ต้องเชื่อมต่อโมเดลเพื่อวิเคราะห์จริง'}</span></div><button type="button" className="scan-button scan-button-primary" disabled={working || reading || qualityBusy || needsLogin || student || health !== 'ready'} onClick={() => void analyze()}>{working ? <LoaderCircle className="scan-spin" size={17} /> : <ScanLine size={17} />}{working ? 'กำลังวิเคราะห์…' : record ? 'วิเคราะห์อีกครั้ง' : 'เริ่มวิเคราะห์ภาพ'}{!working && <ArrowRight size={16} />}</button></div>}
 
           {hasImage && <div className="scan-clear-row"><button type="button" disabled={working || qualityBusy} onClick={clearImage}>ล้างภาพในหน้านี้</button></div>}
           <div className="scan-quality-tip"><span className="scan-tip-icon"><Sparkles size={16} /></span><div><strong>ภาพที่ชัดเจน ช่วยให้เห็นรายละเอียดได้ดีขึ้น</strong><p>ใช้ภาพจากกล้องจุลทรรศน์ ปรับโฟกัสให้คมชัด และให้แสงสม่ำเสมอทั่วทั้งภาพ</p></div><span className="scan-tip-decoration" aria-hidden="true">✦</span></div>
@@ -437,11 +456,12 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
               {selectedAtlasSpecies?.id === 'opisthorchis' && <div className="scan-model-note scan-ov-note"><Info size={15} /><p><strong>ลักษณะไข่คล้าย OV ต้องตรวจยืนยัน</strong><span>ไข่พยาธิใบไม้ตับอาจคล้ายไข่พยาธิใบไม้ลำไส้ขนาดเล็กและ Clonorchis ผลจากภาพเพียงอย่างเดียวยังไม่ยืนยันชนิด ควรให้ผู้เชี่ยวชาญทบทวน</span></p></div>}
               {selectedAtlasSpecies?.clinicalNote && ['mif', 'hymenolepis-nana', 'hymenolepis-diminuta', 'echinostoma', 'fasciolopsis', 'strongyloides'].includes(selectedAtlasSpecies.id) && <div className="scan-model-note scan-species-note"><Info size={15} /><p><strong>ข้อควรพิจารณาในการจำแนก{selectedAtlasSpecies.specimenType === 'larva' ? 'ตัวอ่อน' : 'ไข่'}</strong><span>{selectedAtlasSpecies.clinicalNote}</span></p></div>}
               {selected && selectedAtlasSpecies && openAtlas && <button type="button" className="scan-atlas-link" onClick={() => openAtlas(selectedAtlasSpecies.id)}><span className="scan-atlas-link-icon"><Microscope size={18} /></span><span><strong>รู้จัก {selectedAtlasSpecies.id === 'mif' ? 'MIF' : selectedAtlasSpecies.name.split(' ')[0]} ให้มากขึ้น</strong><small>สำรวจลักษณะ{selectedAtlasSpecies.specimenType === 'larva' ? 'ตัวอ่อน' : 'ไข่'}ใน Morphology Atlas</small></span><ArrowRight size={16} /></button>}
-              <div className="scan-results-footer"><div><span className="scan-mini-dot" />{demo ? 'ค่าจำลองเพื่อสาธิตการแสดงผล' : `ความเชื่อมั่นเฉลี่ย ${meanConfidence}% · ${(record.duration_ms / 1000).toFixed(1)} วินาที`}</div><button type="button" className="scan-export-button" onClick={exportReport}>{exported ? <Check size={16} /> : <ArrowDownToLine size={16} />}{exported ? 'ดาวน์โหลดแล้ว' : 'ส่งออกรายงาน JSON'}<ArrowRight size={15} /></button></div>
+              <div className="scan-results-footer"><div><span className="scan-mini-dot" />{demo ? 'ค่าจำลองเพื่อสาธิตการแสดงผล' : `ความเชื่อมั่นเฉลี่ย ${meanConfidence}% · ${(record.duration_ms / 1000).toFixed(1)} วินาที`}</div></div>
             </>
           )}
         </aside>
       </div>
+      {record?.storage === 'private' && record.mode === 'real' && <><section className="scan-saved-history"><CheckCheck size={20}/><div><strong>บันทึกผลตรวจในประวัติรายวันแล้ว</strong><p>รายการนี้อยู่ในบัญชีของคุณ ส่งภาพที่ไม่มั่นใจให้ผู้เชี่ยวชาญจากช่องด้านล่างได้</p></div><button className="platform-button" onClick={onOpenHistory}>ดูประวัติรายวัน <ArrowRight size={16}/></button></section><ReferralPanel key={record.id} session={platformSession} analysisId={record.id}/></>}
       <p className="scan-medical-note"><ShieldCheck size={14} />{demo ? 'ข้อมูลสาธิต ไม่ใช่ผลตรวจจาก AI · ภาพนี้เป็นภาพวาดจำลอง ไม่ใช่ภาพตัวอย่างทางการแพทย์' : 'ผลการวิเคราะห์เป็นข้อมูลช่วยคัดกรอง ควรตรวจสอบและยืนยันโดยผู้เชี่ยวชาญก่อนนำไปใช้ทางการแพทย์'}</p>
     </section>
   );
