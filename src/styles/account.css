@@ -15,6 +15,9 @@
 .account-current-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 .account-current-actions p { margin: 0; color: var(--muted); }
 .account-preferences form { max-width: 1000px; }
+.account-page .platform-definition-grid > div, .account-page .platform-user-entry { min-width: 0; }
+.account-page .platform-user-entry > div:first-child, .account-page .platform-user-entry .platform-form-grid > label { min-width: 0; overflow-wrap: anywhere; }
+.account-page .platform-modal h2 { overflow-wrap: anywhere; }
 .account-readiness { display:flex;align-items:center;justify-content:space-between;gap:18px;margin:20px 0;padding:20px 22px;border:1px solid #bad8ce;border-radius:10px;background:#edf8f2; }
 .account-readiness-main { display:flex;align-items:flex-start;gap:13px;min-width:0; }
 .account-readiness-main>svg { flex-shrink:0;margin-top:4px;color:#1f7b55; }

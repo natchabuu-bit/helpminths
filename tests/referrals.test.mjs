@@ -186,3 +186,74 @@ test('account settings verify the current password, rotate sessions and preserve
     assert.deepEqual(owner.errors, []); assert.deepEqual(otherDevice.errors, [])
   } finally { await owner.context.close(); await otherDevice.context.close() }
 })
+
+test('account forms accept one-character and long usernames with four-character passwords without composition rules', { timeout: 90_000 }, async () => {
+  const owner = await contextForTest(), otherDevice = await contextForTest()
+  try {
+    const page = await owner.context.newPage()
+    await page.setViewportSize({ width: 375, height: 1000 })
+    await page.goto(`${baseURL}/#settings`, { waitUntil: 'networkidle' })
+    await page.getByRole('tab', { name: 'สมัครสมาชิก', exact: true }).click()
+    const usernameInput = page.getByLabel('ชื่อบัญชี', { exact: true })
+    const passwordInput = page.getByLabel('รหัสผ่าน', { exact: true })
+    const confirmation = page.getByLabel('ยืนยันรหัสผ่าน', { exact: true })
+    assert.equal(await usernameInput.getAttribute('minlength'), null)
+    assert.equal(await usernameInput.getAttribute('maxlength'), null)
+    await passwordInput.fill('abcd'); await confirmation.fill('abcd')
+    assert.equal(await passwordInput.evaluate(input => input.checkValidity()), true, 'Letters-only passwords of length4 must be allowed')
+
+    // Names are deliberately short; a successful account edit below releases
+    // the name for reruns on the same isolated fixture. A conflict is not a
+    // validation failure and can be retried with another synthetic character.
+    let shortUsername, created
+    for (const candidate of ['q', 'w', 'e', 'r', 't', 'y']) {
+      await usernameInput.fill(candidate)
+      assert.equal(await usernameInput.evaluate(input => input.checkValidity()), true)
+      const pending = page.waitForResponse(response => response.url().endsWith('/api/platform/register') && response.request().method() === 'POST')
+      await page.getByRole('button', { name: 'สร้างบัญชีและเข้าใช้งาน', exact: true }).click()
+      const response = await pending
+      assert.ok([201, 409].includes(response.status()), `Short-name registration returned ${response.status()}: ${await response.text()}`)
+      if (response.status() === 201) { shortUsername = candidate; created = await response.json(); break }
+    }
+    assert.ok(shortUsername && created, 'A synthetic one-character name must be registered')
+    assert.equal(created.user.username, shortUsername)
+    assert.equal(created.user.role, 'lab', 'Relaxed credential lengths must not change role approval')
+    await page.getByRole('button', { name: 'ออกจากระบบ', exact: true }).waitFor()
+    const original = await session(owner.context)
+    assert.equal((await post(otherDevice.context, '/login', { username: shortUsername, password: 'abcd' })).status(), 200)
+
+    const longUsername = `credential_${Date.now()}_${'x'.repeat(100)}`
+    const editedName = page.getByLabel('ชื่อบัญชีที่ต้องการใช้', { exact: true })
+    await editedName.fill(longUsername)
+    assert.equal(await editedName.inputValue(), longUsername)
+    assert.equal(await editedName.evaluate(input => input.checkValidity()), true, 'Names longer than64 characters must remain valid')
+    assert.equal(await editedName.getAttribute('minlength'), null)
+    assert.equal(await editedName.getAttribute('maxlength'), null)
+    await page.getByLabel('รหัสผ่านปัจจุบัน', { exact: true }).fill('abcd')
+    const newPassword = page.getByLabel('รหัสผ่านใหม่ (เว้นว่างหากไม่เปลี่ยน)', { exact: true })
+    await newPassword.fill('1234')
+    await page.getByLabel('ยืนยันรหัสผ่านใหม่', { exact: true }).fill('1234')
+    assert.equal(await newPassword.evaluate(input => input.checkValidity()), true, 'Numbers-only passwords of length4 must be allowed')
+    const changed = page.waitForResponse(response => response.url().endsWith('/api/platform/account') && response.request().method() === 'PATCH')
+    await page.getByRole('button', { name: 'บันทึกบัญชีของฉัน', exact: true }).click()
+    assert.equal((await changed).status(), 200)
+    await page.getByText('บันทึกบัญชีแล้ว เซสชันเดิมถูกยกเลิก กรุณาใช้ชื่อบัญชีและรหัสผ่านล่าสุดในอุปกรณ์อื่น', { exact: true }).waitFor()
+    const updated = await session(owner.context)
+    assert.equal(updated.user.id, original.user.id)
+    assert.equal(updated.user.username, longUsername)
+    assert.equal(updated.user.role, 'lab')
+    assert.equal((await session(otherDevice.context)).user, null, 'Credential changes still revoke other sessions')
+    assert.equal(await page.getByRole('heading', { name: 'สถานะระบบที่ตรวจได้', exact: true }).count(), 0)
+    assert.doesNotMatch(await page.locator('body').innerText(), /บัญชีใหม่เป็นผู้ใช้ทั่วไป สิทธิ์ผู้เชี่ยวชาญต้องได้รับอนุมัติจากผู้ดูแล/)
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Long usernames must not overflow a375px account screen')
+    await page.getByRole('button', { name: 'ออกจากระบบ', exact: true }).click()
+    await page.getByLabel('ชื่อบัญชี', { exact: true }).fill(longUsername)
+    await page.getByLabel('รหัสผ่าน', { exact: true }).fill('1234')
+    const loggedIn = page.waitForResponse(response => response.url().endsWith('/api/platform/login') && response.request().method() === 'POST')
+    await page.getByRole('button', { name: 'เข้าสู่ระบบ', exact: true }).click()
+    assert.equal((await loggedIn).status(), 200)
+    await page.getByRole('button', { name: 'ออกจากระบบ', exact: true }).waitFor()
+    assert.equal((await session(owner.context)).user.id, original.user.id)
+    assert.deepEqual(owner.errors, []); assert.deepEqual(otherDevice.errors, [])
+  } finally { await owner.context.close(); await otherDevice.context.close() }
+})

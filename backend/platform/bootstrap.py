@@ -14,12 +14,12 @@ from .store import PlatformStore
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Create the first HelpMinths administrator using a private persistent data directory")
-    parser.add_argument("--username", required=True, help="Operator username, 3–64 ASCII letters/numbers/._-")
+    parser.add_argument("--username", required=True, help="Nonempty operator username: ASCII letters/numbers/._-, starting with a letter or number")
     args = parser.parse_args()
     store = PlatformStore()
     if not store.configured:
         parser.error("Set HELPMINTHS_DATA_DIR to private storage first")
-    password = getpass.getpass("New administrator password (at least 12 characters): ")
+    password = getpass.getpass("New administrator password (at least 4 characters): ")
     repeat = getpass.getpass("Repeat password: ")
     if password != repeat:
         parser.error("Passwords do not match")

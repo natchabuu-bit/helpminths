@@ -13,9 +13,9 @@ from typing import Annotated, Any
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
-from .store import ROLES, SCHEMA_VERSION, USERNAME, PlatformStore, hash_password, json_text, public_user, utc_now, verify_password
+from .store import ROLES, SCHEMA_VERSION, USERNAME, USERNAME_MESSAGE, PlatformStore, hash_password, json_text, public_user, utc_now, verify_password
 
 router = APIRouter(prefix="/api/platform", tags=["Platform accounts and settings"])
 COOKIE_NAME = "helpminths_session"
@@ -154,50 +154,62 @@ def require_expert_verification(request: Request, user: Annotated[dict[str, Any]
     return user
 
 
+def _validate_username(value: str) -> str:
+    normalized = value.strip()
+    if not USERNAME.fullmatch(normalized):
+        raise ValueError(USERNAME_MESSAGE)
+    return normalized
+
+
+# There is deliberately no username length policy beyond nonempty valid syntax;
+# the application still bounds the whole HTTP request before parsing it.
+Username = Annotated[str, AfterValidator(_validate_username)]
+
+
 class LoginRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    username: str = Field(min_length=1, max_length=64)
-    password: str = Field(min_length=1, max_length=1024)
+    username: Username
+    password: str = Field(min_length=4, max_length=1024)
 
 
 class CreateUserRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    username: str = Field(min_length=3, max_length=64)
-    password: str = Field(min_length=12, max_length=1024)
+    username: Username
+    password: str = Field(min_length=4, max_length=1024)
     role: str = "lab"
 
 
 class RegisterRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    username: str = Field(min_length=3, max_length=64)
-    password: str = Field(min_length=12, max_length=1024)
+    username: Username
+    password: str = Field(min_length=4, max_length=1024)
 
 
 class AdminSetupRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     setup_token: str = Field(min_length=1, max_length=256)
-    username: str = Field(min_length=3, max_length=64)
-    password: str = Field(min_length=12, max_length=1024)
+    username: Username
+    password: str = Field(min_length=4, max_length=1024)
 
 
 class AccountRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    current_password: str = Field(min_length=1, max_length=1024)
-    username: str | None = Field(default=None, min_length=3, max_length=64)
-    new_password: str | None = Field(default=None, min_length=12, max_length=1024)
+    current_password: str = Field(min_length=4, max_length=1024)
+    username: Username | None = None
+    new_password: str | None = Field(default=None, min_length=4, max_length=1024)
 
 
 class ExpertLoginRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    username: str | None = Field(default=None, min_length=1, max_length=64)
-    password: str = Field(min_length=1, max_length=1024)
+    username: Username | None = None
+    password: str = Field(min_length=4, max_length=1024)
 
 
 class UpdateUserRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     role: str | None = None
     active: bool | None = None
-    password: str | None = Field(default=None, min_length=12, max_length=1024)
+    password: str | None = Field(default=None, min_length=4, max_length=1024)
 
 
 class _LoginLimiter:
@@ -208,7 +220,8 @@ class _LoginLimiter:
 
     def check(self, client: str, username: str) -> None:
         now = time.monotonic()
-        keys = [(f"ip:{client}", 30), (f"account:{client}:{username.casefold()}", 5)]
+        account_key = hashlib.sha256(username.casefold().encode("utf-8")).hexdigest()
+        keys = [(f"ip:{client}", 30), (f"account:{client}:{account_key}", 5)]
         with self._lock:
             if len(self._attempts) > 5000:
                 self._attempts = {key: values for key, values in self._attempts.items() if values and now - values[-1] < 60}
@@ -346,7 +359,7 @@ def update_account(body: AccountRequest, request: Request, response: Response, u
     _limiter(request).check(request.client.host if request.client else "unknown", "account:" + user["id"])
     username = body.username.strip() if body.username is not None else user["username"]
     if not USERNAME.fullmatch(username):
-        raise HTTPException(422, "ชื่อผู้ใช้ใช้ A–Z, a–z, 0–9, จุด ขีดกลาง หรือขีดล่าง 3–64 ตัว")
+        raise HTTPException(422, USERNAME_MESSAGE)
     if body.username is None and body.new_password is None:
         raise HTTPException(422, "ระบุชื่อบัญชีหรือรหัสผ่านใหม่ที่ต้องการเปลี่ยน")
     encoded = hash_password(body.new_password) if body.new_password is not None else None

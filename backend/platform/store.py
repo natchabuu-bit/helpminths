@@ -26,7 +26,8 @@ from .config import PlatformConfig
 SCHEMA_VERSION = 1
 ROLES = ("admin", "reviewer", "lab", "student")
 KINDS = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
-USERNAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{2,63}$")
+USERNAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
+USERNAME_MESSAGE = "ชื่อผู้ใช้ต้องไม่ว่าง เริ่มด้วย A–Z, a–z หรือ 0–9 และใช้ตัวอักษรเหล่านี้ จุด ขีดกลาง หรือขีดล่างได้"
 
 
 def utc_now() -> str:
@@ -42,8 +43,8 @@ def flatten_document(document: dict[str, Any]) -> dict[str, Any]:
 
 
 def hash_password(password: str) -> str:
-    if not isinstance(password, str) or len(password) < 12 or len(password.encode("utf-8")) > 1024:
-        raise HTTPException(422, "รหัสผ่านต้องมีอย่างน้อย 12 ตัวอักษร และไม่เกิน 1,024 ไบต์")
+    if not isinstance(password, str) or len(password) < 4 or len(password.encode("utf-8")) > 1024:
+        raise HTTPException(422, "รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร และไม่เกิน 1,024 ไบต์")
     salt = secrets.token_bytes(16)
     digest = hashlib.scrypt(password.encode("utf-8"), salt=salt, n=16384, r=8, p=1, dklen=32)
     return "scrypt$16384$8$1$" + base64.b64encode(salt).decode() + "$" + base64.b64encode(digest).decode()
@@ -283,7 +284,7 @@ class PlatformStore:
 
     def create_user(self, username: str, password: str, role: str = "lab", actor_id: str | None = None, conn: sqlite3.Connection | None = None) -> dict[str, Any]:
         if not isinstance(username, str) or not USERNAME.fullmatch(username.strip()):
-            raise HTTPException(422, "ชื่อผู้ใช้ใช้ A–Z, a–z, 0–9, จุด ขีดกลาง หรือขีดล่าง 3–64 ตัว")
+            raise HTTPException(422, USERNAME_MESSAGE)
         if role not in ROLES:
             raise HTTPException(422, "Invalid role")
         encoded = hash_password(password)

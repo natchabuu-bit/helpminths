@@ -33,7 +33,7 @@ export HELPMINTHS_COOKIE_SECURE=0
 .venv/bin/python -m backend.platform.bootstrap --username operator
 ```
 
-CLI ถามรหัสผ่านอย่างน้อย12ตัวอักษรผ่าน getpass และสร้างผู้ดูแลได้เมื่อยังไม่มีผู้ดูแลที่ใช้งานอยู่ เข้าสู่ระบบจากหน้า **บัญชีและการตั้งค่า** แล้ว admin สร้าง reviewer/lab/student ต่อได้ ผู้ใช้ทั่วไปสมัครบัญชี lab จากเว็บได้ ไม่มีรหัสผ่านเริ่มต้น
+CLI ถามรหัสผ่านอย่างน้อย4ตัวอักษรผ่าน getpass โดยไม่บังคับชนิดตัวอักษร และสร้างผู้ดูแลได้เมื่อยังไม่มีผู้ดูแลที่ใช้งานอยู่ เข้าสู่ระบบจากหน้า **บัญชีและการตั้งค่า** แล้ว admin สร้าง reviewer/lab/student ต่อได้ ผู้ใช้ทั่วไปสมัครบัญชี lab จากเว็บได้ ไม่มีรหัสผ่านเริ่มต้น
 
 Passwords เป็น salted scrypt; เก็บเฉพาะ hash ของ session token ใน SQLite Cookie `helpminths_session` ใช้ HttpOnly/SameSite=Lax/Secure ค่าเริ่มต้น การปิดบัญชี เปลี่ยนบทบาท หรือเปลี่ยนรหัสผ่านจะเพิกถอน sessions เดิม
 
