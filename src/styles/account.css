@@ -15,5 +15,18 @@
 .account-current-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 .account-current-actions p { margin: 0; color: var(--muted); }
 .account-preferences form { max-width: 1000px; }
+.account-readiness { display:flex;align-items:center;justify-content:space-between;gap:18px;margin:20px 0;padding:20px 22px;border:1px solid #bad8ce;border-radius:10px;background:#edf8f2; }
+.account-readiness-main { display:flex;align-items:flex-start;gap:13px;min-width:0; }
+.account-readiness-main>svg { flex-shrink:0;margin-top:4px;color:#1f7b55; }
+.account-page .account-readiness h2 { margin:0 0 5px;font-size:1.1875rem;color:#1a5a42; }
+.account-page .account-readiness p { margin:0;font-size:1rem;line-height:1.85;color:#3e6a59; }
+.account-readiness>.platform-button { flex-shrink:0;background:#fff; }
+.account-readiness.is-unavailable { background:#f4f9f7;border-color:#ccdeda; }
+.account-readiness.is-unavailable h2,.account-readiness.is-unavailable svg { color:#3d6a66; }
+.account-temporary-storage { display:flex;align-items:flex-start;gap:12px;padding:16px 20px;margin:0 0 22px;border:1px solid #decba6;border-radius:9px;background:#fff9ee;color:#725121; }
+.account-temporary-storage>svg { flex-shrink:0;margin-top:4px; }
+.account-temporary-storage strong { display:block;font-size:1rem;line-height:1.8;font-weight:600; }
+.account-page .account-temporary-storage p { margin:4px 0 0;font-size:.9375rem;line-height:1.9;color:#725121; }
+@media(max-width:680px){.account-readiness{align-items:stretch;flex-direction:column;padding:18px}.account-readiness>.platform-button{width:100%}.account-temporary-storage{padding:16px;gap:10px}}
 @media (max-width: 1100px) { .account-auth-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } .account-auth-form > button { justify-self: start; } .account-register-form > button { grid-column: auto; } }
 @media (max-width: 680px) { .account-page .account-tabs { width: 100%; } .account-tabs button { flex: 1; padding: 10px 12px; } .account-tabs.has-admin-setup > button:last-child { flex-basis: 100%; } .account-auth-form { grid-template-columns: minmax(0, 1fr); } .account-auth-form > button { width: 100%; margin: 3px 0 0; } .account-current-actions { align-items: stretch; flex-direction: column; } .account-current-actions > button { width: 100%; } .account-page .account-registration-note { padding: 14px; } }

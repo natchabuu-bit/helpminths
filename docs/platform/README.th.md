@@ -12,7 +12,7 @@ React19/TypeScript/Vite แสดงเว็บภาษาไทยและ A
 | --- | --- |
 | Atlas/คลังอ้างอิง/สาธิต | ใช้ไฟล์จริงใน repo มีเครดิตและป้ายสาธิต |
 | คุณภาพภาพ | Heuristic ทำงานไม่ต้องมี YOLO เกณฑ์ต้องทวนกับอุปกรณ์จริง |
-| บัญชี/ประวัติ/review/report/dashboard | ปิดจนตั้ง private directory ไม่มีผู้ใช้หรือข้อมูล seed |
+| บัญชี/ประวัติ/review/report/dashboard | Docker เปิด private directory อัตโนมัติ ใช้งานผ่านบัญชี; พื้นที่ Render Free เป็นแบบชั่วคราว ไม่มีบัญชีหรือข้อมูล seed |
 | AI | Not configured จนติดตั้ง runtime และ trusted weights |
 | แบบฝึกหัดมีคะแนน | รอผู้ตรวจที่ได้รับสิทธิ์อนุมัติภาพ คลังภาพ/บัตรฝึกยังใช้เรียนรู้ได้ |
 | ประเมินโมเดล | Unavailable จนมีผลคำนวณจาก ground truth อิสระที่อนุมัติจริง |
@@ -175,7 +175,7 @@ Restore บนพื้นที่ private ที่หยุด writer คง 
 
 `render.yaml` ใช้ Docker แผน Free, `autoDeploy:false`, health check `/api/health` Git push ไม่ทำให้เว็บใหม่ Live อัตโนมัติ เปิดบริการ Render → **Manual Deploy → Deploy latest commit** → รอ Live แล้วตรวจ commit/หน้าเว็บ/status จริง
 
-Blueprint ไม่ mount persistent disk และไม่สร้างบัญชีเริ่มต้น Docker ดาวน์โหลดโมเดลจาก `models/source.json` และติดตั้ง/ตรวจ CPU runtime เมื่อ build ผ่าน ให้คง data directory ว่างหากยังไม่มี volume ถาวร การตั้ง path บน filesystem ชั่วคราวเปิด SQLite ได้แต่ข้อมูลอาจหายหลัง restart/redeploy ตั้ง durable1 ไม่แก้ปัญหานี้
+Blueprint ไม่ mount persistent disk และไม่สร้างบัญชีเริ่มต้น Docker ดาวน์โหลดโมเดลจาก `models/source.json` และติดตั้ง/ตรวจ CPU runtime เมื่อ build ผ่าน Docker เปิด private directory อัตโนมัติเมื่อไม่มีพาธกำหนดเอง ให้ใช้โหมดนี้สำหรับการเก็บชั่วคราวที่มีข้อความแจ้งเท่านั้น การตั้ง path บน filesystem ชั่วคราวเปิด SQLite ได้แต่ข้อมูลอาจหายหลัง restart/redeploy ตั้ง durable1 ไม่แก้ปัญหานี้
 
 ใช้ผลตรวจจริงต้องเลือกแผน/โฮสต์ที่รองรับ volume ก่อน ตั้ง path ไป volume ใช้ HTTPS/Securecookie1 สร้าง admin ผ่าน operator CLI หรือเส้นทางตั้งผู้ดูแลที่ต้องมี `HELPMINTHS_ADMIN_SETUP_TOKEN` ของเจ้าของโฮสต์ ไม่มีการให้ผู้สมัครคนแรกเป็น admin อัตโนมัติ ทดสอบ backup/restore และจัดทรัพยากรโมเดล
 

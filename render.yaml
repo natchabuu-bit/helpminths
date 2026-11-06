@@ -10,5 +10,7 @@ services:
     envVars:
       - key: HELPMINTHS_SERVE_WEB
         value: "1"
+      - key: HELPMINTHS_AUTO_STORAGE
+        value: "1"
       - key: PORT
         value: "8000"

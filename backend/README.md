@@ -33,7 +33,7 @@ export HELPMINTHS_COOKIE_SECURE=0
 .venv/bin/python -m backend.platform.bootstrap --username operator
 ```
 
-CLI ถามรหัสผ่านอย่างน้อย12ตัวอักษรผ่าน getpass และสร้างได้เมื่อยังไม่มีบัญชีเท่านั้น เข้าสู่ระบบจากหน้า **บัญชีและการตั้งค่า** แล้ว admin สร้าง reviewer/lab/student ต่อได้ ไม่มี public registration หรือรหัสผ่านเริ่มต้น
+CLI ถามรหัสผ่านอย่างน้อย12ตัวอักษรผ่าน getpass และสร้างผู้ดูแลได้เมื่อยังไม่มีผู้ดูแลที่ใช้งานอยู่ เข้าสู่ระบบจากหน้า **บัญชีและการตั้งค่า** แล้ว admin สร้าง reviewer/lab/student ต่อได้ ผู้ใช้ทั่วไปสมัครบัญชี lab จากเว็บได้ ไม่มีรหัสผ่านเริ่มต้น
 
 Passwords เป็น salted scrypt; เก็บเฉพาะ hash ของ session token ใน SQLite Cookie `helpminths_session` ใช้ HttpOnly/SameSite=Lax/Secure ค่าเริ่มต้น การปิดบัญชี เปลี่ยนบทบาท หรือเปลี่ยนรหัสผ่านจะเพิกถอน sessions เดิม
 
@@ -43,7 +43,9 @@ Lab เข้าถึงรายการของตนเอง Reviewer/adm
 
 ## สถานะ configuration
 
-- ไม่ตั้ง data directory: session คืน `configured:false`; endpoints ฐานข้อมูลตอบ503; Atlas/สาธิต/quality ยังใช้ได้ API เดิม `/api/analyze` ไม่เก็บภาพ/ผลลงดิสก์
+Docker/Render รุ่นนี้เปิด `HELPMINTHS_AUTO_STORAGE=1` เริ่มต้น สร้าง SQLite/โฟลเดอร์ภาพส่วนตัวใน `/var/lib/helpminths` อัตโนมัติและเปิดรับสมัครสมาชิก แม้ยังไม่มี admin โหมดนี้เป็นพื้นที่ชั่วคราว (`storage.mode:temporary`, `automatic:true`, `durable:false`) พาธที่กำหนดเองยังมีลำดับสูงกว่า
+
+- ไม่ตั้ง data directory และไม่ได้เปิด auto storage: session คืน `configured:false`; endpoints ฐานข้อมูลตอบ503; Atlas/สาธิต/quality ยังใช้ได้ API เดิม `/api/analyze` ไม่เก็บภาพ/ผลลงดิสก์
 - ตั้ง data directory แต่ไม่มีผู้ใช้: สร้าง schema เปล่าและ private image directory; `bootstrap_required:true`; สร้าง admin ผ่าน CLI หรือเส้นทางตั้งผู้ดูแลที่ต้องมี host secret
 - ไม่มีโมเดลพร้อมใช้: health/status รายงาน readyfalse; inference ตอบ503 ไม่มีคำทำนายทดแทน
 - ส่งตรงไป persistent inference ขณะโมเดลไม่พร้อม: อาจสร้างรายการ **failed** พร้อม quality/image ตามจริง คืน `analysis_id` เพื่อการตรวจสอบ ไม่ได้คืนผล AI สำเร็จ
