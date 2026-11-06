@@ -95,7 +95,7 @@ API เดิม `POST /api/analyze` ยังทำงานชั่วคร�
 
 ## โมเดลและการประเมิน
 
-API ค้นหา `models/parasite_yolo.pt` อัตโนมัติจากราก repository เมื่อมีไฟล์จริงและไม่ได้กำหนด `HELPMINTHS_MODEL_PATH` เป็นค่าอื่น พาธที่กำหนดเองมีลำดับสูงกว่าและหากผิดจะไม่เปลี่ยนไปใช้ไฟล์อื่นโดยเงียบ ๆ Docker รองรับไฟล์ชื่อนี้ใน build context พร้อมติดตั้ง CPU runtime เฉพาะเมื่อมีไฟล์ แต่ยังไม่มี checkpoint ดังกล่าวให้ตรวจจริง อ่าน [รายละเอียดการส่งมอบโมเดล](../models/README.md)
+API ค้นหา `models/parasite_yolo.pt` อัตโนมัติจากราก repository เมื่อมีไฟล์จริงและไม่ได้กำหนด `HELPMINTHS_MODEL_PATH` เป็นค่าอื่น พาธที่กำหนดเองมีลำดับสูงกว่าและหากผิดจะไม่เปลี่ยนไปใช้ไฟล์อื่นโดยเงียบ ๆ Docker อ่านแหล่งโมเดลที่เจ้าของเลือกใน `models/source.json` แล้วดาวน์โหลด/เลือก checkpoint ติดตั้ง CPU runtime และทดสอบการโหลดกับภาพสังเคราะห์ก่อน deploy การทดสอบนี้ไม่ใช่การประเมินความแม่นยำ อ่าน [รายละเอียดการส่งมอบโมเดล](../models/README.md)
 
 ```bash
 .venv/bin/python -m pip install -r backend/requirements-model.txt
@@ -104,7 +104,7 @@ export HELPMINTHS_TRAINING_DATASET_VERSION=reviewed-training-v1
 export HELPMINTHS_VALIDATION_DATASET_VERSION=independent-test-v1
 ```
 
-Restart API ใช้ `.pt` detection ที่เชื่อถือได้เพราะ checkpoint อาจเรียกโค้ดระหว่างโหลด ไม่มี download weights อัตโนมัติ ใช้ `model.names` และ SHA-256 จริง ไม่สร้าง mapping ตาม Atlas เอง ประมวลผล CPU/ปรับภาพและ NMS ตาม Ultralytics ยังไม่มี tiled inference และไม่มีการทดสอบ weights จริงใน repo นี้ Dataset metadata จาก env เป็นคำประกาศผู้ดูแล ไม่ใช่ provenance ที่ตรวจอัตโนมัติ
+Restart API ใช้ `.pt` detection ที่เชื่อถือได้เพราะ checkpoint อาจเรียกโค้ดระหว่างโหลด ตัว API ขณะทำงานไม่ดาวน์โหลด weights; การดาวน์โหลดจากแหล่งที่เลือกเกิดในขั้นตอน Docker build เท่านั้น ใช้ `model.names` และ SHA-256 จริง ไม่สร้าง mapping ตาม Atlas เอง ประมวลผล CPU/ปรับภาพและ NMS ตาม Ultralytics ยังไม่มี tiled inference และไม่มี weights จริงใน Git Dataset metadata จาก env เป็นคำประกาศผู้ดูแล ไม่ใช่ provenance ที่ตรวจอัตโนมัติ
 
 การประเมินต้องมี analysis สำเร็จ/รุ่นจริง, ground-truth กรอบ/ชนิดที่ตรวจแล้ว และคำอธิบายการแยก test set อิสระ เก็บ group_code ไม่ระบุตัวบุคคลเพื่ออ้าง slide/specimen สูงสุด200ภาพ/ground truth5000วัตถุต่อชุด; รอบคำนวณจำกัด prediction+ground truth รวม5000วัตถุ
 

@@ -11,6 +11,7 @@ __pycache__/
 models/*
 !models/.gitkeep
 !models/README.md
+!models/source.json
 *.pt
 *.onnx
 *.log

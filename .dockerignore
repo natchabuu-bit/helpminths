@@ -5,6 +5,7 @@ node_modules
 dist
 models/*
 !models/README.md
+!models/source.json
 *.pt
 !models/parasite_yolo.pt
 *.onnx

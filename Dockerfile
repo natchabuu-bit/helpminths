@@ -12,21 +12,41 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     HELPMINTHS_SERVE_WEB=1 \
+    OMP_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 \
+    OPENBLAS_NUM_THREADS=1 \
+    YOLO_OFFLINE=true \
+    YOLO_AUTOINSTALL=false \
+    YOLO_CONFIG_DIR=/tmp/helpminths-yolo \
+    MPLCONFIGDIR=/tmp/helpminths-matplotlib \
     PORT=8000
 COPY backend/requirements.lock ./backend/requirements.lock
 RUN python -m pip install --no-cache-dir -r backend/requirements.lock
 COPY backend ./backend
 COPY models ./models
+ARG HELPMINTHS_FETCH_MODEL=1
+ARG HELPMINTHS_MODEL_URL=""
+ARG HELPMINTHS_MODEL_ARCHIVE_MEMBER=""
+ARG HELPMINTHS_MODEL_SHA256=""
+# The owner's selected source is fetched where the application is built. A
+# selected-source failure stops the build rather than using unrelated weights.
+RUN if [ "$HELPMINTHS_FETCH_MODEL" = "1" ]; then \
+      python -m backend.model_artifact --config models/source.json --output models/parasite_yolo.pt; \
+    elif [ "$HELPMINTHS_FETCH_MODEL" != "0" ]; then \
+      printf '%s\n' 'HELPMINTHS_FETCH_MODEL must be 0 or 1' >&2; exit 2; \
+    fi
 # Keep the ordinary application lightweight until the owner's named checkpoint
 # is present. A model build installs CPU wheels, never a CUDA dependency stack.
 RUN if [ -f /app/models/parasite_yolo.pt ]; then \
       apt-get update && \
       apt-get install -y --no-install-recommends libgl1 libglib2.0-0 && \
       rm -rf /var/lib/apt/lists/* && \
-      python -m pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch torchvision && \
+      python -m pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu 'torch==2.5.1+cpu' 'torchvision==0.20.1+cpu' && \
       python -m pip freeze | grep -Ei '^(torch|torchvision)==' > /tmp/helpminths-cpu-constraints.txt && \
       python -m pip install --no-cache-dir -c /tmp/helpminths-cpu-constraints.txt -c backend/requirements.lock -r backend/requirements-model.txt && \
-      python -m pip check && rm /tmp/helpminths-cpu-constraints.txt; \
+      python -m pip check && \
+      python -m backend.verify_model --model /app/models/parasite_yolo.pt && \
+      rm /tmp/helpminths-cpu-constraints.txt; \
     fi
 COPY --from=frontend /build/dist ./dist
 EXPOSE 8000
