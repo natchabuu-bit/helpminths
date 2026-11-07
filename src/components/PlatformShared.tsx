@@ -1,4 +1,4 @@
-import { AlertCircle, Database, LoaderCircle, LockKeyhole, RefreshCw } from 'lucide-react'
+import { AlertCircle, Database, LoaderCircle, RefreshCw } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { apiRequest, labelStatus } from '../platform/api'
@@ -11,8 +11,8 @@ export function PlatformHeading({ kicker, title, description, children }: { kick
 export function AccessState({ session, roles, children }: { session: PlatformSession; roles?: PlatformRole[]; children: ReactNode }) {
   if (session.connection_error) return <div className="platform-empty"><AlertCircle/><h2>เชื่อมต่อระบบข้อมูลไม่ได้</h2><p>{session.connection_error}</p><p>Atlas และเนื้อหาเรียนรู้ที่บันทึกไว้อาจยังใช้งานออฟไลน์ได้</p></div>
   if (!session.configured) return <div className="platform-empty"><Database/><span className="platform-badge warning">Not configured</span><h2>ระบบบันทึกข้อมูลยังไม่พร้อมใช้งาน</h2><p>ผู้ดูแลต้องตั้งค่าฐานข้อมูลและพื้นที่เก็บภาพก่อน ส่วนนี้จะใช้ข้อมูลจริงเมื่อเปิดใช้งานแล้ว</p><p>เปิดเมนูตั้งค่าเพื่อดูสถานะและวิธีเริ่มต้น</p></div>
-  if (!session.user) return <div className="platform-empty"><LockKeyhole/><h2>เข้าสู่ระบบเพื่อดูข้อมูล</h2><p>ภาพ ผลวิเคราะห์ และการตรวจทานถูกจำกัดตามสิทธิ์ของบัญชี เปิดเมนูตั้งค่าเพื่อเข้าสู่ระบบ</p></div>
-  if (roles && !roles.includes(session.user.role)) return <div className="platform-empty"><LockKeyhole/><h2>บัญชีนี้ไม่มีสิทธิ์ในส่วนนี้</h2><p>ขอสิทธิ์ที่เหมาะสมจากผู้ดูแลระบบ ข้อมูลที่คุณเข้าถึงได้ยังใช้ผ่านเมนูอื่นได้ตามปกติ</p></div>
+  if (!session.user) return <div className="platform-empty"><h2>เข้าสู่ระบบเพื่อดูข้อมูล</h2><p>ภาพ ผลวิเคราะห์ และการตรวจทานถูกจำกัดตามสิทธิ์ของบัญชี เปิดเมนูตั้งค่าเพื่อเข้าสู่ระบบ</p></div>
+  if (roles && !roles.includes(session.user.role)) return <div className="platform-empty"><h2>บัญชีนี้ไม่มีสิทธิ์ในส่วนนี้</h2><p>ขอสิทธิ์ที่เหมาะสมจากผู้ดูแลระบบ ข้อมูลที่คุณเข้าถึงได้ยังใช้ผ่านเมนูอื่นได้ตามปกติ</p></div>
   return <>{children}</>
 }
 export function ErrorNotice({ message, onRetry }: { message: string; onRetry?: () => void }) { return <div className="platform-error" role="alert"><AlertCircle size={20}/><p>{message}</p>{onRetry && <button className="platform-button" onClick={onRetry}><RefreshCw size={16}/>ลองอีกครั้ง</button>}</div> }

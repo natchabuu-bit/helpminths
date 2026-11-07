@@ -10,11 +10,34 @@ before(async () => {
 })
 after(async () => browser?.close())
 
-test('Settings rechecks a stale unavailable session and enables actual account forms without claiming durable storage', { timeout: 60_000 }, async () => {
+async function passwordVisibility(page, label, toggleLabel, value) {
+  const input = page.getByLabel(label, { exact: true })
+  await input.fill(value)
+  assert.equal(await input.getAttribute('type'), 'password', `${label} starts hidden`)
+  const show = page.getByRole('button', { name: `แสดง${toggleLabel}`, exact: true })
+  assert.equal(await show.getAttribute('type'), 'button')
+  assert.equal(await show.getAttribute('aria-controls'), await input.getAttribute('id'))
+  assert.equal(await show.getAttribute('aria-pressed'), 'false')
+  await show.click()
+  assert.equal(await input.getAttribute('type'), 'text')
+  assert.equal(await input.inputValue(), value)
+  const hide = page.getByRole('button', { name: `ซ่อน${toggleLabel}`, exact: true })
+  assert.equal(await hide.getAttribute('aria-pressed'), 'true')
+  await hide.click()
+  assert.equal(await input.getAttribute('type'), 'password')
+  assert.equal(await input.inputValue(), value, 'Visibility changes preserve the entered password')
+  assert.equal(await page.evaluate(() => window.passwordToggleSubmissions), 0, 'Visibility controls cannot submit the form')
+}
+
+test('Settings rechecks a stale unavailable session and enables working account forms with clean account guidance', { timeout: 60_000 }, async () => {
   const page = await browser.newPage({ viewport: { width: 375, height: 1000 }, serviceWorkers: 'block' })
   let available = false, sessionReads = 0
   const errors = [], mutations = []
   page.on('pageerror', failure => errors.push(failure.message))
+  await page.addInitScript(() => {
+    window.passwordToggleSubmissions = 0
+    document.addEventListener('submit', () => { window.passwordToggleSubmissions += 1 }, true)
+  })
   // Isolated readiness responses only. This scenario must never create a real
   // account or contact any configured clinical database behind the test URL.
   await page.route('**/api/platform/**', async route => {
@@ -43,11 +66,14 @@ test('Settings rechecks a stale unavailable session and enables actual account f
     assert.ok(sessionReads > before, 'A retry must ask the session API again, not enable client-side fake state')
     assert.equal(await login.isDisabled(), false)
     assert.equal(await page.getByLabel('ชื่อบัญชี', { exact: true }).isDisabled(), false)
+    await passwordVisibility(page, 'รหัสผ่าน', 'รหัสผ่าน', 'login-synthetic-only')
     await page.getByRole('tab', { name: 'สมัครสมาชิก', exact: true }).click()
     assert.equal(await page.getByRole('button', { name: 'สร้างบัญชีและเข้าใช้งาน', exact: true }).isDisabled(), false, 'A missing first administrator must not disable ordinary registration')
     const username = page.getByLabel('ชื่อบัญชี', { exact: true })
     const password = page.getByLabel('รหัสผ่าน', { exact: true })
     const confirmation = page.getByLabel('ยืนยันรหัสผ่าน', { exact: true })
+    await passwordVisibility(page, 'รหัสผ่าน', 'รหัสผ่าน', 'abcd')
+    await passwordVisibility(page, 'ยืนยันรหัสผ่าน', 'รหัสผ่านยืนยัน', 'abcd')
     await username.fill('q')
     assert.equal(await username.evaluate(input => input.checkValidity()), true, 'One-character usernames must not be blocked by HTML validation')
     const longUsername = 'readiness_' + 'x'.repeat(100)
@@ -65,8 +91,8 @@ test('Settings rechecks a stale unavailable session and enables actual account f
     assert.equal(await password.evaluate(input => input.checkValidity()), false, 'The requested four-character minimum remains enforced')
     assert.equal(await page.getByRole('heading', { name: 'สถานะระบบที่ตรวจได้', exact: true }).count(), 0)
     assert.doesNotMatch(await page.locator('body').innerText(), /บัญชีใหม่เป็นผู้ใช้ทั่วไป สิทธิ์ผู้เชี่ยวชาญต้องได้รับอนุมัติจากผู้ดูแล/)
-    await page.locator('.account-temporary-storage').waitFor()
-    assert.match(await page.locator('.account-temporary-storage').innerText(), /บัญชีและผลตรวจใช้งานได้.*ข้อมูลอาจหายเมื่อโฮสต์เริ่มใหม่หรือ deploy/s)
+    assert.equal(await page.locator('.account-temporary-storage').count(), 0)
+    assert.doesNotMatch(await page.locator('body').innerText(), /บัญชีและผลตรวจใช้งานได้|ข้อมูลอาจหายเมื่อโฮสต์เริ่มใหม่หรือ deploy|พื้นที่จัดเก็บชั่วคราว/)
     assert.equal(await page.getByText('Not configured', { exact: true }).count(), 0)
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
     assert.deepEqual(errors, [])

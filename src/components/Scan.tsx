@@ -6,7 +6,7 @@ import { matchSpeciesLabel } from '../data/species';
 import ImageQualityPanel from './ImageQualityPanel';
 import ReferralPanel from './ReferralPanel';
 import { APIError, apiRequest, emptyPlatformSession } from '../platform/api';
-import type { PlatformSession, QualityAssessment } from '../platform/api';
+import type { PlatformAnalysis, PlatformSession, QualityAssessment } from '../platform/api';
 
 export interface Detection {
   id: string | number;
@@ -153,10 +153,19 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
   const [siteCode, setSiteCode] = useState('');
   const [inferenceConfidence, setInferenceConfidence] = useState(.15);
   const [reviewConfidence, setReviewConfidence] = useState(.5);
+  const [referralBusy, setReferralBusy] = useState(false);
+  const [referralError, setReferralError] = useState('');
+  const referralController = useRef<AbortController | null>(null);
   const cancelledByUser = useRef(false);
   const persistent = platformSession.configured && Boolean(platformSession.user);
   const needsLogin = platformSession.configured && !platformSession.user;
   const student = platformSession.user?.role === 'student';
+
+  useEffect(() => {
+    setReferralBusy(false);
+    setReferralError('');
+    return () => { referralController.current?.abort(); referralController.current = null; };
+  }, [record?.id, platformSession.configured, platformSession.user?.id]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -318,7 +327,6 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
     if (health !== 'ready') { setError(healthMessage || 'ยังไม่เชื่อมต่อโมเดล AI'); return; }
     if (needsLogin || student) { setError(student ? 'บัญชีผู้เรียนไม่มีสิทธิ์สร้างผลวิเคราะห์ กรุณาใช้บัญชีผู้ปฏิบัติงาน' : 'เข้าสู่ระบบก่อนสร้างรายการวิเคราะห์ที่บันทึกไว้'); return; }
     if (platformSession.connection_error) { setError('ตรวจสอบสถานะระบบจัดเก็บไม่ได้ กรุณาเชื่อมต่อใหม่ก่อนตรวจภาพ'); return; }
-    if (persistent && !/^[A-Za-z0-9_-]{1,40}$/.test(sampleCode)) { setError('กรอกรหัสตัวอย่างนิรนาม 1–40 ตัว ใช้ตัวอักษรอังกฤษ ตัวเลข _ หรือ -'); return; }
     const assessment = quality ?? await checkQuality();
     if (!assessment) return;
     if (assessment.status !== 'pass' && (!assessment.can_override || !qualityAcknowledged || !qualityComment.trim())) { setError('ภาพมีข้อจำกัด โปรดถ่ายใหม่ หรือยืนยันข้อจำกัดและระบุเหตุผลก่อนวิเคราะห์'); return; }
@@ -355,6 +363,33 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
   const clearImage = () => {
     if (working || qualityBusy || reading) return;
     imageFile.current = null; setImageUrl(''); setFilename(''); setDimensions({ width: 0, height: 0 }); setRecord(null); setQuality(null); setQualityAcknowledged(false); setQualityComment(''); setError(''); setNormalizationNotice(''); setZoom(1); setSelectedId(null);
+  };
+
+  const referToExpert = async () => {
+    if (!record || record.mode !== 'real' || referralController.current) return;
+    if (record.storage !== 'private' || !persistent) { onOpenSettings?.(); return; }
+    if (student) { setReferralError('บัญชีผู้เรียนไม่มีสิทธิ์ส่งภาพให้ผู้เชี่ยวชาญ'); return; }
+    if (platformSession.connection_error) { setReferralError('เชื่อมต่อระบบจัดเก็บอีกครั้งก่อนส่งภาพให้ผู้เชี่ยวชาญ'); return; }
+    const controller = new AbortController();
+    referralController.current = controller;
+    setReferralBusy(true); setReferralError('');
+    const path = `/analyses/${encodeURIComponent(record.id)}`;
+    try {
+      const saved = await apiRequest<PlatformAnalysis>(platformSession, path, { signal: controller.signal });
+      if (controller.signal.aborted) return;
+      if (saved.owner_id !== platformSession.user?.id) throw new Error('เฉพาะเจ้าของผลตรวจสามารถส่งต่อภาพนี้ได้');
+      if (saved.status !== 'completed') throw new Error('ส่งภาพได้เมื่อการวิเคราะห์เสร็จและบันทึกภาพสำเร็จแล้ว');
+      if (!Number.isInteger(saved.revision) || saved.revision < 1) throw new Error('อ่านสถานะรายการตรวจไม่ได้ กรุณาลองอีกครั้ง');
+      await apiRequest(platformSession, `${path}/referrals`, {
+        method: 'POST', signal: controller.signal,
+        json: { expected_revision: saved.revision, reason: 'ขอให้ผู้เชี่ยวชาญตรวจทานภาพและยืนยันผลการวิเคราะห์' },
+      });
+      if (!controller.signal.aborted) onOpenReview?.(record.id);
+    } catch (failure) {
+      if (!controller.signal.aborted) setReferralError(failure instanceof Error ? failure.message : 'ส่งภาพให้ผู้เชี่ยวชาญไม่ได้ กรุณาลองอีกครั้ง');
+    } finally {
+      if (referralController.current === controller) { referralController.current = null; setReferralBusy(false); }
+    }
   };
 
   const displayMinimum = Math.min(15, Math.max(1, Math.floor(inferenceConfidence * 100)));
@@ -427,7 +462,7 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
           {hasImage && !demo && <>
             <ImageQualityPanel quality={quality} checking={qualityBusy} disabled={working || reading} acknowledged={qualityAcknowledged} comment={qualityComment} onCheck={() => { void checkQuality(); }} onAcknowledge={setQualityAcknowledged} onComment={setQualityComment}/>
             <section className="scan-storage-context"><h2>{persistent ? 'บันทึกเป็นรายการตรวจที่ติดตามได้' : 'การจัดเก็บผลตรวจ'}</h2>
-              {persistent && !student ? <><div className="scan-storage-fields"><label>รหัสตัวอย่างนิรนาม<input value={sampleCode} onChange={event => setSampleCode(event.target.value)} maxLength={40} placeholder="เช่น SLIDE-001" autoComplete="off"/></label><label>รหัสหน่วยงาน (ถ้ามี)<input value={siteCode} onChange={event => setSiteCode(event.target.value)} maxLength={40} placeholder="เช่น LAB-A" autoComplete="off"/></label></div><p>ภาพที่ตรวจจะเก็บในพื้นที่ส่วนตัวตามสิทธิ์บัญชี ไม่ใช้ชื่อหรือเลขประจำตัวผู้ป่วยเป็นรหัสตัวอย่าง</p></> : <p>{needsLogin ? 'เข้าสู่ระบบก่อนสร้างรายการตรวจที่บันทึกไว้ พร้อมส่งต่อให้ผู้เชี่ยวชาญและออกรายงาน' : student ? 'บัญชีอ่านอย่างเดียวใช้ Atlas ได้ การสร้างรายการตรวจต้องใช้บัญชีผู้ใช้ทั่วไป' : 'ยังไม่ได้ตั้งค่าฐานข้อมูล ผลตรวจจริงจากโหมดนี้อยู่เฉพาะเซสชันและไม่ส่งเข้าประวัติส่วนกลาง'}</p>}
+              {persistent && !student ? <><div className="scan-storage-fields"><label>รหัสตัวอย่างนิรนาม (ไม่บังคับ)<input value={sampleCode} onChange={event => setSampleCode(event.target.value)} placeholder="เช่น สไลด์-001 หรือเว้นว่าง" autoComplete="off"/></label><label>รหัสหน่วยงาน (ถ้ามี)<input value={siteCode} onChange={event => setSiteCode(event.target.value)} maxLength={40} placeholder="เช่น LAB-A" autoComplete="off"/></label></div><p>เว้นว่างเพื่อให้ระบบสร้างรหัสตัวอย่างอัตโนมัติ ภาพจะเก็บในพื้นที่ส่วนตัวตามสิทธิ์บัญชี ไม่ใช้ชื่อหรือเลขประจำตัวผู้ป่วยเป็นรหัสตัวอย่าง</p></> : <p>{needsLogin ? 'เข้าสู่ระบบก่อนสร้างรายการตรวจที่บันทึกไว้ พร้อมส่งต่อให้ผู้เชี่ยวชาญและออกรายงาน' : student ? 'บัญชีอ่านอย่างเดียวใช้ Atlas ได้ การสร้างรายการตรวจต้องใช้บัญชีผู้ใช้ทั่วไป' : 'ยังไม่ได้ตั้งค่าฐานข้อมูล ผลตรวจจริงจากโหมดนี้อยู่เฉพาะเซสชันและไม่ส่งเข้าประวัติส่วนกลาง'}</p>}
               {needsLogin && <button className="scan-button scan-button-secondary" type="button" onClick={onOpenSettings}>เข้าสู่ระบบ</button>}
               {record?.storage === 'private' && <button className="scan-button scan-button-secondary" type="button" onClick={() => onOpenReview?.(record.id)}>เปิดรายการและทบทวนผล</button>}
             </section>
@@ -445,6 +480,14 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
           ) : (
             <>
               <div className="scan-results-summary"><div><span className="scan-small-label">{demo ? 'ไข่พยาธิในตัวอย่าง' : 'ตรวจพบตามเกณฑ์ที่เลือก'}</span><p><strong>{detections.length.toString().padStart(2, '0')}</strong><span>{hasLarvalDetections ? 'ตำแหน่ง' : 'ฟอง'}</span></p></div><span className="scan-summary-divider" /><div><span className="scan-small-label">จำแนกชนิด</span><p><strong>{species.length.toString().padStart(2, '0')}</strong><span>ชนิด</span></p></div><span className="scan-summary-icon"><CheckCheck size={22} /></span></div>
+              {!demo && <section className="scan-expert-action" aria-labelledby="scan-expert-action-title">
+                <h3 id="scan-expert-action-title">ให้ผู้เชี่ยวชาญช่วยตรวจยืนยัน</h3>
+                <p>{record.storage === 'private' && persistent ? 'ส่งภาพที่บันทึกไว้พร้อมผล AI ให้ผู้เชี่ยวชาญ แล้วเปิดดูสถานะและคำตอบในหน้าทบทวนโดยผู้เชี่ยวชาญ' : 'เข้าสู่ระบบ แล้ววิเคราะห์และบันทึกภาพอีกครั้งก่อนส่งให้ผู้เชี่ยวชาญ'}</p>
+                {referralError && <p className="scan-referral-error" role="alert">{referralError}</p>}
+                <button type="button" className="scan-button scan-button-primary" disabled={referralBusy || working || reading || qualityBusy || student} onClick={() => void referToExpert()}>
+                  {referralBusy ? <LoaderCircle className="scan-spin" size={17}/> : <ShieldCheck size={17}/>}{referralBusy ? 'กำลังส่งภาพ…' : 'ส่งภาพให้ผู้เชี่ยวชาญยืนยัน'}{!referralBusy && <ArrowRight size={16}/>}
+                </button>
+              </section>}
               <section className="scan-object-counts"><h3>{demo ? 'จำนวนในภาพสาธิต' : 'จำนวนวัตถุที่โมเดลรายงาน'}</h3><dl><dt>ทั้งหมดก่อนกรองการแสดงผล</dt><dd>{record.detections.length}</dd>{Object.entries(classCounts).map(([label, count]) => <div key={label} style={{ display: 'contents' }}><dt>{label}</dt><dd>{count}</dd></div>)}</dl><p>จำนวนในภาพนี้ไม่ใช่ EPG และใช้สรุปความรุนแรงของการติดเชื้อไม่ได้ การคำนวณ EPG ยังปิดอยู่เพราะไม่มีวิธีตรวจ ปริมาณตัวอย่าง และโพรโทคอลที่ผ่านการรับรอง</p></section>
               {!demo && uncertainDetections.length > 0 && <section className="scan-uncertain-section"><h3>ต้องทบทวนเพิ่มเติม {uncertainDetections.length} วัตถุ</h3><p>Model confidence ต่ำกว่าเกณฑ์ทบทวน {Math.round(reviewConfidence * 100)}% เป็นค่าจากโมเดล ไม่ใช่โอกาสติดเชื้อ</p>{uncertainDetections.map(item => <button type="button" key={item.id} onClick={() => { setThreshold(displayMinimum); setSelectedId(item.id); }}><span>{item.label}</span><strong>{Math.round(item.confidence * 100)}%</strong></button>)}</section>}
               <div className="scan-confidence-control"><label htmlFor="scan-confidence"><span>เกณฑ์แสดงกรอบ (Model confidence) <CircleHelp size={12}><title>แสดงเฉพาะกรอบที่มีความเชื่อมั่นตั้งแต่เกณฑ์นี้ขึ้นไป ค่านี้ไม่ใช่ความแม่นยำทางคลินิก</title></CircleHelp></span><strong>{threshold}%</strong></label><input id="scan-confidence" type="range" min={displayMinimum} max="99" step="1" value={threshold} onChange={(event) => setThreshold(Number(event.target.value))} style={{ '--range-progress': `${(threshold - displayMinimum) / (99 - displayMinimum) * 100}%` } as React.CSSProperties} /><div><span>{displayMinimum}%</span><span>99%</span></div></div>
@@ -461,7 +504,7 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
           )}
         </aside>
       </div>
-      {record?.storage === 'private' && record.mode === 'real' && <><section className="scan-saved-history"><CheckCheck size={20}/><div><strong>บันทึกผลตรวจในประวัติรายวันแล้ว</strong><p>รายการนี้อยู่ในบัญชีของคุณ ส่งภาพที่ไม่มั่นใจให้ผู้เชี่ยวชาญจากช่องด้านล่างได้</p></div><button className="platform-button" onClick={onOpenHistory}>ดูประวัติรายวัน <ArrowRight size={16}/></button></section><ReferralPanel key={record.id} session={platformSession} analysisId={record.id}/></>}
+      {record?.storage === 'private' && record.mode === 'real' && <><section className="scan-saved-history"><CheckCheck size={20}/><div><strong>บันทึกผลตรวจในประวัติรายวันแล้ว</strong><p>รายการนี้อยู่ในบัญชีของคุณ หากต้องการระบุคำถามหรือเหตุผลเพิ่มเติม ส่งภาพจากช่องด้านล่างได้</p></div><button className="platform-button" onClick={onOpenHistory}>ดูประวัติรายวัน <ArrowRight size={16}/></button></section><ReferralPanel key={record.id} session={platformSession} analysisId={record.id} onReferred={() => onOpenReview?.(record.id)}/></>}
       <p className="scan-medical-note"><ShieldCheck size={14} />{demo ? 'ข้อมูลสาธิต ไม่ใช่ผลตรวจจาก AI · ภาพนี้เป็นภาพวาดจำลอง ไม่ใช่ภาพตัวอย่างทางการแพทย์' : 'ผลการวิเคราะห์เป็นข้อมูลช่วยคัดกรอง ควรตรวจสอบและยืนยันโดยผู้เชี่ยวชาญก่อนนำไปใช้ทางการแพทย์'}</p>
     </section>
   );

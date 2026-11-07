@@ -3,7 +3,6 @@ import { BarChart3, ArrowRight, ArrowUpRight, BookOpen, Box, Camera, CircleHelp,
 import Scan from './components/Scan'
 import type { AnalysisRecord } from './components/Scan'
 import EggIllustration from './components/EggIllustration'
-import OfflinePanel from './components/OfflinePanel'
 import Evaluation from './components/Evaluation'
 import FieldOverview from './components/FieldOverview'
 import { useFeedback } from './hooks/useFeedback'
@@ -147,7 +146,6 @@ export default function App() {
     <div className="main-layout">
       <header className="topbar"><div className="breadcrumb"><button className="mobile-menu icon-button" onClick={() => setMenuOpen(true)} aria-label="เปิดเมนู" aria-expanded={menuOpen} aria-controls="primary-navigation"><Menu size={21}/></button><div><span className="shell-caption">HELPMINTHS / FIELD LAB</span><strong>{pageNames[page]}</strong></div></div><div className="topbar-right"><span className="education-badge"><ShieldCheck size={14}/> เพื่อการศึกษาและวิจัย</span><button className="topbar-help icon-button" onClick={() => setHelpOpen(true)} aria-label="คู่มือการใช้งาน"><CircleHelp size={19}/></button><button className="topbar-account" onClick={() => navigate('settings')} aria-label={platform.session.user ? 'บัญชีและการตั้งค่า' : 'เข้าสู่ระบบหรือสมัครสมาชิก'}>{platform.session.user ? <UserRound size={18}/> : <LogIn size={18}/>}<span>{platform.session.user ? 'บัญชีของฉัน' : 'เข้าสู่ระบบ'}</span></button></div></header>
       <main ref={mainRef} id="main-content" tabIndex={-1} className={`main-content page-${page}`}>
-        <OfflinePanel />
         {page === 'home' && <>
           <FieldOverview modelReady={modelReady} backendReady={backendReady} backendChecked={backendChecked} onScan={() => openScan()} onDemo={() => openScan(true)} onAtlas={openAtlas}/>
           {dashboard}

@@ -101,7 +101,7 @@ test('a first home visit prepares unvisited Atlas, fonts, local images and expli
     assert.equal(await page.locator('.atlas-model-stage').count(), 0, 'Atlas must not be opened online before this offline check')
     const initial = await waitForReady(page)
     assert.equal(initial.ready, true)
-    await page.locator('.offline-panel strong').filter({ hasText: /^พร้อมใช้งานออฟไลน์$/ }).waitFor()
+    assert.equal(await page.locator('.offline-panel').count(), 0, 'The removed offline panel must stay absent while worker preparation remains active')
 
     const before = await cachedPaths(page)
     const allBuiltAssets = await builtAssetPaths()
@@ -123,7 +123,8 @@ test('a first home visit prepares unvisited Atlas, fonts, local images and expli
     const offlineReload = await page.reload({ waitUntil: 'domcontentloaded' })
     assert.equal(offlineReload.status(), 200)
     assert.equal(offlineReload.fromServiceWorker(), true, 'Offline navigation must come from the installed service worker')
-    await page.locator('.offline-panel strong').filter({ hasText: /^กำลังใช้งานออฟไลน์$/ }).waitFor()
+    assert.equal((await workerStatus(page)).ready, true, 'The complete static package must remain available after an offline reload')
+    assert.equal(await page.locator('.offline-panel').count(), 0)
     // The new lazy dashboard page is part of the static offline package, while
     // its Google Sheets API and statistics are deliberately not cached.
     await nav(page, 'Dashboard').click()
@@ -342,7 +343,8 @@ test('incomplete downloads never claim readiness; a failed update preserves the 
       return !registration || (!registration.installing && !registration.active && !registration.waiting)
     })
     assert.ok(server.state.blockedRequests > 0, 'The missing lazy chunk must actually be requested during install')
-    assert.equal(await page.locator('.offline-panel strong').filter({ hasText: /^พร้อมใช้งานออฟไลน์$/ }).count(), 0, 'An incomplete installation must never advertise offline readiness')
+    assert.equal(await workerStatus(page), null, 'An incomplete installation must not expose an active ready worker')
+    assert.equal(await page.locator('.offline-panel').count(), 0, 'The removed offline panel must remain absent during a failed installation')
     assert.equal(await page.evaluate(() => navigator.serviceWorker.controller !== null), false)
 
     server.state.blockedAsset = null
@@ -393,15 +395,16 @@ test('incomplete downloads never claim readiness; a failed update preserves the 
       window.dispatchEvent(new Event('online'))
     }, firstReady.version)
     assert.equal((await workerStatus(page)).ready, false)
-    await page.locator('.offline-panel strong').filter({ hasText: /^ยังไม่พร้อมใช้งานออฟไลน์$/ }).waitFor()
+    assert.equal(await page.locator('.offline-panel').count(), 0)
     await page.evaluate(async version => {
       const cache = await caches.open(`helpminths-static-${version}`)
       await cache.put('/favicon.svg', window.__offlineTestSavedIcon)
       delete window.__offlineTestSavedIcon
       window.dispatchEvent(new Event('online'))
     }, firstReady.version)
-    await page.locator('.offline-panel strong').filter({ hasText: /^พร้อมใช้งานออฟไลน์$/ }).waitFor()
-    assert.equal((await workerStatus(page)).version, firstReady.version)
+    const restored = await waitForReady(page)
+    assert.equal(restored.ready, true, 'Restoring the evicted asset must restore complete worker readiness')
+    assert.equal(restored.version, firstReady.version)
 
     // Capture the actual pending version, then let normal activation complete
     // with no scoped clients. Opening a new page sooner can retain the old one.

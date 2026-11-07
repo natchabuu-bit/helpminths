@@ -63,7 +63,7 @@ Health พร้อมตอบไม่ได้แปลว่า model/databa
 | `POST /login`, `POST /logout` | เข้าสู่ระบบ/ออกจากระบบ logout ต้อง CSRF |
 | `GET/POST /users`, `PATCH /users/{id}` | Admin จัดการบัญชี ไม่คืน password hash |
 | `GET /quality/config`, `POST /quality` | Threshold และ heuristic quality; multipart image ไม่เก็บภาพ |
-| `POST /analyses` | Lab/reviewer/admin; multipart image/sample_code/site_code/confidence/acknowledge_quality/quality_comment |
+| `POST /analyses` | Lab/reviewer/admin; multipart image/sample_code/site_code/confidence/acknowledge_quality/quality_comment; sample_code ไม่บังคับกรอก รองรับข้อความอิสระและสร้าง HM-id ให้หากเว้นว่าง |
 | `GET /analyses`, `GET /analyses/{id}` | ค้นหา กรอง แบ่งหน้า และ detail ตามสิทธิ์ |
 | `GET /analyses/{id}/image` | Normalized PNG ส่วนตัว ตรวจสิทธิ์ทุกครั้ง |
 | `DELETE /analyses/{id}?expected_revision=…` | เจ้าของ/admin เอาภาพออกและ soft-delete คง audit |

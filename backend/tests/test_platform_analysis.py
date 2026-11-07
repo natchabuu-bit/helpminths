@@ -128,6 +128,66 @@ def test_persisted_result_keeps_raw_labels_metadata_free_image_and_owner_acl(pla
     assert create(client).status_code == 403
 
 
+@pytest.mark.parametrize("supplied", [None, "", "   \t\n"])
+def test_optional_sample_label_generates_one_stable_code_per_record(platform, supplied):
+    client, store, users, model = platform
+    login(client, "labone")
+    payload = {} if supplied is None else {"sample_code": supplied}
+    response = client.post("/api/platform/analyses", data=payload,
+                           files={"image": ("../../SYNTHETIC-sensitive-source.png", fixture_image(), "image/png")})
+    assert response.status_code == 201, response.text
+    record = response.json()
+    expected = f'HM-{record["id"][:8].upper()}'
+    assert record["sample_code"] == expected
+    assert record["filename"] == f'microscopy-{record["id"][:8]}.png'
+    again = client.get(f'/api/platform/analyses/{record["id"]}').json()
+    assert again["sample_code"] == expected
+    history = client.get("/api/platform/analyses?scope=mine&referral_state=not_pending").json()
+    assert history["total"] == 1 and history["items"][0]["sample_code"] == expected
+    assessment = store.list_documents("quality_assessment", owner_id=users["labone"]["id"])[0]
+    assert assessment["data"]["sample_code"] == expected
+    assert assessment["data"]["analysis_id"] == record["id"]
+    referred = client.post(f'/api/platform/analyses/{record["id"]}/referrals',
+                           json={"reason": "SYNTHETIC optional-label workflow only", "expected_revision": record["revision"]})
+    assert referred.status_code == 201
+    assert referred.json()["analysis"]["sample_code"] == expected
+    assert sorted(path.name for path in store.image_dir.iterdir()) == [f'{record["id"]}.png']
+    assert model.calls == 1
+
+
+def test_long_thai_free_text_label_is_trimmed_and_never_used_as_a_path(platform):
+    client, store, users, model = platform
+    login(client, "labone")
+    label = "../../ตัวอย่างจำลองสำหรับทดสอบระบบเท่านั้น ไม่ใช่ข้อมูลผู้ป่วย / ไข่พยาธิที่ต้องตรวจซ้ำ หมายเลข ๑๒๓"
+    assert len(label) > 40
+    response = create(client, sample_code=f"  {label}  ")
+    assert response.status_code == 201, response.text
+    record = response.json()
+    assert record["sample_code"] == label
+    assert record["filename"] == f'microscopy-{record["id"][:8]}.png'
+    stored = store.get_document("analysis", record["id"])
+    assert stored["data"]["image_filename"] == f'{record["id"]}.png'
+    assert sorted(path.name for path in store.image_dir.iterdir()) == [f'{record["id"]}.png']
+    assert client.get(record["image_url"]).status_code == 200
+    assert client.get("/api/platform/analyses", params={"q": "ตัวอย่างจำลอง"}).json()["total"] == 1
+    assessment = store.list_documents("quality_assessment", owner_id=users["labone"]["id"])[0]
+    assert assessment["data"]["sample_code"] == label
+    assert model.calls == 1
+
+
+def test_two_omitted_labels_generate_distinct_codes_bound_to_each_record(platform):
+    client, *_ = platform
+    login(client, "labone")
+    results = []
+    for _ in range(2):
+        response = client.post("/api/platform/analyses", files={"image": ("SYNTHETIC.png", fixture_image(), "image/png")})
+        assert response.status_code == 201, response.text
+        results.append(response.json())
+    assert results[0]["id"] != results[1]["id"]
+    assert len({item["sample_code"] for item in results}) == 2
+    assert all(item["sample_code"] == f'HM-{item["id"][:8].upper()}' for item in results)
+
+
 def test_quality_warning_requires_explicit_reason_and_no_inference_until_ack(platform):
     client, store, users, model = platform
     login(client, "labone")

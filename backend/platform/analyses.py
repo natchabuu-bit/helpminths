@@ -27,7 +27,6 @@ from .store import PlatformStore, flatten_document, utc_now
 
 router = APIRouter(prefix="/api/platform", tags=["Persisted analyses"])
 logger = logging.getLogger(__name__)
-_CODE = re.compile(r"^[A-Za-z0-9_-]{1,40}$")
 _IMAGE_ID = re.compile(r"^[a-f0-9]{32}$")
 THAI_TIME = timezone(timedelta(hours=7))
 ACTIVE_REFERRAL_STATUSES = ("pending", "in_review", "needs_more")
@@ -204,7 +203,7 @@ async def create_analysis(
     request: Request,
     user: Annotated[dict[str, Any], Depends(require_roles("admin", "reviewer", "lab"))],
     image: Annotated[UploadFile, File()],
-    sample_code: Annotated[str, Form(min_length=1, max_length=40, pattern=r"^[A-Za-z0-9_-]+$")],
+    sample_code: Annotated[str, Form()] = "",
     site_code: Annotated[str, Form(max_length=40, pattern=r"^[A-Za-z0-9_-]*$")] = "",
     confidence: Annotated[float | None, Form(ge=.01, le=.99)] = None,
     acknowledge_quality: Annotated[bool, Form()] = False,
@@ -215,6 +214,7 @@ async def create_analysis(
     model = request.app.state.model_service
     confidence = confidence if confidence is not None else configured_confidence("HELPMINTHS_CONFIDENCE_THRESHOLD", .15)
     started = time.perf_counter()
+    sample_code = sample_code.strip()
     document = None
     decoded = None
     try:
@@ -227,6 +227,9 @@ async def create_analysis(
                 store.create_document("quality_assessment", {"quality": quality, "sample_code": sample_code, "site_code": site_code, "accepted": False, "analysis_id": None}, user["id"], user["id"])
                 raise
             analysis_id = uuid.uuid4().hex
+            # A display label is optional. Generate it once from this record's
+            # ID, never from a filename or a separately changing counter.
+            sample_code = sample_code or f"HM-{analysis_id[:8].upper()}"
             store.create_document("quality_assessment", {"quality": quality, "sample_code": sample_code, "site_code": site_code, "accepted": True, "analysis_id": analysis_id}, user["id"], user["id"])
             metadata = getattr(model, "metadata", None)
             metadata = metadata if isinstance(metadata, dict) else {}

@@ -47,6 +47,39 @@ async function post(context, path, data, method = 'post') {
   return context.request[method](`${baseURL}/api/platform${path}`, { data, headers: { 'X-CSRF-Token': identity.csrf_token || '' } })
 }
 
+async function passwordVisibility(page, label, toggleLabel, value, scope = page) {
+  const input = scope.getByLabel(label, { exact: true })
+  await input.fill(value)
+  assert.equal(await input.getAttribute('type'), 'password', `${label} starts hidden`)
+  await input.evaluate(element => {
+    const form = element.closest('form')
+    window.passwordToggleSubmissions = 0
+    if (form) form.addEventListener('submit', () => { window.passwordToggleSubmissions += 1 }, { capture: true, once: true })
+  })
+  const writes = []
+  const observe = request => {
+    if (new URL(request.url()).pathname.startsWith('/api/platform/') && !['GET', 'HEAD', 'OPTIONS'].includes(request.method())) writes.push(request.url())
+  }
+  page.on('request', observe)
+  try {
+    const controls = input.locator('..')
+    const show = controls.getByRole('button', { name: `แสดง${toggleLabel}`, exact: true })
+    assert.equal(await show.getAttribute('type'), 'button')
+    assert.equal(await show.getAttribute('aria-controls'), await input.getAttribute('id'))
+    assert.equal(await show.getAttribute('aria-pressed'), 'false')
+    await show.click()
+    assert.equal(await input.getAttribute('type'), 'text')
+    assert.equal(await input.inputValue(), value)
+    const hide = controls.getByRole('button', { name: `ซ่อน${toggleLabel}`, exact: true })
+    assert.equal(await hide.getAttribute('aria-pressed'), 'true')
+    await hide.click()
+    assert.equal(await input.getAttribute('type'), 'password')
+    assert.equal(await input.inputValue(), value, 'Visibility changes preserve the entered password')
+    assert.equal(await page.evaluate(() => window.passwordToggleSubmissions), 0, 'Visibility controls cannot submit the surrounding form')
+    assert.deepEqual(writes, [], 'Visibility controls cannot issue account mutations')
+  } finally { page.off('request', observe) }
+}
+
 test('self-registered owners send uncertain images; approved experts reauthenticate, answer and lock the queue', { timeout: 180_000 }, async () => {
   const owner = await contextForTest(), expert = await contextForTest(), other = await contextForTest()
   try {
@@ -55,9 +88,16 @@ test('self-registered owners send uncertain images; approved experts reauthentic
     await ownerPage.getByRole('tab', { name: 'สมัครสมาชิก', exact: true }).click()
     const name = `referral_owner_${Date.now()}`
     await ownerPage.getByLabel('ชื่อบัญชี', { exact: true }).fill(name)
-    await ownerPage.getByLabel('รหัสผ่าน', { exact: true }).fill(testPassword)
-    await ownerPage.getByLabel('ยืนยันรหัสผ่าน', { exact: true }).fill(testPassword)
+    await passwordVisibility(ownerPage, 'รหัสผ่าน', 'รหัสผ่าน', testPassword)
+    await passwordVisibility(ownerPage, 'ยืนยันรหัสผ่าน', 'รหัสผ่านยืนยัน', testPassword)
     await ownerPage.getByRole('button', { name: 'สร้างบัญชีและเข้าใช้งาน', exact: true }).click()
+    await ownerPage.getByRole('button', { name: 'ออกจากระบบ', exact: true }).waitFor()
+    await ownerPage.getByRole('button', { name: 'ออกจากระบบ', exact: true }).click()
+    await ownerPage.getByLabel('ชื่อบัญชี', { exact: true }).fill(name)
+    await passwordVisibility(ownerPage, 'รหัสผ่าน', 'รหัสผ่าน', testPassword)
+    const login = ownerPage.waitForResponse(response => response.url().endsWith('/api/platform/login') && response.request().method() === 'POST')
+    await ownerPage.getByRole('button', { name: 'เข้าสู่ระบบ', exact: true }).click()
+    assert.equal((await login).status(), 200)
     await ownerPage.getByRole('button', { name: 'ออกจากระบบ', exact: true }).waitFor()
     const ownerSession = await session(owner.context)
     assert.equal(ownerSession.user.role, 'lab', 'Public registration must never grant expert permissions')
@@ -106,7 +146,7 @@ test('self-registered owners send uncertain images; approved experts reauthentic
     await expertPage.goto(`${baseURL}/#verification`, { waitUntil: 'networkidle' })
     await expertPage.getByRole('heading', { name: 'ยืนยันตัวตนผู้เชี่ยวชาญ', exact: true }).waitFor()
     assert.equal(await expertPage.locator('.expert-referral-card').count(), 0)
-    await expertPage.getByLabel('รหัสผ่านผู้เชี่ยวชาญ', { exact: true }).fill('wrong-password-SYNTHETIC')
+    await passwordVisibility(expertPage, 'รหัสผ่านผู้เชี่ยวชาญ', 'รหัสผ่านผู้เชี่ยวชาญ', 'wrong-password-SYNTHETIC')
     await expertPage.getByRole('button', { name: 'ยืนยันและเข้าคลังภาพ', exact: true }).click()
     await expertPage.locator('.platform-error').waitFor()
     assert.equal((await session(expert.context)).user.username, 'fixture-reviewer', 'Wrong step-up password must preserve the base login')
@@ -156,9 +196,9 @@ test('account settings verify the current password, rotate sessions and preserve
     await page.getByRole('heading', { name: 'เปลี่ยนชื่อบัญชีและรหัสผ่าน', exact: true }).waitFor()
     const newUsername = `${username}_new`, newPassword = 'Changed-synthetic-account-2026!'
     await page.getByLabel('ชื่อบัญชีที่ต้องการใช้', { exact: true }).fill(newUsername)
-    await page.getByLabel('รหัสผ่านปัจจุบัน', { exact: true }).fill('incorrect-SYNTHETIC-password')
-    await page.getByLabel('รหัสผ่านใหม่ (เว้นว่างหากไม่เปลี่ยน)', { exact: true }).fill(newPassword)
-    await page.getByLabel('ยืนยันรหัสผ่านใหม่', { exact: true }).fill(newPassword)
+    await passwordVisibility(page, 'รหัสผ่านปัจจุบัน', 'รหัสผ่านปัจจุบัน', 'incorrect-SYNTHETIC-password')
+    await passwordVisibility(page, 'รหัสผ่านใหม่ (เว้นว่างหากไม่เปลี่ยน)', 'รหัสผ่านใหม่', newPassword)
+    await passwordVisibility(page, 'ยืนยันรหัสผ่านใหม่', 'รหัสผ่านใหม่ที่ยืนยัน', newPassword)
     const rejected = page.waitForResponse(response => response.url().endsWith('/api/platform/account') && response.request().method() === 'PATCH')
     await page.getByRole('button', { name: 'บันทึกบัญชีของฉัน', exact: true }).click()
     assert.equal((await rejected).status(), 403)
@@ -256,4 +296,110 @@ test('account forms accept one-character and long usernames with four-character 
     assert.equal((await session(owner.context)).user.id, original.user.id)
     assert.deepEqual(owner.errors, []); assert.deepEqual(otherDevice.errors, [])
   } finally { await owner.context.close(); await otherDevice.context.close() }
+})
+
+test('administrator account creation and password reset controls show and hide without saving changes', { timeout: 60_000 }, async () => {
+  const admin = await contextForTest()
+  try {
+    assert.equal((await post(admin.context, '/login', { username: 'fixture-admin', password: staffPassword })).status(), 200)
+    const page = await admin.context.newPage()
+    await page.setViewportSize({ width: 375, height: 1000 })
+    await page.goto(`${baseURL}/#settings`, { waitUntil: 'networkidle' })
+    await page.getByRole('heading', { name: 'จัดการผู้ใช้', exact: true }).waitFor()
+    await passwordVisibility(page, 'รหัสผ่านใหม่ (อย่างน้อย 4 ตัว)', 'รหัสผ่านใหม่', 'unused-admin-created-password')
+    const account = page.locator('.platform-user-entry').filter({ has: page.getByText('fixture-lab', { exact: true }) })
+    await account.waitFor()
+    await passwordVisibility(page, 'เปลี่ยนรหัสผ่าน (เว้นว่างเพื่อคงเดิม)', 'รหัสผ่านใหม่', 'unused-admin-reset-password', account)
+    assert.equal(await page.getByRole('dialog').count(), 0, 'Toggling a password must not open the account-change confirmation')
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Administrator password controls must fit a 375px phone')
+    assert.deepEqual(admin.errors, [])
+  } finally { await admin.context.close() }
+})
+
+test('Scan saves a blank-code image, retries a failed expert referral, then opens the selected private image outside daily history', { timeout: 120_000 }, async () => {
+  const owner = await contextForTest()
+  try {
+    assert.equal((await post(owner.context, '/register', { username: `scan_referral_${Date.now()}`, password: testPassword })).status(), 201)
+    const page = await owner.context.newPage()
+    await page.setViewportSize({ width: 375, height: 1000 })
+    const imageWrites = []
+    page.on('request', request => {
+      if (request.method() === 'POST' && /\/api\/(?:analyze|platform\/analyses(?:\/[^/]+\/referrals)?)$/.test(new URL(request.url()).pathname)) imageWrites.push(request.url())
+    })
+    await page.goto(`${baseURL}/#scan`, { waitUntil: 'networkidle' })
+    await page.getByRole('button', { name: 'ดูตัวอย่างสาธิต', exact: true }).click()
+    await page.locator('.scan-demo-banner').waitFor()
+    assert.equal(await page.getByRole('button', { name: 'ส่งภาพให้ผู้เชี่ยวชาญยืนยัน', exact: true }).count(), 0, 'A synthetic demonstration cannot be referred as a private analysis')
+    assert.deepEqual(imageWrites, [], 'Opening the demonstration cannot create an analysis or referral')
+    assert.equal((await (await owner.context.request.get(`${baseURL}/api/platform/analyses?scope=mine`)).json()).total, 0)
+    await page.getByRole('button', { name: 'ล้างภาพในหน้านี้', exact: true }).click()
+
+    const png = await page.evaluate(() => {
+      const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 384
+      const context = canvas.getContext('2d')
+      for (let x = 0; x < 512; x += 16) for (let y = 0; y < 384; y += 16) {
+        context.fillStyle = (x / 16 + y / 16) % 2 ? '#b4b4b4' : '#4b4b4b'
+        context.fillRect(x, y, 16, 16)
+      }
+      return canvas.toDataURL('image/png').split(',')[1]
+    })
+    await page.getByLabel('เลือกภาพจากอุปกรณ์', { exact: true }).setInputFiles({ name: 'SYNTHETIC_blank_code_referral.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64') })
+    await page.locator('.scan-image-svg image').waitFor()
+    const sampleCode = page.getByLabel('รหัสตัวอย่างนิรนาม (ไม่บังคับ)', { exact: true })
+    assert.equal(await sampleCode.inputValue(), '')
+    const qualityResponse = page.waitForResponse(response => response.url().endsWith('/api/platform/quality') && response.request().method() === 'POST')
+    await page.getByRole('button', { name: 'ตรวจคุณภาพภาพ', exact: true }).click()
+    assert.equal((await qualityResponse).status(), 200)
+    await page.locator('.image-quality-summary').waitFor()
+    const acknowledgement = page.getByRole('checkbox', { name: 'ฉันรับทราบข้อจำกัด และต้องการดำเนินการต่อเพื่อให้ผู้เชี่ยวชาญทบทวน', exact: true })
+    if (await acknowledgement.isVisible()) {
+      await acknowledgement.check()
+      await page.getByLabel('เหตุผลที่ใช้ภาพนี้ต่อ', { exact: true }).fill('SYNTHETIC browser workflow only; not microscopy or diagnostic evidence.')
+    }
+    const analysisResponse = page.waitForResponse(response => response.url().endsWith('/api/platform/analyses') && response.request().method() === 'POST')
+    await page.getByRole('button', { name: 'เริ่มวิเคราะห์ภาพ', exact: true }).click()
+    const saved = await analysisResponse
+    assert.equal(saved.status(), 201, await saved.text())
+    const analysis = await saved.json()
+    assert.equal(analysis.model_version, 'synthetic-ui-fixture-v1')
+    assert.equal(analysis.sample_code, `HM-${analysis.id.slice(0, 8).toUpperCase()}`, 'A blank sample code receives the saved record identifier')
+    const dailyBefore = await (await owner.context.request.get(`${baseURL}/api/platform/analyses?scope=mine&referral_state=not_pending&analysis_id=${analysis.id}`)).json()
+    assert.equal(dailyBefore.total, 1)
+
+    let attempts = 0
+    await page.route(`**/api/platform/analyses/${analysis.id}/referrals`, async route => {
+      if (route.request().method() === 'POST' && ++attempts === 1) {
+        await route.fulfill({ status: 503, json: { detail: 'SYNTHETIC referral retry fixture' }, headers: { 'X-HelpMinths-Test-Fixture': 'synthetic-only' } })
+      } else await route.fallback()
+    })
+    const refer = page.getByRole('button', { name: 'ส่งภาพให้ผู้เชี่ยวชาญยืนยัน', exact: true })
+    const failedResponse = page.waitForResponse(response => response.url().endsWith(`/analyses/${analysis.id}/referrals`) && response.request().method() === 'POST')
+    await refer.click()
+    assert.equal((await failedResponse).status(), 503)
+    await page.getByRole('alert').filter({ hasText: 'SYNTHETIC referral retry fixture' }).waitFor()
+    assert.equal(new URL(page.url()).hash, '#scan', 'A failed referral stays on the analysis for retry')
+    assert.equal(await refer.isEnabled(), true)
+    assert.equal((await (await owner.context.request.get(`${baseURL}/api/platform/analyses/${analysis.id}/referral`)).json()).referral, null, 'The mocked failure must create no referral in the database')
+    assert.equal((await (await owner.context.request.get(`${baseURL}/api/platform/analyses/${analysis.id}`)).json()).revision, analysis.revision)
+
+    const referredResponse = page.waitForResponse(response => response.url().endsWith(`/analyses/${analysis.id}/referrals`) && response.request().method() === 'POST')
+    await refer.click()
+    const sent = await referredResponse
+    assert.equal(sent.status(), 201, await sent.text())
+    const referral = await sent.json()
+    assert.equal(referral.analysis_id, analysis.id)
+    assert.equal(referral.status, 'pending')
+    assert.equal(attempts, 2)
+    await page.waitForURL(`${baseURL}/#verification`)
+    await page.getByRole('img', { name: 'ภาพต้นฉบับและกรอบสำหรับตรวจทาน', exact: true }).waitFor()
+    assert.match(await page.locator('.platform-review-image svg image').getAttribute('href'), new RegExp(`/analyses/${analysis.id}/image$`), 'Success selects the exact private image that was sent')
+    const pendingHistory = await (await owner.context.request.get(`${baseURL}/api/platform/analyses?scope=mine&referral_state=not_pending&analysis_id=${analysis.id}`)).json()
+    assert.equal(pendingHistory.total, 0, 'A pending referral leaves daily history')
+    assert.equal((await (await owner.context.request.get(`${baseURL}/api/platform/history/days`)).json()).total_analyses, 0)
+    await nav(page, 'ประวัติการตรวจ')
+    await page.getByRole('heading', { name: 'ยังไม่มีผลตรวจในวันที่เลือก', exact: true }).waitFor()
+    assert.equal(await page.locator('.history-page .platform-record').count(), 0)
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'The scan-to-referral workflow must fit a 375px phone')
+    assert.deepEqual(owner.errors, [])
+  } finally { await owner.context.close() }
 })
