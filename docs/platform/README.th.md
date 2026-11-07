@@ -46,7 +46,7 @@ export HELPMINTHS_COOKIE_SECURE=0
 PORT=8080 bash scripts/start-production.sh
 ```
 
-CLI ถามรหัสผ่าน/ยืนยันผ่าน terminal อย่างน้อย4ตัวอักษร ไม่บังคับชนิดตัวอักษร ไม่ใส่ password ใน command line หรือ Git สร้างได้เมื่อยังไม่มีผู้ดูแลที่ใช้งานอยู่ แม้จะมีผู้ใช้ทั่วไปสมัครแล้ว จากนั้นเปิดหน้า **ตั้งค่าและบัญชี** เข้าสู่ระบบและอนุมัติบทบาทผู้เชี่ยวชาญ ผู้ใช้ทั่วไปสมัครบัญชีตนเองผ่านเว็บได้ อีกทางสำหรับเจ้าของโฮสต์คือโทเคนตั้งผู้ดูแลใน [คู่มือบัญชีและส่งต่อ](ACCOUNTS-AND-REFERRALS.th.md)
+CLI ถามรหัสผ่าน/ยืนยันผ่าน terminal อย่างน้อย4ตัวอักษร ไม่บังคับชนิดตัวอักษร ไม่ใส่ password ใน command line หรือ Git สร้างได้เมื่อยังไม่มีผู้ดูแลที่ใช้งานอยู่ แม้จะมีผู้ใช้ทั่วไปสมัครแล้ว จากนั้นเปิดหน้า **ตั้งค่าและบัญชี** เข้าสู่ระบบและอนุมัติบทบาทผู้เชี่ยวชาญ ผู้ใช้ทั่วไปและผู้เชี่ยวชาญสมัครคำขอผ่านเว็บและรอ Super Admin อนุมัติก่อนเข้าสู่ระบบได้ อีกทางสำหรับเจ้าของโฮสต์คือโทเคนตั้งผู้ดูแลใน [คู่มือบัญชีและส่งต่อ](ACCOUNTS-AND-REFERRALS.th.md)
 
 `COOKIE_SECURE=0` ใช้เฉพาะ HTTP local เว็บจริงต้อง HTTPS/ค่า1 ห้ามเปิด HTTP สาธารณะพร้อมข้อมูลจริง พาธตัวอย่างไม่ได้ทำให้ข้อมูล workspace คงอยู่หลังลบเครื่อง
 
@@ -143,7 +143,7 @@ SUS อยู่แท็บแยก ใช้คำตอบ10ข้อคร�
 
 ## Schema และการป้องกันข้อมูล
 
-เปิด private path แล้วสร้าง `helpminths.sqlite3` กับ `images/` permissions0700/0600 ใช้ SQLite WAL/foreign keys และ schema version1 รุ่นไม่รองรับจะปฏิเสธ ไม่เดา migration ทับข้อมูล รุ่นก่อนเก็บผลใน memory จึงไม่มี clinical DB เดิมต้องย้าย
+เปิด private path แล้วสร้าง `helpminths.sqlite3` กับ `images/` permissions0700/0600 ใช้ SQLite WAL/foreign keys และ schema version2 รุ่นไม่รองรับจะปฏิเสธ ไม่เดา migration ทับข้อมูล รุ่นก่อนเก็บผลใน memory จึงไม่มี clinical DB เดิมต้องย้าย
 
 | ตาราง | เนื้อหา |
 | --- | --- |
@@ -207,3 +207,5 @@ HELPMINTHS_ENABLE_TEST_FIXTURES=1 .venv/bin/python -m uvicorn backend.tests.ui_f
 Fixture บังคับ local/test mode มี temporary accounts/DB/predictor และ header `X-HelpMinths-Test-Fixture: synthetic-only` ต้องตรวจ header ก่อนการทดสอบสร้างข้อมูล ห้าม deploy หรือใช้ผลเป็นหลักฐาน clinical accuracy เปิด server ปกติแบบไม่ตั้งฐานข้อมูลที่8082 อีก process แล้วรัน `npm run test:platform` (ค่าเริ่มต้น fixture8091/default8082; เปลี่ยนผ่าน `HELPMINTHS_PLATFORM_TEST_URL`/`HELPMINTHS_PLATFORM_DEFAULT_URL`) ห้ามชี้ URL ไปเว็บใช้งานจริง อ่าน [รายงานตรวจสอบ](VALIDATION.md) สำหรับผลที่รันจริง
 
 การผ่าน build/API/browser/PDF tests เป็นหลักฐานซอฟต์แวร์ ก่อนศึกษากับผู้ใช้ยังต้องมี weights ที่เหมาะสม ภาพอิสระพร้อม annotation ที่ตรวจจริง สิทธิ์ข้อมูล แผนประเมิน และการอนุมัติของสถาบันตามขอบเขตงาน
+
+รุ่น schema 2 ย้ายฐานข้อมูลรุ่น 1 แบบ transaction รักษาบัญชีผู้ดูแลที่ใช้งานและสร้างก่อนเป็นเจ้าของ บัญชีอื่นรออนุมัติและ session เดิมถูกยกเลิก ไม่ลบผลตรวจหรือภาพเดิม ดู [การเปิด Super Admin และงานตรวจยืนยัน](SUPER-ADMIN-AND-EXPERTS.th.md)

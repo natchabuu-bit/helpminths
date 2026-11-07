@@ -33,7 +33,7 @@ export HELPMINTHS_COOKIE_SECURE=0
 .venv/bin/python -m backend.platform.bootstrap --username operator
 ```
 
-CLI ถามรหัสผ่านอย่างน้อย4ตัวอักษรผ่าน getpass โดยไม่บังคับชนิดตัวอักษร และสร้างผู้ดูแลได้เมื่อยังไม่มีผู้ดูแลที่ใช้งานอยู่ เข้าสู่ระบบจากหน้า **บัญชีและการตั้งค่า** แล้ว admin สร้าง reviewer/lab/student ต่อได้ ผู้ใช้ทั่วไปสมัครบัญชี lab จากเว็บได้ ไม่มีรหัสผ่านเริ่มต้น
+CLI ถามรหัสผ่านอย่างน้อย4ตัวอักษรผ่าน getpass โดยไม่บังคับชนิดตัวอักษร และสร้างผู้ดูแลได้เมื่อยังไม่มีผู้ดูแลที่ใช้งานอยู่ เข้าสู่ระบบจากหน้า **บัญชีและการตั้งค่า** แล้ว admin สร้าง reviewer/lab/student ต่อได้ ผู้ใช้ทั่วไปและผู้เชี่ยวชาญสมัครคำขอจากเว็บได้ ต้องให้ Super Admin อนุมัติก่อนเข้าสู่ระบบ ไม่มีรหัสผ่านเริ่มต้น
 
 Passwords เป็น salted scrypt; เก็บเฉพาะ hash ของ session token ใน SQLite Cookie `helpminths_session` ใช้ HttpOnly/SameSite=Lax/Secure ค่าเริ่มต้น การปิดบัญชี เปลี่ยนบทบาท หรือเปลี่ยนรหัสผ่านจะเพิกถอน sessions เดิม
 
@@ -118,7 +118,7 @@ Restart API ใช้ `.pt` detection ที่เชื่อถือได้
 
 จำกัด request body ก่อน multipart parser: ภาพรวม multipart21MiB (รวม overhead) และ JSON1MiB ทั้ง Content-Length และ streaming; ไฟล์ภาพยังจำกัด20MiB มี rate limit login/persistent analysis ต่อ process และ shared image-work slot สำหรับ decode/quality/inference/PDF เมื่อ busy ตอบ429พร้อม Retry-After ไม่ใช่ distributed queue หากเพิ่ม replica ต้องเพิ่ม shared limits และออกแบบ DB/storage ที่เหมาะสม CSV UTF-8 BOM ใช้ csv.writer/ป้องกัน formula injection แบบกรองสูงสุด1000รายการ/25000วัตถุ เลือก ID โดยตรงสูงสุด200รายการ
 
-SQLite schema version1 สร้างเมื่อเปิด private directory ไม่มี seed เก็บ entities ใน generic JSON documents พร้อม owner/revision/soft-delete และ append-only audit triggers อ่าน schema/backup/retention ในคู่มือแพลตฟอร์ม
+SQLite schema version2 สร้างเมื่อเปิด private directory ไม่มี seed เก็บ entities ใน generic JSON documents พร้อม owner/revision/soft-delete และ append-only audit triggers อ่าน schema/backup/retention ในคู่มือแพลตฟอร์ม
 
 ## ทดสอบ
 
@@ -133,3 +133,5 @@ SQLite schema version1 สร้างเมื่อเปิด private direct
 ## บัญชีและคลังส่งต่อรุ่นใหม่
 
 ดู [คู่มือบัญชีและส่งต่อ](../docs/platform/ACCOUNTS-AND-REFERRALS.th.md) สำหรับการสมัคร แก้บัญชี โทเคนตั้งผู้ดูแล พื้นที่ถาวร และข้อจำกัด Render Free APIs เพิ่ม `/register`, `/account`, `/admin-setup`, `/expert-login`, `/expert-session`, `/history/days`, `/referrals` และ `/analyses/{id}/referrals` ภายใต้ `/api/platform`; การแปลงภาพไม่บันทึกใช้ `/api/images/normalize` และตรวจรูปแบบที่ติดตั้งจริงด้วย `/api/images/formats`
+
+รุ่น schema 2 ย้ายฐานข้อมูลรุ่น 1 แบบ transaction รักษาบัญชีผู้ดูแลที่ใช้งานและสร้างก่อนเป็นเจ้าของ บัญชีอื่นรออนุมัติและ session เดิมถูกยกเลิก ไม่ลบผลตรวจหรือภาพเดิม ดู [การเปิด Super Admin และงานตรวจยืนยัน](../docs/platform/SUPER-ADMIN-AND-EXPERTS.th.md)

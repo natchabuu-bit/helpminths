@@ -2,6 +2,18 @@
 .account-tabs button { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 10px 18px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: #3e6962; font-size: 1rem; }
 .account-tabs button:hover { background: #e2f0e9; }
 .account-tabs button[aria-selected=true] { background: #0e7166; border-color: #0e7166; color: #fff; }
+.account-portal-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 800px; margin: 0 0 22px; }
+.account-portal-tabs > button { display: flex; align-items: flex-start; gap: 12px; min-width: 0; padding: 18px; border: 1px solid #c9ded8; border-radius: 9px; background: #f7faf8; color: #365d56; text-align: left; }
+.account-portal-tabs > button > svg { flex-shrink: 0; margin-top: 3px; }
+.account-portal-tabs > button > span { min-width: 0; font-size: 1.0625rem; font-weight: 600; overflow-wrap: anywhere; }
+.account-portal-tabs small { display: block; margin-top: 4px; font-size: .875rem; font-weight: 400; }
+.account-portal-tabs > button[aria-selected=true] { border-color: #0e7166; background: #eaf7f0; color: #0c665b; box-shadow: inset 0 0 0 1px #0e7166; }
+.account-portal-tabs > button:focus-visible, .account-tabs > button:focus-visible { outline: 3px solid #8bc6b7; outline-offset: 3px; }
+.account-pending-registration { display: flex; align-items: flex-start; gap: 13px; margin-bottom: 22px; padding: 18px; border: 1px solid #bbd9ca; border-radius: 9px; background: #eef8f2; color: #245b45; }
+.account-pending-registration > svg { flex-shrink: 0; margin-top: 3px; }
+.account-page .account-pending-registration h3 { margin: 0 0 7px; font-size: 1.125rem; }
+.account-page .account-pending-registration p { margin: 5px 0 0; overflow-wrap: anywhere; }
+.account-pending-registration .platform-badge { margin-right: 7px; }
 .account-form-intro { color: var(--muted); max-width: 860px; }
 .account-auth-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 0 18px; align-items: end; max-width: 980px; }
 .account-auth-form > button { margin-bottom: 17px; }
@@ -9,15 +21,29 @@
 .account-register-form > button { grid-column: 1 / -1; justify-self: start; margin-bottom: 0; }
 .account-auth-form .account-setup-token { grid-column: 1 / -1; max-width: 680px; }
 .account-setup-token small { color: var(--muted); font-size: .875rem; font-weight: 400; }
-.account-registration-note { display: flex; align-items: flex-start; gap: 10px; padding: 14px 16px; max-width: 980px; margin: 20px 0 0; border: 1px solid #c9e0d6; border-radius: 8px; background: #eef8f2; color: #3c6858; }
-.account-registration-note > svg { flex-shrink: 0; margin-top: 4px; }
-.account-page .account-registration-note p { margin: 0; font-size: .9375rem; line-height: 1.85; }
+.account-page .account-registration-help { margin: 16px 0 0; color: var(--muted); font-size: .9375rem; line-height: 1.85; }
 .account-current-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 .account-current-actions p { margin: 0; color: var(--muted); }
 .account-preferences form { max-width: 1000px; }
 .account-page .platform-definition-grid > div, .account-page .platform-user-entry { min-width: 0; }
 .account-page .platform-user-entry > div:first-child, .account-page .platform-user-entry .platform-form-grid > label { min-width: 0; overflow-wrap: anywhere; }
 .account-page .platform-modal h2 { overflow-wrap: anywhere; }
+.account-member-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.account-member-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.account-member-heading > div { min-width: 0; }
+.account-member-heading strong { font-size: 1.0625rem; overflow-wrap: anywhere; }
+.account-page .account-member-heading p { margin: 4px 0 0; color: var(--muted); }
+.account-member-heading > .platform-badge { flex-shrink: 0; }
+.account-member-metadata { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 22px; margin: 16px 0 20px; }
+.account-member-metadata > div { min-width: 0; }
+.account-member-metadata dt { margin-bottom: 4px; color: var(--muted); font-size: .875rem; }
+.account-member-metadata dd { margin: 0; overflow-wrap: anywhere; }
+.account-member-empty { padding: 20px 0; color: var(--muted); }
+.account-member-pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+.account-create-member { margin-top: 26px; padding-top: 22px; border-top: 1px solid #d6e5de; }
+.account-create-member > summary { width: fit-content; cursor: pointer; font-weight: 600; color: #245d50; }
+.account-create-member form { margin-top: 20px; }
+.account-page .platform-actions > button { overflow-wrap: anywhere; }
 .account-readiness { display:flex;align-items:center;justify-content:space-between;gap:18px;margin:20px 0;padding:20px 22px;border:1px solid #bad8ce;border-radius:10px;background:#edf8f2; }
 .account-readiness-main { display:flex;align-items:flex-start;gap:13px;min-width:0; }
 .account-readiness-main>svg { flex-shrink:0;margin-top:4px;color:#1f7b55; }
@@ -27,5 +53,5 @@
 .account-readiness.is-unavailable { background:#f4f9f7;border-color:#ccdeda; }
 .account-readiness.is-unavailable h2,.account-readiness.is-unavailable svg { color:#3d6a66; }
 @media(max-width:680px){.account-readiness{align-items:stretch;flex-direction:column;padding:18px}.account-readiness>.platform-button{width:100%}}
-@media (max-width: 1100px) { .account-auth-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } .account-auth-form > button { justify-self: start; } .account-register-form > button { grid-column: auto; } }
-@media (max-width: 680px) { .account-page .account-tabs { width: 100%; } .account-tabs button { flex: 1; padding: 10px 12px; } .account-tabs.has-admin-setup > button:last-child { flex-basis: 100%; } .account-auth-form { grid-template-columns: minmax(0, 1fr); } .account-auth-form > button { width: 100%; margin: 3px 0 0; } .account-current-actions { align-items: stretch; flex-direction: column; } .account-current-actions > button { width: 100%; } .account-page .account-registration-note { padding: 14px; } }
+@media (max-width: 1100px) { .account-auth-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } .account-auth-form > button { justify-self: start; } .account-register-form > button { grid-column: auto; } .account-member-metadata { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 680px) { .account-portal-tabs { grid-template-columns: minmax(0, 1fr); gap: 8px; } .account-portal-tabs > button { padding: 14px; } .account-page .account-tabs { width: 100%; } .account-tabs button { flex: 1; padding: 10px 12px; } .account-tabs.has-admin-setup > button:last-child { flex-basis: 100%; } .account-auth-form { grid-template-columns: minmax(0, 1fr); } .account-auth-form > button { width: 100%; margin: 3px 0 0; } .account-current-actions { align-items: stretch; flex-direction: column; } .account-current-actions .platform-actions { align-items: stretch; flex-direction: column; } .account-current-actions .platform-actions > button { width: 100%; } .account-member-filters > button { flex: 1 1 40%; } .account-member-metadata { gap: 12px; } .account-pending-registration { padding: 14px; } .account-super-admin .platform-actions { align-items: stretch; flex-direction: column; } }

@@ -76,7 +76,7 @@ def platform(tmp_path, monkeypatch):
     monkeypatch.setenv("HELPMINTHS_COOKIE_SECURE", "1")
     app = create_app(FixtureModel(), platform_dir=tmp_path / "private-platform")
     store = app.state.platform_store
-    users = {role: store.create_user(f"fixture-{role}", PASSWORD, role)
+    users = {role: store.create_user(f"fixture-{role}", PASSWORD, role, is_super_admin=(role == "admin"))
              for role in ("admin", "reviewer", "lab", "student")}
     users["other"] = store.create_user("fixture-other", PASSWORD, "lab")
     with ExitStack() as stack:

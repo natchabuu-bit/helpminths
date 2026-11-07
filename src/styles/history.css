@@ -21,3 +21,5 @@
 .history-page .platform-record h3 { color:#194d3f;font-size:1.25rem;margin:16px 0 8px;overflow-wrap:anywhere; }
 .history-confirmed { border-left:3px solid #268660;padding:8px 12px;background:#edf8ef;color:#226145!important; }
 @media(max-width:680px){.history-referral-note{flex-direction:column;align-items:stretch;padding:18px}.history-referral-note>.platform-button{width:100%}.history-date-row{gap:10px}.history-date-row label{flex-basis:100%}.history-date-row label input{max-width:100%}.history-day-list>button{flex:1;min-width:135px}.history-record-image{height:170px}}
+.history-state-tabs { margin: 22px 0; width: fit-content; }
+@media (max-width: 680px) { .history-state-tabs { width: 100%; } .history-state-tabs > button { flex: 1; } }

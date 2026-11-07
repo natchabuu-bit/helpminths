@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 export type PlatformRole = 'admin' | 'reviewer' | 'lab' | 'student'
-export interface PlatformUser { id: string; username: string; role: PlatformRole; active: boolean; created_at: string }
-export interface PlatformSession { configured: boolean; user: PlatformUser | null; csrf_token: string | null; bootstrap_required?: boolean; connection_error?: string | null; registration_enabled?: boolean; admin_setup_available?: boolean; expert_verified_until?: string | null }
+export type PlatformApprovalStatus = 'pending' | 'approved' | 'rejected'
+export interface PlatformUser { id: string; username: string; role: PlatformRole; active: boolean; created_at: string; approval_status: PlatformApprovalStatus; requested_role: PlatformRole | null; is_super_admin: boolean; approved_by: string | null; approved_at: string | null }
+export interface PendingRegistration { pending_approval: true; message: string; user: PlatformUser; csrf_token: null }
+export interface PlatformSession { configured: boolean; user: PlatformUser | null; csrf_token: string | null; bootstrap_required?: boolean; connection_error?: string | null; registration_enabled?: boolean; admin_setup_available?: boolean; expert_verified_until?: string | null; owner_username?: string }
 export interface APIRequestOptions extends RequestInit { json?: unknown; timeoutMs?: number }
 export const emptyPlatformSession: PlatformSession = { configured: false, user: null, csrf_token: null }
 const sessionExpiredEvent = 'helpminths:session-expired'
@@ -41,7 +43,7 @@ async function requestResponse(path: string, options: APIRequestOptions, session
     if (!response.ok) {
       // A rejected password is not an expired session. Other 401 responses must
       // promptly remove private views, including when the cookie expired remotely.
-      if (response.status === 401 && endpoint.split('?')[0] !== '/api/platform/login') window.dispatchEvent(new CustomEvent(sessionExpiredEvent, { detail: { userId: session?.user?.id ?? null } }))
+      if (response.status === 401 && !['/api/platform/login', '/api/platform/expert-signin', '/api/platform/expert-login'].includes(endpoint.split('?')[0])) window.dispatchEvent(new CustomEvent(sessionExpiredEvent, { detail: { userId: session?.user?.id ?? null } }))
       let detail: unknown = `บริการตอบกลับด้วยสถานะ ${response.status}`
       try { const value = await response.json(); detail = value.detail ?? value.message ?? detail } catch { /* non-JSON response is not a successful API result */ }
       throw new APIError(response.status, detail)

@@ -63,7 +63,8 @@ app = create_app(UITestModel(), platform_dir=_private_directory.name)
 app.title = "HelpMinths SYNTHETIC UI TEST FIXTURE"
 app.state.platform_test_fixture = True
 for role, username in TEST_USERS.items():
-    app.state.platform_store.create_user(username, TEST_PASSWORD, "lab" if role == "other" else role)
+    app.state.platform_store.create_user(username, TEST_PASSWORD, "lab" if role == "other" else role,
+                                         is_super_admin=role == "admin")
 
 _original_lifespan = app.router.lifespan_context
 

@@ -33,7 +33,7 @@ def login(client, username, password):
     return {**ORIGIN, "X-CSRF-Token": response.json()["csrf_token"]}
 
 
-@pytest.mark.parametrize("username,password", [("a", "abcd"), (LONG_USERNAME, "1234")])
+@pytest.mark.parametrize("username,password", [("a", "abcd"), (LONG_USERNAME, "1234"), ("Synthetic User", "abcd")])
 def test_registration_login_and_self_edit_accept_unbounded_name_count_and_four_char_passwords(prepared, username, password):
     app, store = prepared
     with TestClient(app, base_url="https://testserver") as client:
@@ -41,8 +41,15 @@ def test_registration_login_and_self_edit_accept_unbounded_name_count_and_four_c
         assert response.status_code == 201, response.text
         created = response.json()
         assert created["user"]["username"] == username and created["user"]["role"] == "lab"
-        assert client.get("/api/platform/users").status_code == 403
-        assert client.post("/api/platform/logout", headers={**ORIGIN, "X-CSRF-Token": created["csrf_token"]}).status_code == 200
+        assert created["user"]["approval_status"] == "pending"
+        assert client.get("/api/platform/users").status_code == 401
+        assert created["csrf_token"] is None
+        assert client.post("/api/platform/login", json={"username": username, "password": password}, headers=ORIGIN).status_code == 403
+        owner = store.create_user("synthetic_approval_owner", "abcd", "admin", is_super_admin=True)
+        with TestClient(app, base_url="https://testserver") as owner_client:
+            owner_headers = login(owner_client, owner["username"], "abcd")
+            approved = owner_client.patch(f'/api/platform/users/{created["user"]["id"]}', json={"approval_status": "approved"}, headers=owner_headers)
+            assert approved.status_code == 200, approved.text
         headers = login(client, "  " + username.upper() + "  ", password)
         changed_name = LONG_USERNAME if username == "a" else "z"
         changed_password = "1234" if password == "abcd" else "abcd"
@@ -58,7 +65,7 @@ def test_registration_login_and_self_edit_accept_unbounded_name_count_and_four_c
         assert store.authenticate(changed_name, changed_password)["id"] == created["user"]["id"]
 
 
-@pytest.mark.parametrize("bad_username", ["", " ", "_first", ".first", "bad name", "ชื่อไทย"])
+@pytest.mark.parametrize("bad_username", ["", " ", "_first", ".first", "bad/name", "ชื่อไทย"])
 def test_no_username_count_rule_does_not_remove_nonempty_or_allowed_character_validation(prepared, bad_username):
     app, store = prepared
     with TestClient(app, base_url="https://testserver") as client:
@@ -73,11 +80,11 @@ def test_admin_setup_create_reset_and_expert_verification_accept_four_char_crede
     app, store = prepared
     monkeypatch.setenv("HELPMINTHS_ADMIN_SETUP_TOKEN", SETUP_TOKEN)
     with TestClient(app, base_url="https://testserver") as admin, TestClient(app, base_url="https://testserver") as reviewer:
-        setup = admin.post("/api/platform/admin-setup", json={"setup_token": SETUP_TOKEN, "username": "r", "password": "abcd"}, headers=ORIGIN)
+        setup = admin.post("/api/platform/admin-setup", json={"setup_token": SETUP_TOKEN, "username": "Super Admin", "password": "abcd"}, headers=ORIGIN)
         assert setup.status_code == 201, setup.text
         assert setup.json()["expert_verified_until"] is None
         admin_headers = {**ORIGIN, "X-CSRF-Token": setup.json()["csrf_token"]}
-        assert admin.post("/api/platform/expert-login", json={"username": "r", "password": "abcd"}, headers=admin_headers).status_code == 200
+        assert admin.post("/api/platform/expert-login", json={"username": "Super Admin", "password": "abcd"}, headers=admin_headers).status_code == 200
         created = admin.post("/api/platform/users", json={"username": LONG_USERNAME, "password": "1234", "role": "reviewer"}, headers=admin_headers)
         assert created.status_code == 201, created.text
         user = created.json()
@@ -102,7 +109,7 @@ def test_passwords_shorter_than_four_are_rejected_for_creation_update_and_reset(
         assert invalid_setup.status_code == 422
         invalid_signup = anonymous.post("/api/platform/register", json={"username": "b", "password": short_password}, headers=ORIGIN)
         assert invalid_signup.status_code == 422
-        account = store.create_user("a", "abcd", "admin")
+        account = store.create_user("a", "abcd", "admin", is_super_admin=True)
         headers = login(admin, "a", "abcd")
         assert admin.post("/api/platform/users", json={"username": "b", "password": short_password, "role": "lab"}, headers=headers).status_code == 422
         assert admin.patch("/api/platform/account", json={"current_password": "abcd", "new_password": short_password}, headers=headers).status_code == 422
@@ -118,10 +125,10 @@ def test_short_names_keep_case_insensitive_uniqueness_and_registration_role_limi
         assert second.post("/api/platform/register", json={"username": "A", "password": "1234"}, headers=ORIGIN).status_code == 409
         assert second.post("/api/platform/register", json={"username": "b", "password": "1234", "role": "reviewer"}, headers=ORIGIN).status_code == 422
         assert second.post("/api/platform/login", json={"username": "a", "password": "1234"}, headers=ORIGIN).status_code == 401
-        assert first.get("/api/platform/users").status_code == 403
+        assert first.get("/api/platform/users").status_code == 401
 
 
-@pytest.mark.parametrize("username,password", [("a", "abcd"), (LONG_USERNAME, "1234")])
+@pytest.mark.parametrize("username,password", [("a", "abcd"), (LONG_USERNAME, "1234"), ("Synthetic User", "abcd")])
 def test_cli_bootstrap_uses_the_same_username_and_password_policy(tmp_path, monkeypatch, username, password):
     directory = tmp_path / "cli-private"
     monkeypatch.setenv("HELPMINTHS_DATA_DIR", str(directory))
@@ -129,7 +136,9 @@ def test_cli_bootstrap_uses_the_same_username_and_password_policy(tmp_path, monk
     supplied = iter([password, password])
     monkeypatch.setattr(bootstrap.getpass, "getpass", lambda _prompt: next(supplied))
     assert bootstrap.main() == 0
-    assert PlatformStore(directory).authenticate(username, password)["role"] == "admin"
+    account = PlatformStore(directory).authenticate(username, password)
+    assert account["role"] == "admin"
+    assert account["is_super_admin"] is True and account["approval_status"] == "approved"
 
 
 def test_password_hash_byte_limit_remains_bounded_without_composition_rules():

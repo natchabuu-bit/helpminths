@@ -52,3 +52,25 @@
   .expert-referral-thumb { width: 74px; height: 74px; }
   .expert-referral-card { padding: 18px; }
 }
+.referral-conversation { margin-top: 24px; }
+.referral-conversation h3, .referral-upload h3 { display: flex; align-items: center; gap: 8px; margin-top: 0; }
+.referral-message-list { list-style: none; display: grid; gap: 12px; padding: 0; margin: 18px 0; }
+.referral-message { padding: 15px 17px; border: 1px solid #cadfd4; border-left: 3px solid #86ae99; border-radius: 0 8px 8px 0; background: #f7fbf8; overflow-wrap: anywhere; }
+.referral-message > div { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 7px 16px; }
+.referral-message time { font-size: .875rem; color: #527263; }
+.referral-message > span { display: block; font-size: .875rem; margin-top: 5px; }
+.referral-message p { margin: 10px 0 0; }
+.referral-message-request_more { background: #fff8f1; border-color: #e0c3b1; border-left-color: #bf744f; }
+.referral-message-confirmed { background: #edf8ef; border-left-color: #218254; }
+.referral-attachments { margin-top: 24px; }
+.referral-attachment-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 18px; }
+.referral-attachment-grid figure { margin: 0; padding: 12px; min-width: 0; border: 1px solid #c9dfd4; border-radius: 8px; background: #f8fbf9; }
+.referral-attachment-grid img, .referral-attachment-grid .referral-image-fallback { display: block; width: 100%; height: 280px; object-fit: contain; background: #eaf2ec; border-radius: 5px; }
+.referral-attachment-grid figcaption { padding: 10px 2px 0; color: #4a6c5d; overflow-wrap: anywhere; font-size: .9375rem; }
+.referral-attachment-grid figcaption time, .referral-attachment-grid figcaption > span { display: block; }
+.referral-attachment-grid figcaption p { margin: 8px 0 0; }
+.referral-upload { margin-top: 25px; padding: 20px; border: 1px solid #e0c2ad; border-radius: 9px; background: #fff9f4; }
+.referral-upload-preview { display: block; width: 100%; max-width: 480px; max-height: 320px; object-fit: contain; margin: 15px 0; border: 1px solid #c7d9ce; border-radius: 6px; }
+.referral-image-fallback { display: flex !important; align-items: center; justify-content: center; flex-direction: column; gap: 7px; min-height: 70px; color: #607e6f; font-size: .875rem; }
+.expert-response-form textarea { resize: vertical; min-height: 130px; }
+@media (max-width: 680px) { .referral-conversation > .platform-card-heading { align-items: flex-start; flex-direction: column; gap: 8px; } .referral-upload { padding: 16px; } .referral-attachment-grid img, .referral-attachment-grid .referral-image-fallback { height: 220px; } }

@@ -14,7 +14,7 @@ from .store import PlatformStore
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Create the first HelpMinths administrator using a private persistent data directory")
-    parser.add_argument("--username", required=True, help="Nonempty operator username: ASCII letters/numbers/._-, starting with a letter or number")
+    parser.add_argument("--username", required=True, help="Nonempty operator username: ASCII letters/numbers/spaces/._-, starting with a letter or number")
     args = parser.parse_args()
     store = PlatformStore()
     if not store.configured:
@@ -25,9 +25,9 @@ def main() -> int:
         parser.error("Passwords do not match")
     try:
         with store.transaction() as conn:
-            if conn.execute("SELECT 1 FROM users WHERE active=1 AND role='admin' LIMIT 1").fetchone() is not None:
-                parser.error("An active administrator already exists. Sign in as an administrator to manage users.")
-            store.create_user(args.username, password, "admin", conn=conn)
+            if conn.execute("SELECT 1 FROM users WHERE is_super_admin=1 LIMIT 1").fetchone() is not None:
+                parser.error("An owner already exists. Sign in as the owner to manage users.")
+            store.create_user(args.username, password, "admin", conn=conn, is_super_admin=True)
     except HTTPException as error:
         parser.error(str(error.detail))
     print("Administrator created. No password or session token was printed. Sign in through HelpMinths Settings.")

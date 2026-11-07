@@ -299,12 +299,13 @@ def history_days(
     user: Annotated[dict[str, Any], Depends(require_user)],
     date_from: str | None = Query(None, max_length=40),
     date_to: str | None = Query(None, max_length=40),
+    referral_state: Literal["all", "pending", "not_pending"] = "not_pending",
     limit: int = Query(31, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ) -> dict[str, Any]:
-    """Owner-only daily counts; active expert referrals live in their own queue."""
+    """Owner-only daily counts with optional inclusion of active referrals."""
     store = get_store(request)
-    filters = {"scope": "mine", "referral_state": "not_pending", "date_from": date_from, "date_to": date_to}
+    filters = {"scope": "mine", "referral_state": referral_state, "date_from": date_from, "date_to": date_to}
     where, params = analysis_filter_sql(user, filters)
     # Server timestamps are UTC. Group at the same Thai midnight used by the
     # date filters, without inventing zero-count days between actual records.
@@ -348,18 +349,26 @@ def delete_analysis(analysis_id: str, request: Request, user: Annotated[dict[str
             raise HTTPException(409, "ผลนี้เปลี่ยนไปแล้ว กรุณาโหลดผลล่าสุดก่อนนำรายการออก")
         if document["data"]["status"] == "processing":
             raise HTTPException(409, "รอให้การประมวลผลสิ้นสุดก่อนนำรายการออก")
-        path = None
-        try:
-            path = analysis_image_path(store, document)
-        except HTTPException as exc:
-            if exc.status_code != 410:
-                raise
-        # Delete bytes before committing the tombstone; if this fails no deletion is claimed.
-        if path is not None:
+        attachment_rows = conn.execute(
+            "SELECT * FROM documents WHERE kind='referral_attachment' AND deleted_at IS NULL "
+            "AND owner_id=? AND json_extract(data,'$.analysis_id')=?", (document["owner_id"], analysis_id),
+        ).fetchall()
+        attachments = [{**dict(row), "data": json.loads(row["data"])} for row in attachment_rows]
+        paths = []
+        for image_record in [document, *attachments]:
             try:
+                paths.append(analysis_image_path(store, image_record))
+            except HTTPException as exc:
+                if exc.status_code != 410:
+                    raise
+        # Delete bytes before committing the tombstone; if this fails no deletion is claimed.
+        try:
+            for path in paths:
                 path.unlink()
-            except OSError:
-                raise HTTPException(500, "นำไฟล์ภาพออกไม่สำเร็จ กรุณาลองอีกครั้ง") from None
+        except OSError:
+            raise HTTPException(500, "นำไฟล์ภาพออกไม่สำเร็จ กรุณาลองอีกครั้ง") from None
+        for attachment in attachments:
+            store.soft_delete_document("referral_attachment", attachment["id"], user["id"], attachment["revision"], conn=conn)
         store.soft_delete_document("analysis", analysis_id, user["id"], expected_revision, conn=conn)
     return {"id": analysis_id, "status": "deleted", "image_removed": True, "audit_retained": True}
 

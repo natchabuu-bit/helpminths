@@ -31,7 +31,7 @@ def store(tmp_path):
 
 @pytest.fixture
 def prepared(store):
-    admin = store.create_user("test_admin", PASSWORD, "admin")
+    admin = store.create_user("test_admin", PASSWORD, "admin", is_super_admin=True)
     lab = store.create_user("test_lab", PASSWORD, "lab", actor_id=admin["id"])
     student = store.create_user("test_student", PASSWORD, "student", actor_id=admin["id"])
     return application(store), admin, lab, student
@@ -97,7 +97,7 @@ def test_login_cookie_csrf_origin_logout_and_no_store(prepared):
         assert client.get("/api/platform/users").status_code == 401
 
 
-def test_role_permissions_revocation_and_last_administrator_guard(prepared):
+def test_role_permissions_revocation_and_super_admin_lockout_guard(prepared):
     app, admin, lab, student = prepared
     with TestClient(app, base_url="https://testserver") as admin_client, TestClient(app, base_url="https://testserver") as lab_client, TestClient(app, base_url="https://testserver") as student_client:
         csrf = sign_in(admin_client)
@@ -118,8 +118,10 @@ def test_role_permissions_revocation_and_last_administrator_guard(prepared):
         assert student_client.get("/api/platform/session").json()["user"]["id"] == student["id"]
         second = admin_client.post("/api/platform/users", json={"username": "another_admin", "password": PASSWORD, "role": "admin"}, headers=headers)
         assert second.status_code == 201
-        assert admin_client.patch(f'/api/platform/users/{admin["id"]}', json={"role": "lab"}, headers=headers).status_code == 200
-        assert admin_client.get("/api/platform/session").json()["user"] is None
+        assert second.json()["is_super_admin"] is False
+        assert admin_client.patch(f'/api/platform/users/{admin["id"]}', json={"role": "lab"}, headers=headers).status_code == 409
+        assert admin_client.patch(f'/api/platform/users/{admin["id"]}', json={"approval_status": "rejected"}, headers=headers).status_code == 409
+        assert admin_client.get("/api/platform/session").json()["user"]["is_super_admin"] is True
 
 
 def test_document_transactions_conflicts_soft_delete_and_immutable_audit(store):

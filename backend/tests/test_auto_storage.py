@@ -131,6 +131,19 @@ def test_reopening_the_same_private_files_retains_real_signup_login_and_owned_re
         account = response.json()
         assert account["user"]["role"] == "lab"
         assert account["expert_verified_until"] is None
+        assert account["user"]["approval_status"] == "pending" and account["csrf_token"] is None
+        assert owner.get("/api/platform/analyses?scope=mine").status_code == 401
+        store = app.state.platform_store
+        operator = store.create_user("synthetic_super_admin", PASSWORD, "admin", is_super_admin=True)
+        with TestClient(app, base_url="https://testserver") as operator_client:
+            operator_login = operator_client.post("/api/platform/login", json={"username": operator["username"], "password": PASSWORD}, headers=ORIGIN)
+            assert operator_login.status_code == 200
+            approved = operator_client.patch(f'/api/platform/users/{account["user"]["id"]}', json={"approval_status": "approved"},
+                                             headers={**ORIGIN, "X-CSRF-Token": operator_login.json()["csrf_token"]})
+            assert approved.status_code == 200, approved.text
+        login = owner.post("/api/platform/login", json={"username": "synthetic_owner", "password": PASSWORD}, headers=ORIGIN)
+        assert login.status_code == 200
+        account = login.json()
         image = Image.new("RGB", (512, 384), "white")
         drawing = ImageDraw.Draw(image)
         for x in range(0, 512, 16):
@@ -159,9 +172,12 @@ def test_reopening_the_same_private_files_retains_real_signup_login_and_owned_re
         assert owner.get(f'/api/platform/analyses/{record["id"]}/image').content == saved_pixels
         signup = other.post("/api/platform/register", json={"username": "synthetic_other", "password": PASSWORD}, headers=ORIGIN)
         assert signup.status_code == 201
-        assert other.get("/api/platform/analyses?scope=mine").json()["total"] == 0
-        assert other.get(f'/api/platform/analyses/{record["id"]}').status_code == 403
-        assert other.get(f'/api/platform/analyses/{record["id"]}/image').status_code == 403
+        assert signup.json()["user"]["approval_status"] == "pending"
+        assert other.get("/api/platform/analyses?scope=mine").status_code == 401
+        assert other.get(f'/api/platform/analyses/{record["id"]}').status_code == 401
+        assert other.get(f'/api/platform/analyses/{record["id"]}/image').status_code == 401
+        pending_login = other.post("/api/platform/login", json={"username": "synthetic_other", "password": PASSWORD}, headers=ORIGIN)
+        assert pending_login.status_code == 403
     assert reopened.state.platform_store.config.storage_durable is False
 
 

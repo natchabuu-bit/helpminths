@@ -201,10 +201,10 @@ test('authenticated quality gate, saved predictions, expert decisions, audit, re
     await page.getByLabel('ชนิดที่ตรวจทาน', { exact: true }).fill('TEST FIXTURE missed object')
     await page.getByLabel('หมายเหตุสำหรับวัตถุนี้').fill('SYNTHETIC TEST: manually added chart region, not AI output.')
     await page.getByLabel('สถานะการทบทวน').selectOption('verified')
-    await page.getByLabel('ความคิดเห็นรวม').fill('SYNTHETIC TEST ONLY. Full chart reviewed; original model predictions must remain unchanged.')
+    await page.getByLabel('คำตอบถึงผู้ส่ง', { exact: true }).fill('SYNTHETIC TEST ONLY. Full chart reviewed; original model predictions must remain unchanged.')
     await page.getByRole('checkbox', { name: /ตรวจภาพทั้งภาพแล้ว/ }).check()
     const reviewPromise = page.waitForResponse(response => response.url().endsWith(`/analyses/${original.id}/reviews`) && response.request().method() === 'POST')
-    await page.getByRole('button', { name: 'บันทึกผลตรวจทาน', exact: true }).click()
+    await page.getByRole('button', { name: 'ยืนยันผลและส่งคำตอบ', exact: true }).click()
     const reviewResponse = await reviewPromise
     fixtureHeader(reviewResponse)
     assert.equal(reviewResponse.status(), 201, await reviewResponse.text())
@@ -301,7 +301,7 @@ test('admin user inventory and rejected credentials use real authentication', { 
     await page.locator('.platform-error').waitFor()
     assert.equal(await page.getByLabel('ชื่อบัญชี', { exact: true }).count(), 1)
     await login(page, 'admin')
-    await page.getByRole('heading', { name: 'จัดการผู้ใช้', exact: true }).waitFor()
+    await page.getByRole('heading', { name: 'Super admin', exact: true }).waitFor()
     const usersResponse = await page.request.get(`${fixtureURL}/api/platform/users`)
     assert.equal(usersResponse.status(), 200)
     const users = await usersResponse.json()
@@ -311,6 +311,8 @@ test('admin user inventory and rejected credentials use real authentication', { 
     }
     assert.ok(users.items.some(user => user.role === 'student'))
     assert.ok(users.items.some(user => user.role === 'reviewer'))
+    assert.equal(users.items.find(user => user.username === 'fixture-admin')?.is_super_admin, true, 'Synthetic approvals must use the explicit system owner')
+    assert.equal(users.items.find(user => user.username === 'fixture-reviewer')?.approval_status, 'approved')
   } finally { await finish() }
 })
 
@@ -332,7 +334,7 @@ test('unconfigured platform pages remain truthful and usable at 375px and 1440px
         await page.waitForFunction(expected => location.hash === `#${expected}`, id)
         await page.locator('.platform-loading,.loading-state').waitFor({ state: 'hidden' })
         await page.locator('main h1').first().waitFor()
-        const size = await page.evaluate(() => ({ width: innerWidth, documentWidth: document.documentElement.scrollWidth, fontSize: parseFloat(getComputedStyle(document.querySelector('main p')).fontSize) }))
+        const size = await page.evaluate(() => ({ width: innerWidth, documentWidth: document.documentElement.scrollWidth, fontSize: parseFloat(getComputedStyle(document.querySelector('main p:not(.field-eyebrow)')).fontSize) }))
         assert.ok(size.documentWidth <= size.width + 1, `${id} must not overflow the ${width}px viewport (${size.documentWidth})`)
         assert.ok(size.fontSize >= 14, `${id} supporting text must remain readable`)
         if (['home', 'history', 'verification', 'reports', 'performance'].includes(id)) {

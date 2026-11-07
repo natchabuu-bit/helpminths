@@ -94,6 +94,39 @@ def test_pending_referrals_are_separate_until_confirmed_without_duplicating_anal
     assert client.get("/api/platform/analyses").json()["total"] == 5, "Referral transitions must not create duplicate results"
 
 
+def test_full_history_filters_include_all_dates_and_keep_unpaged_thai_day_totals(history):
+    client, store, users = history
+    owner = users["ownerone"]
+    record(store, owner, "2024-01-01T03:00:00.000Z")
+    record(store, owner, "2026-11-01T16:59:59.000Z", referral_status="pending")
+    record(store, owner, "2026-11-01T17:00:00.000Z", referral_status="in_review")
+    record(store, owner, "2026-11-02T09:00:00.000Z", referral_status="needs_more")
+    record(store, owner, "2026-11-03T09:00:00.000Z", referral_status="confirmed")
+    record(store, owner, "2026-11-04T09:00:00.000Z", referral_status="pending", deleted=True)
+    record(store, users["ownertwo"], "2026-11-02T09:00:00.000Z", referral_status="pending")
+    login(client, "ownerone")
+
+    all_dates = client.get("/api/platform/history/days", params={"referral_state": "all", "limit": 1, "offset": 3}).json()
+    assert all_dates["items"] == [{"date": "2024-01-01", "total": 1, "completed": 1, "failed": 0}]
+    assert all_dates["total_days"] == 4
+    assert all_dates["total_analyses"] == 5
+
+    waiting = client.get("/api/platform/history/days", params={"referral_state": "pending", "limit": 1}).json()
+    assert waiting["items"] == [{"date": "2026-11-02", "total": 2, "completed": 2, "failed": 0}]
+    assert waiting["total_days"] == 2
+    assert waiting["total_analyses"] == 3
+
+    thai_day = client.get("/api/platform/history/days", params={
+        "referral_state": "all", "date_from": "2026-11-02", "date_to": "2026-11-02",
+    }).json()
+    assert thai_day["items"] == waiting["items"]
+    assert thai_day["total_analyses"] == 2
+    for state, expected in (("all", 5), ("pending", 3), ("not_pending", 2)):
+        daily = client.get("/api/platform/history/days", params={"referral_state": state}).json()
+        listed = client.get("/api/platform/analyses", params={"scope": "mine", "referral_state": state}).json()
+        assert daily["total_analyses"] == listed["total"] == expected
+
+
 @pytest.mark.parametrize("name", ["expertone", "adminone"])
 def test_owner_history_never_becomes_a_cross_owner_expert_queue(history, name):
     client, store, users = history
@@ -107,6 +140,10 @@ def test_owner_history_never_becomes_a_cross_owner_expert_queue(history, name):
     mine = client.get("/api/platform/analyses", params={"scope": "mine"}).json()
     assert {item["id"] for item in mine["items"]} == {own["id"]}
     assert client.get("/api/platform/history/days").json()["total_analyses"] == 1
+    record(store, users[name], "2024-01-01T09:00:00.000Z", referral_status="needs_more")
+    record(store, users["ownerone"], "2024-01-01T09:00:00.000Z", referral_status="pending")
+    assert client.get("/api/platform/history/days", params={"referral_state": "all"}).json()["total_analyses"] == 2
+    assert client.get("/api/platform/history/days", params={"referral_state": "pending"}).json()["total_analyses"] == 1
 
 
 def test_history_pagination_totals_and_empty_results_do_not_invent_calendar_days(history):
@@ -127,6 +164,7 @@ def test_history_pagination_totals_and_empty_results_do_not_invent_calendar_days
     ("history/days", {"date_from": "2026-11-03", "date_to": "2026-11-02"}),
     ("history/days", {"limit": 101}),
     ("history/days", {"offset": -1}),
+    ("history/days", {"referral_state": "made-up-status"}),
     ("analyses", {"scope": "everybody"}),
     ("analyses", {"referral_state": "made-up-status"}),
 ])

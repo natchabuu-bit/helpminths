@@ -9,13 +9,13 @@ import sqlite3
 import threading
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
-from .store import ROLES, SCHEMA_VERSION, USERNAME, USERNAME_MESSAGE, PlatformStore, hash_password, json_text, public_user, utc_now, verify_password
+from .store import ROLES, SCHEMA_VERSION, USERNAME, USERNAME_MESSAGE, PlatformStore, hash_password, is_reserved_owner_username, json_text, owner_username, public_user, utc_now, verify_password
 
 router = APIRouter(prefix="/api/platform", tags=["Platform accounts and settings"])
 COOKIE_NAME = "helpminths_session"
@@ -72,7 +72,7 @@ def _current_session(request: Request, store: PlatformStore) -> tuple[dict[str, 
     if len(raw) < 32 or len(raw) > 256:
         return None, None
     with store.connection() as conn:
-        row = conn.execute("SELECT u.*,s.expires_at FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>? AND u.active=1", (_session_hash(raw), utc_now())).fetchone()
+        row = conn.execute("SELECT u.*,s.expires_at FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>? AND u.active=1 AND u.approval_status='approved'", (_session_hash(raw), utc_now())).fetchone()
         return (public_user(row), raw) if row else (None, None)
 
 
@@ -97,10 +97,15 @@ def _session_payload(store: PlatformStore, user: dict[str, Any], raw: str) -> di
     return {"configured": True, "user": public_user(user), "csrf_token": csrf_token(raw),
             "bootstrap_required": not store.has_users(), "registration_enabled": True,
             "admin_setup_available": _admin_setup_available(store),
+            "owner_username": owner_username(),
             "expert_verified_until": _expert_verified_until(store, user, raw)}
 
 
 def _create_session(store: PlatformStore, user: dict[str, Any], conn: sqlite3.Connection) -> tuple[str, str]:
+    current = conn.execute("SELECT * FROM users WHERE id=? AND active=1", (user["id"],)).fetchone()
+    if current is None:
+        raise HTTPException(401, "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง")
+    _require_approved(public_user(current))
     raw = secrets.token_urlsafe(48)
     now = datetime.now(timezone.utc)
     expires = (now + timedelta(hours=store.config.session_hours)).isoformat(timespec="milliseconds").replace("+00:00", "Z")
@@ -134,6 +139,19 @@ def require_roles(*roles: str):
             raise HTTPException(403, "บัญชีนี้ไม่มีสิทธิ์ใช้งานส่วนนี้")
         return user
     return dependency
+
+
+def require_super_admin(user: Annotated[dict[str, Any], Depends(require_user)]) -> dict[str, Any]:
+    if user["role"] != "admin" or user.get("is_super_admin") is not True:
+        raise HTTPException(403, "เฉพาะเจ้าของระบบ (Super admin) จึงจัดการและอนุมัติบัญชีได้")
+    return user
+
+
+def _require_approved(user: dict[str, Any]) -> None:
+    if user["approval_status"] != "approved":
+        status = user["approval_status"]
+        message = "บัญชีนี้กำลังรอเจ้าของระบบอนุมัติ" if status == "pending" else "เจ้าของระบบไม่อนุมัติบัญชีนี้ กรุณาติดต่อเจ้าของระบบ"
+        raise HTTPException(403, {"code": "account_" + status, "message": message})
 
 
 def assert_access(user: dict[str, Any], document: dict[str, Any]) -> None:
@@ -183,6 +201,7 @@ class RegisterRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     username: Username
     password: str = Field(min_length=4, max_length=1024)
+    account_type: Literal["user", "expert"] = "user"
 
 
 class AdminSetupRequest(BaseModel):
@@ -210,6 +229,7 @@ class UpdateUserRequest(BaseModel):
     role: str | None = None
     active: bool | None = None
     password: str | None = Field(default=None, min_length=4, max_length=1024)
+    approval_status: Literal["pending", "approved", "rejected"] | None = None
 
 
 class _LoginLimiter:
@@ -252,7 +272,8 @@ def session(request: Request, response: Response) -> dict[str, Any]:
     if user and raw:
         return _session_payload(store, user, raw)
     return {"configured": True, "user": None, "csrf_token": None, "bootstrap_required": not store.has_users(),
-            "registration_enabled": True, "admin_setup_available": _admin_setup_available(store), "expert_verified_until": None}
+            "registration_enabled": True, "admin_setup_available": _admin_setup_available(store), "expert_verified_until": None,
+            "owner_username": owner_username()}
 
 
 @router.get("/status")
@@ -272,6 +293,7 @@ def status(request: Request) -> dict[str, Any]:
         "admin_setup_available": bool(configured and _admin_setup_available(store)),
         "schema_version": SCHEMA_VERSION if configured else None,
         "roles": list(ROLES),
+        "owner_username": owner_username(),
         "storage": {"configured": configured, "durable": durable, "automatic": automatic,
                     "mode": "durable" if durable else "temporary" if configured else "not_configured",
                     "notice": "เชื่อมพื้นที่เก็บข้อมูลถาวรตามการตั้งค่าของผู้ดูแลแล้ว ควรสำรองข้อมูลแยกต่างหาก" if durable else
@@ -289,6 +311,7 @@ def login(body: LoginRequest, request: Request, response: Response) -> dict[str,
     user = store.authenticate(body.username.strip(), body.password)
     if user is None:
         raise HTTPException(401, "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง")
+    _require_approved(user)
     with store.transaction() as conn:
         raw, expires = _create_session(store, user, conn)
         store.append_audit("users", user["id"], user["id"], "login", after={"expires_at": expires}, conn=conn)
@@ -303,14 +326,19 @@ def register(body: RegisterRequest, request: Request, response: Response) -> dic
     _limiter(request).check(request.client.host if request.client else "unknown", "register:" + body.username)
     if _current_session(request, store)[0] is not None:
         raise HTTPException(409, "กรุณาออกจากระบบก่อนสมัครบัญชีใหม่")
-    # Never take a role/active/user ID from public registration, including for
-    # the very first user. Operator bootstrap remains a separate local action.
+    # Requested expertise does not grant it. Every public account needs the
+    # owner's decision, and registration cannot issue an authenticated session.
+    requested_role = "reviewer" if body.account_type == "expert" else "lab"
     with store.transaction() as conn:
-        user = store.create_user(body.username, body.password, "lab", conn=conn)
-        raw, expires = _create_session(store, user, conn)
-        store.append_audit("users", user["id"], user["id"], "self_registered", after={"role": "lab", "expires_at": expires}, conn=conn)
-    _set_session_cookie(response, store, raw)
-    return _session_payload(store, user, raw)
+        user = store.create_user(body.username, body.password, "lab", conn=conn,
+                                 approval_status="pending", requested_role=requested_role)
+        store.append_audit("users", user["id"], user["id"], "self_registered", after=user, conn=conn)
+    response.headers["Cache-Control"] = "no-store"
+    return {"configured": True, "user": user, "csrf_token": None, "pending_approval": True,
+            "message": "สมัครบัญชีแล้ว กรุณารอเจ้าของระบบอนุมัติก่อนเข้าสู่ระบบ",
+            "bootstrap_required": not store.has_users(), "registration_enabled": True,
+            "admin_setup_available": _admin_setup_available(store), "expert_verified_until": None,
+            "owner_username": owner_username()}
 
 
 @router.post("/admin-setup", status_code=201)
@@ -323,13 +351,15 @@ def admin_setup(body: AdminSetupRequest, request: Request, response: Response) -
     with store.transaction() as conn:
         # Serialize the claim with CLI/bootstrap and competing web requests. An
         # ordinary public signup never participates in this privileged path.
-        if conn.execute("SELECT 1 FROM users WHERE active=1 AND role='admin' LIMIT 1").fetchone() is not None:
+        if conn.execute("SELECT 1 FROM users WHERE is_super_admin=1 LIMIT 1").fetchone() is not None:
             raise HTTPException(409, "มีผู้ดูแลระบบแล้ว ให้เข้าสู่ระบบด้วยบัญชีผู้ดูแลเดิม")
         if token is None:
             raise HTTPException(503, "ยังไม่เปิดการตั้งค่าผู้ดูแลผ่านเว็บ กรุณาตั้งค่าโทเคนผู้ดูแลบนโฮสต์ก่อน")
         if not hmac.compare_digest(body.setup_token.encode("utf-8"), token.encode("ascii")):
             raise HTTPException(403, "โทเคนตั้งค่าผู้ดูแลไม่ถูกต้อง")
-        user = store.create_user(body.username, body.password, "admin", conn=conn)
+        if body.username != owner_username():
+            raise HTTPException(422, "กรุณาใช้ชื่อบัญชีเจ้าของระบบที่กำหนดไว้: " + owner_username())
+        user = store.create_user(body.username, body.password, "admin", conn=conn, is_super_admin=True)
         raw, expires = _create_session(store, user, conn)
         store.append_audit("users", user["id"], user["id"], "admin_web_bootstrapped",
                            after={"role": "admin", "expires_at": expires}, conn=conn)
@@ -348,7 +378,7 @@ def logout(request: Request, response: Response, user: Annotated[dict[str, Any],
     return {"configured": True, "user": None, "csrf_token": None, "bootstrap_required": not store.has_users()}
 
 
-Admin = Annotated[dict[str, Any], Depends(require_roles("admin"))]
+Admin = Annotated[dict[str, Any], Depends(require_super_admin)]
 User = Annotated[dict[str, Any], Depends(require_user)]
 Expert = Annotated[dict[str, Any], Depends(require_roles("admin", "reviewer"))]
 
@@ -360,12 +390,14 @@ def update_account(body: AccountRequest, request: Request, response: Response, u
     username = body.username.strip() if body.username is not None else user["username"]
     if not USERNAME.fullmatch(username):
         raise HTTPException(422, USERNAME_MESSAGE)
+    if not user["is_super_admin"] and is_reserved_owner_username(username):
+        raise HTTPException(409, "ชื่อบัญชีนี้สงวนไว้สำหรับเจ้าของระบบ")
     if body.username is None and body.new_password is None:
         raise HTTPException(422, "ระบุชื่อบัญชีหรือรหัสผ่านใหม่ที่ต้องการเปลี่ยน")
     encoded = hash_password(body.new_password) if body.new_password is not None else None
     raw_old = request.cookies.get(COOKIE_NAME, "")
     with store.transaction() as conn:
-        row = conn.execute("SELECT u.*,s.expires_at AS session_expires_at FROM users u JOIN sessions s ON u.id=s.user_id WHERE u.id=? AND s.token_hash=? AND s.expires_at>? AND u.active=1",
+        row = conn.execute("SELECT u.*,s.expires_at AS session_expires_at FROM users u JOIN sessions s ON u.id=s.user_id WHERE u.id=? AND s.token_hash=? AND s.expires_at>? AND u.active=1 AND u.approval_status='approved'",
                            (user["id"], _session_hash(raw_old), utc_now())).fetchone()
         if row is None:
             raise HTTPException(401, "เซสชันหมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง")
@@ -400,7 +432,7 @@ def expert_login(body: ExpertLoginRequest, request: Request, response: Response,
     _limiter(request).check(request.client.host if request.client else "unknown", "expert:" + user["id"])
     raw = request.cookies.get(COOKIE_NAME, "")
     with store.transaction() as conn:
-        row = conn.execute("SELECT u.*,s.expires_at AS session_expires_at FROM users u JOIN sessions s ON u.id=s.user_id WHERE u.id=? AND s.token_hash=? AND s.expires_at>? AND u.active=1",
+        row = conn.execute("SELECT u.*,s.expires_at AS session_expires_at FROM users u JOIN sessions s ON u.id=s.user_id WHERE u.id=? AND s.token_hash=? AND s.expires_at>? AND u.active=1 AND u.approval_status='approved'",
                            (user["id"], _session_hash(raw), utc_now())).fetchone()
         if row is None or row["role"] not in {"admin", "reviewer"}:
             raise HTTPException(401, "เซสชันหมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง")
@@ -408,21 +440,45 @@ def expert_login(body: ExpertLoginRequest, request: Request, response: Response,
         password_matches = verify_password(body.password, row["password_hash"])
         if not same_username or not password_matches:
             raise HTTPException(403, "ข้อมูลยืนยันบัญชีผู้เชี่ยวชาญไม่ถูกต้อง")
-        now = datetime.now(timezone.utc)
-        until = min(now + timedelta(minutes=EXPERT_VERIFICATION_MINUTES), datetime.fromisoformat(row["session_expires_at"].replace("Z", "+00:00"))).isoformat(timespec="milliseconds").replace("+00:00", "Z")
-        identifier = _session_hash(raw)
-        prior = store.get_document("expert_session", identifier, include_deleted=True, conn=conn)
-        data = {"verified_until": until, "role": row["role"]}
-        if prior is None:
-            store.create_document("expert_session", data, user["id"], user["id"], document_id=identifier, conn=conn)
-        else:
-            # A locked verification is an ephemeral credential, not a clinical
-            # record. Reviving the same current-session gate is audited below.
-            conn.execute("UPDATE documents SET data=?,updated_at=?,revision=revision+1,deleted_at=NULL WHERE id=? AND kind='expert_session'",
-                         (json_text(data), utc_now(), identifier))
-        store.append_audit("users", user["id"], user["id"], "expert_verified", after={"verified_until": until}, conn=conn)
+        until = _verify_expert_session(store, public_user(row), raw, row["session_expires_at"], conn)
     response.headers["Cache-Control"] = "no-store"
     return {"verified": True, "verified_until": until}
+
+
+def _verify_expert_session(store: PlatformStore, user: dict[str, Any], raw: str, expires: str, conn: sqlite3.Connection) -> str:
+    now = datetime.now(timezone.utc)
+    until = min(now + timedelta(minutes=EXPERT_VERIFICATION_MINUTES), datetime.fromisoformat(expires.replace("Z", "+00:00"))).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+    identifier = _session_hash(raw)
+    prior = store.get_document("expert_session", identifier, include_deleted=True, conn=conn)
+    data = {"verified_until": until, "role": user["role"]}
+    if prior is None:
+        store.create_document("expert_session", data, user["id"], user["id"], document_id=identifier, conn=conn)
+    else:
+        conn.execute("UPDATE documents SET data=?,updated_at=?,revision=revision+1,deleted_at=NULL WHERE id=? AND kind='expert_session'",
+                     (json_text(data), utc_now(), identifier))
+    store.append_audit("users", user["id"], user["id"], "expert_verified", after={"verified_until": until}, conn=conn)
+    return until
+
+
+@router.post("/expert-signin")
+def expert_signin(body: LoginRequest, request: Request, response: Response) -> dict[str, Any]:
+    _check_origin(request)
+    store = get_store(request)
+    _limiter(request).check(request.client.host if request.client else "unknown", body.username)
+    user = store.authenticate(body.username, body.password)
+    if user is None:
+        raise HTTPException(401, "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง")
+    _require_approved(user)
+    with store.transaction() as conn:
+        row = conn.execute("SELECT * FROM users WHERE id=?", (user["id"],)).fetchone()
+        if row is None or row["role"] not in {"admin", "reviewer"}:
+            raise HTTPException(403, "บัญชีนี้ยังไม่ได้รับอนุมัติสิทธิ์ผู้เชี่ยวชาญ")
+        user = public_user(row)
+        raw, expires = _create_session(store, user, conn)
+        _verify_expert_session(store, user, raw, expires, conn)
+        store.append_audit("users", user["id"], user["id"], "expert_signin", after={"expires_at": expires}, conn=conn)
+    _set_session_cookie(response, store, raw)
+    return _session_payload(store, user, raw)
 
 
 @router.delete("/expert-session")
@@ -439,11 +495,27 @@ def lock_expert_session(request: Request, response: Response, user: Expert) -> d
 
 
 @router.get("/users")
-def users(request: Request, _admin: Admin, limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)) -> dict[str, Any]:
+def users(request: Request, _admin: Admin, limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0),
+          approval_status: Literal["pending", "approved", "rejected"] | None = None,
+          requested_role: Literal["admin", "reviewer", "lab", "student"] | None = None,
+          account_type: Literal["user", "expert"] | None = None) -> dict[str, Any]:
     store = get_store(request)
+    conditions, values = [], []
+    if approval_status is not None:
+        conditions.append("approval_status=?")
+        values.append(approval_status)
+    if requested_role is not None:
+        conditions.append("requested_role=?")
+        values.append(requested_role)
+    if account_type is not None:
+        # Pending applications reflect the requested access; approved members
+        # reflect the owner's current role decision after later role changes.
+        roles = "('reviewer')" if account_type == "expert" else "('lab','student')"
+        conditions.append(f"((approval_status='approved' AND role IN {roles}) OR (approval_status<>'approved' AND requested_role IN {roles}))")
+    where = " WHERE " + " AND ".join(conditions) if conditions else ""
     with store.connection() as conn:
-        count = conn.execute("SELECT count(*) FROM users").fetchone()[0]
-        rows = conn.execute("SELECT * FROM users ORDER BY created_at,id LIMIT ? OFFSET ?", (limit, offset)).fetchall()
+        count = conn.execute("SELECT count(*) FROM users" + where, values).fetchone()[0]
+        rows = conn.execute("SELECT * FROM users" + where + " ORDER BY created_at,id LIMIT ? OFFSET ?", (*values, limit, offset)).fetchall()
         return {"items": [public_user(row) for row in rows], "total": count, "limit": limit, "offset": offset}
 
 
@@ -465,14 +537,17 @@ def update_user(user_id: str, body: UpdateUserRequest, request: Request, admin: 
         if row is None:
             raise HTTPException(404, "ไม่พบบัญชีผู้ใช้")
         before = public_user(row)
-        role = body.role if body.role is not None else row["role"]
+        approval_status = body.approval_status or row["approval_status"]
+        first_approval = approval_status == "approved" and row["approval_status"] != "approved"
+        role = body.role if body.role is not None else row["requested_role"] if first_approval else row["role"]
         active = body.active if body.active is not None else bool(row["active"])
-        if row["role"] == "admin" and row["active"] and (role != "admin" or not active):
-            remaining = conn.execute("SELECT count(*) FROM users WHERE role='admin' AND active=1 AND id<>?", (user_id,)).fetchone()[0]
-            if not remaining:
-                raise HTTPException(409, "ต้องมีผู้ดูแลระบบที่เปิดใช้งานอย่างน้อยหนึ่งบัญชี")
-        conn.execute("UPDATE users SET role=?,active=?,password_hash=? WHERE id=?", (role, int(active), encoded or row["password_hash"], user_id))
-        if role != row["role"] or active != bool(row["active"]) or encoded is not None:
+        if row["is_super_admin"] and (role != "admin" or not active or approval_status != "approved"):
+            raise HTTPException(409, "ไม่สามารถลดสิทธิ์ ปิดใช้งาน หรือระงับการอนุมัติบัญชีเจ้าของระบบได้")
+        approved_by = admin["id"] if first_approval else row["approved_by"] if approval_status == "approved" else None
+        approved_at = utc_now() if first_approval else row["approved_at"] if approval_status == "approved" else None
+        conn.execute("UPDATE users SET role=?,active=?,password_hash=?,approval_status=?,approved_by=?,approved_at=? WHERE id=?",
+                     (role, int(active), encoded or row["password_hash"], approval_status, approved_by, approved_at, user_id))
+        if role != row["role"] or active != bool(row["active"]) or approval_status != row["approval_status"] or encoded is not None:
             conn.execute("DELETE FROM sessions WHERE user_id=?", (user_id,))
         updated = conn.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
         assert updated is not None
@@ -484,8 +559,8 @@ def update_user(user_id: str, body: UpdateUserRequest, request: Request, admin: 
 @router.get("/audit/{kind}/{document_id}")
 def audit(kind: str, document_id: str, request: Request, user: User, limit: int = Query(100, ge=1, le=500), offset: int = Query(0, ge=0)) -> dict[str, Any]:
     store = get_store(request)
-    if kind == "users" and user["role"] != "admin":
-        raise HTTPException(403, "เฉพาะผู้ดูแลระบบจึงดูประวัติบัญชีผู้ใช้ได้")
+    if kind == "users" and not user["is_super_admin"]:
+        raise HTTPException(403, "เฉพาะเจ้าของระบบจึงดูประวัติบัญชีผู้ใช้ได้")
     if kind not in {"analysis", "review", "feedback", "report"} and user["role"] not in {"admin", "reviewer"}:
         raise HTTPException(403, "บัญชีนี้ไม่มีสิทธิ์ดูประวัติข้อมูลภายในประเภทนี้")
     document = store.get_document(kind, document_id, include_deleted=True)
