@@ -327,9 +327,10 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
     if (health !== 'ready') { setError(healthMessage || 'ยังไม่เชื่อมต่อโมเดล AI'); return; }
     if (needsLogin || student) { setError(student ? 'บัญชีผู้เรียนไม่มีสิทธิ์สร้างผลวิเคราะห์ กรุณาใช้บัญชีผู้ปฏิบัติงาน' : 'เข้าสู่ระบบก่อนสร้างรายการวิเคราะห์ที่บันทึกไว้'); return; }
     if (platformSession.connection_error) { setError('ตรวจสอบสถานะระบบจัดเก็บไม่ได้ กรุณาเชื่อมต่อใหม่ก่อนตรวจภาพ'); return; }
-    const assessment = quality ?? await checkQuality();
-    if (!assessment) return;
-    if (assessment.status !== 'pass' && (!assessment.can_override || !qualityAcknowledged || !qualityComment.trim())) { setError('ภาพมีข้อจำกัด โปรดถ่ายใหม่ หรือยืนยันข้อจำกัดและระบุเหตุผลก่อนวิเคราะห์'); return; }
+    // The analysis endpoint performs the authoritative quality check before
+    // inference. Avoid uploading the same image twice merely to preflight it.
+    const assessment = quality;
+    if (assessment && assessment.status !== 'pass' && (!assessment.can_override || !qualityAcknowledged || !qualityComment.trim())) { setError('ภาพมีข้อจำกัด โปรดถ่ายใหม่ หรือยืนยันข้อจำกัดและระบุเหตุผลก่อนวิเคราะห์'); return; }
     setError(''); setWorking(true); cancelledByUser.current = false;
     const controller = new AbortController(); requestController.current = controller;
     const timeout = window.setTimeout(() => controller.abort(), 90000);
@@ -337,7 +338,7 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
       const form = new FormData();
       form.append('image', await currentFile(), filename || 'microscopy.png');
       form.append('confidence', String(inferenceConfidence));
-      form.append('acknowledge_quality', String(assessment.status !== 'pass' && qualityAcknowledged));
+      form.append('acknowledge_quality', String(Boolean(assessment && assessment.status !== 'pass' && qualityAcknowledged)));
       form.append('quality_comment', qualityComment);
       let data: AnalysisResponse;
       if (persistent) {
@@ -350,6 +351,7 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
         data = result as AnalysisResponse;
       }
       if (!Array.isArray(data.detections) || !Number.isFinite(data.width) || !Number.isFinite(data.height) || data.width <= 0 || data.height <= 0 || data.detections.some((d: Detection) => !Array.isArray(d.bbox) || d.bbox.length !== 4 || d.bbox.some((v: number) => !Number.isFinite(v)) || !Number.isFinite(d.confidence) || typeof d.label !== 'string')) throw new Error('รูปแบบผลลัพธ์จากบริการวิเคราะห์ไม่ถูกต้อง');
+      if (data.quality && Array.isArray(data.quality.checks) && ['pass', 'warning'].includes(data.quality.status)) setQuality(data.quality);
       const result: AnalysisRecord = { ...data, filename: data.filename || filename, imageUrl, mode: 'real', storage: persistent ? 'private' : 'session_only', createdAt: data.created_at ?? new Date().toISOString() };
       setRecord(result); setDimensions({ width: result.width, height: result.height }); setSelectedId(result.detections[0]?.id ?? null);
       onResult?.(result);

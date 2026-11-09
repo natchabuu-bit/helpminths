@@ -12,6 +12,12 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from PIL import Image, ImageStat
 
+try:
+    import numpy as _np
+except ImportError:
+    # The basic API/Atlas installation does not require the model runtime.
+    _np = None
+
 
 _IMAGE_WORK = threading.BoundedSemaphore(1)
 
@@ -69,6 +75,51 @@ class QualityThresholds:
         return result
 
 
+def _focus_variance_scalar(gray: Image.Image) -> float:
+    """Original calculation, retained for installations without NumPy."""
+    pixels = list(gray.get_flattened_data())
+    row_width = gray.width
+    total = squares = 0.0
+    samples = 0
+    for y in range(1, gray.height - 1):
+        base = y * row_width
+        for x in range(1, row_width - 1):
+            p = base + x
+            laplacian = pixels[p - row_width] + pixels[p + row_width] + pixels[p - 1] + pixels[p + 1] - 4 * pixels[p]
+            total += laplacian
+            squares += laplacian * laplacian
+            samples += 1
+    return max(0.0, squares / samples - (total / samples) ** 2) if samples else 0.0
+
+
+def _focus_variance(gray: Image.Image) -> float:
+    """Compute the same interior Laplacian with exact integer accumulation.
+
+    Validated thumbnails contain at most 2048² unsigned 8-bit pixels. Their
+    Laplacians are within ±1020 and squares within 1,040,400, so int32 working
+    buffers and int64 sums cannot overflow. Both sums are below 2**53, where
+    the previous scalar float accumulation is also exact. Conversion to Python
+    floats before the unchanged variance formula therefore preserves results.
+    """
+    if _np is None or gray.mode != "L" or max(gray.size) > 2048:
+        return _focus_variance_scalar(gray)
+    if gray.width < 3 or gray.height < 3:
+        return 0.0
+    pixels = _np.asarray(gray, dtype=_np.int32)
+    laplacian = pixels[1:-1, 1:-1].copy()
+    laplacian *= -4
+    laplacian += pixels[:-2, 1:-1]
+    laplacian += pixels[2:, 1:-1]
+    laplacian += pixels[1:-1, :-2]
+    laplacian += pixels[1:-1, 2:]
+    # Reuse the independent work buffer instead of allocating another image.
+    samples = laplacian.size
+    total = float(laplacian.sum(dtype=_np.int64))
+    _np.square(laplacian, out=laplacian)
+    squares = float(laplacian.sum(dtype=_np.int64))
+    return max(0.0, squares / samples - (total / samples) ** 2)
+
+
 def assess_quality(image: Image.Image, thresholds: QualityThresholds | None = None) -> dict[str, Any]:
     """Measure a bounded thumbnail; no classifier, physical size or clinical claim."""
     try:
@@ -85,19 +136,7 @@ def assess_quality(image: Image.Image, thresholds: QualityThresholds | None = No
         contrast = float(stats.stddev[0])
         histogram = gray.histogram()
         clipped_fraction = (sum(histogram[:6]) + sum(histogram[250:])) / (gray.width * gray.height)
-        pixels = list(gray.get_flattened_data())
-        row_width = gray.width
-        total = squares = 0.0
-        samples = 0
-        for y in range(1, gray.height - 1):
-            base = y * row_width
-            for x in range(1, row_width - 1):
-                p = base + x
-                laplacian = pixels[p - row_width] + pixels[p + row_width] + pixels[p - 1] + pixels[p + 1] - 4 * pixels[p]
-                total += laplacian
-                squares += laplacian * laplacian
-                samples += 1
-        focus = max(0.0, squares / samples - (total / samples) ** 2) if samples else 0.0
+        focus = _focus_variance(gray)
     finally:
         gray.close()
         resized.close()
