@@ -234,7 +234,15 @@ class PlatformStore:
         if self.data_dir:
             for path in self.data_dir.glob("helpminths.sqlite3*"):
                 if path.is_file():
-                    os.chmod(path, 0o600)
+                    try:
+                        os.chmod(path, 0o600)
+                    except FileNotFoundError:
+                        # Another SQLite connection may close/remove these
+                        # transient files between is_file() and chmod(). Real
+                        # permission/I/O errors and missing durable files must
+                        # still reach the caller.
+                        if path.name not in {"helpminths.sqlite3-wal", "helpminths.sqlite3-shm", "helpminths.sqlite3-journal"}:
+                            raise
 
     def ensure_configured(self) -> None:
         if not self.configured or self.db_path is None:
