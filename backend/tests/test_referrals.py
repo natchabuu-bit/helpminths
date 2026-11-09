@@ -519,11 +519,11 @@ def test_failed_image_save_and_stale_upload_cleanup_without_answering_the_reques
         raise OSError("Synthetic storage failure")
 
     with monkeypatch.context() as failure:
-        failure.setattr(reviews, "_save_image", failed_save)
+        failure.setattr(analyses, "_save_image", failed_save)
         assert upload_attachment(client, referral).status_code == 503
     assert set(store.image_dir.iterdir()) == before
     assert store.get_document("referral", referral["id"])["revision"] == referral["revision"]
-    save_image = reviews._save_image
+    save_image = analyses._save_image
 
     def save_with_simultaneous_expert_response(image, path):
         save_image(image, path)
@@ -538,7 +538,7 @@ def test_failed_image_save_and_stale_upload_cleanup_without_answering_the_reques
                                   users["refexpert"]["id"], expected_revision=analysis["revision"], conn=conn)
 
     with monkeypatch.context() as race:
-        race.setattr(reviews, "_save_image", save_with_simultaneous_expert_response)
+        race.setattr(analyses, "_save_image", save_with_simultaneous_expert_response)
         assert upload_attachment(client, referral).status_code == 409
     assert set(store.image_dir.iterdir()) == before
     assert store.count_documents("referral_attachment") == 0

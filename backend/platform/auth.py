@@ -617,6 +617,8 @@ def audit(kind: str, document_id: str, request: Request, user: User, limit: int 
     store = get_store(request)
     if kind == BOOTSTRAP_DOCUMENT_KIND:
         raise HTTPException(404, "ไม่พบรายการ")
+    if kind == "admin_image":
+        require_super_admin(user)
     if kind == "users" and not user["is_super_admin"]:
         raise HTTPException(403, "เฉพาะเจ้าของระบบจึงดูประวัติบัญชีผู้ใช้ได้")
     if kind not in {"analysis", "review", "feedback", "report"} and user["role"] not in {"admin", "reviewer"}:

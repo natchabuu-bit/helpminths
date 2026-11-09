@@ -1,9 +1,10 @@
 import { ArrowRight, CheckCircle2, ChevronLeft, ChevronRight, Clock3, ImageOff, MessageCircle, RefreshCw, Send, ShieldCheck, Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { apiPath, apiRequest, buildQuery, formatDate } from '../platform/api'
-import type { Paged, PlatformAnalysis, PlatformSession } from '../platform/api'
+import type { ExpertReview, Paged, PlatformAnalysis, PlatformSession } from '../platform/api'
 import { ErrorNotice, LoadingNotice, usePlatformResource } from './PlatformShared'
 import '../styles/referrals.css'
+import DiagnosisComparison from './DiagnosisComparison'
 
 export type ReferralStatus = 'pending' | 'in_review' | 'needs_more' | 'confirmed'
 export interface Referral {
@@ -12,6 +13,7 @@ export interface Referral {
   status: ReferralStatus
   reason: string
   response_comment?: string
+  latest_review?: ExpertReview | null
   reviewer_username?: string | null
   submitted_at?: string
   responded_at?: string | null
@@ -21,7 +23,7 @@ export interface Referral {
   analysis_revision_at_referral?: number
   analysis?: Pick<PlatformAnalysis, 'id' | 'sample_code' | 'created_at' | 'revision' | 'status' | 'review_status' | 'image_url' | 'model_version' | 'counts'>
 }
-interface ReferralMessage { id: string; action: string; comment: string; author_id: string; author_username?: string; author_name?: string; author_role?: string; created_at: string; attachment_id?: string }
+interface ReferralMessage { id: string; action: string; comment: string; author_id: string; author_username?: string; author_name?: string; author_role?: string; created_at: string; attachment_id?: string; review_id?: string }
 interface ReferralAttachment { id: string; created_at: string; uploaded_at?: string; uploaded_by_username?: string; width: number; height: number; comment?: string; image_url: string }
 
 export const referralStatusNames: Record<ReferralStatus, string> = {
@@ -132,8 +134,11 @@ export default function ReferralPanel({ session, analysisId, referralId, message
   const answerRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!selectedMessage.value?.id) return
-    answerRef.current?.focus({ preventScroll: true })
-    answerRef.current?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'center' })
+    // Start with the authoritative comparison even when an old reply was opened.
+    // The exact selected message remains separately labelled just below it.
+    const target = answerRef.current?.closest('.referral-panel')?.querySelector<HTMLElement>('.diagnosis-comparison') ?? answerRef.current
+    target?.focus({ preventScroll: true })
+    target?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' })
   }, [selectedMessage.value?.id])
   const active = !!referral && referral.status !== 'confirmed'
   const reload = useRef(() => {})
@@ -160,11 +165,12 @@ export default function ReferralPanel({ session, analysisId, referralId, message
   if (!enabled) return null
   const own = detail.value?.owner_id === session.user?.id
   return <section className="platform-card referral-panel" data-referral-id={referral?.id} aria-labelledby={`referral-title-${analysisId}`}>
-    <div className="platform-card-heading"><div><h2 id={`referral-title-${analysisId}`}><ShieldCheck size={21}/>{referral ? 'คำตอบและสถานะการตรวจ' : 'ส่งภาพให้ผู้เชี่ยวชาญ'}</h2></div><button className="platform-button" onClick={() => { reload.current(); selectedMessage.reload() }} disabled={busy} aria-label="รีเฟรชสถานะภาพส่งต่อ"><RefreshCw size={16}/>รีเฟรช</button></div>
+    <div className="platform-card-heading"><div><h2 id={`referral-title-${analysisId}`}><ShieldCheck size={21}/>{referral ? 'ผลตรวจและคำตอบจากผู้เชี่ยวชาญ' : 'ผลตรวจและการส่งต่อ'}</h2></div><button className="platform-button" onClick={() => { reload.current(); selectedMessage.reload() }} disabled={busy} aria-label="รีเฟรชสถานะภาพส่งต่อ"><RefreshCw size={16}/>รีเฟรช</button></div>
     {error && <ErrorNotice message={error}/>} {notice && <p className="platform-notice" role="status">{notice}</p>}
     {detail.loading || resource.loading ? <LoadingNotice/> : detail.error || resource.error ? <ErrorNotice message={detail.error || resource.error} onRetry={() => reload.current()}/> : !own ? <p className="platform-muted">เฉพาะเจ้าของผลตรวจสามารถส่งต่อภาพนี้ได้</p> : <>
+      <DiagnosisComparison analysis={detail.value!} review={referral ? (referral.latest_review ?? null) : detail.value?.latest_review} reviewState={referral?.status} expertComment={referral?.response_comment} expertName={referral?.reviewer_username} respondedAt={referral?.responded_at} historical={historical}/>
       {referral && <><div className="referral-current"><div className="referral-current-heading"><ReferralStatusBadge status={referral.status}/><span>{formatDate(referral.submitted_at ?? referral.created_at)}</span></div>
-        {messageId ? selectedMessage.loading ? <LoadingNotice>กำลังเปิดคำตอบที่เลือก…</LoadingNotice> : selectedMessage.error ? <ErrorNotice message={selectedMessage.error} onRetry={selectedMessage.reload}/> : selectedMessage.value && <div className="referral-response referral-response-selected" ref={answerRef} tabIndex={-1} data-message-id={selectedMessage.value.id} role="region" aria-label="คำตอบที่เลือกจากการแจ้งเตือน"><ShieldCheck size={24}/><div><strong>คำตอบที่เลือกจากการแจ้งเตือน</strong><span className="referral-answer-action">{messageActions[selectedMessage.value.action] ?? 'คำตอบจากผู้เชี่ยวชาญ'}</span><p className="platform-preserve-text">{selectedMessage.value.comment || 'ผู้เชี่ยวชาญบันทึกผลทบทวนแล้ว'}</p><span>{selectedMessage.value.author_name ?? selectedMessage.value.author_username ?? 'ผู้เชี่ยวชาญ'} · {formatDate(selectedMessage.value.created_at)}</span></div></div> : referral.response_comment || referral.status === 'confirmed' ? <div className="referral-response"><ShieldCheck size={24}/><div><strong>{referral.status === 'confirmed' ? 'คำตอบและผลยืนยันจากผู้เชี่ยวชาญ' : 'คำตอบจากผู้เชี่ยวชาญ'}</strong><p className="platform-preserve-text">{referral.response_comment || 'ผู้เชี่ยวชาญตรวจทานและยืนยันผลแล้ว เปิดรายละเอียดผลตรวจเพื่อดูชนิดและกรอบที่ยืนยัน'}</p><span>{referral.reviewer_username ? `ผู้ตรวจ: ${referral.reviewer_username} · ` : ''}{formatDate(referral.responded_at ?? referral.updated_at)}</span></div></div> : <p className="referral-waiting"><Clock3 size={16}/>รอคำตอบจากผู้เชี่ยวชาญ</p>}
+        {messageId && (selectedMessage.loading ? <LoadingNotice>กำลังเปิดข้อความที่เลือก…</LoadingNotice> : selectedMessage.error ? <ErrorNotice message={selectedMessage.error} onRetry={selectedMessage.reload}/> : selectedMessage.value && <div className="referral-response referral-response-selected referral-response-history" ref={answerRef} tabIndex={-1} data-message-id={selectedMessage.value.id} role="region" aria-label="คำตอบที่เลือกจากการแจ้งเตือน"><MessageCircle size={22}/><div><strong>ข้อความที่เปิดจากการแจ้งเตือน</strong><span className="referral-answer-action">{messageActions[selectedMessage.value.action] ?? 'ข้อความจากผู้เชี่ยวชาญ'} · {formatDate(selectedMessage.value.created_at)}</span><p className="platform-preserve-text">{selectedMessage.value.comment || 'ผู้เชี่ยวชาญบันทึกผลทบทวนแล้ว'}</p><span>{selectedMessage.value.author_name ?? selectedMessage.value.author_username ?? 'ผู้เชี่ยวชาญ'}</span><p className="referral-history-guidance">ข้อความนี้เป็นประวัติการสนทนา อ่านผลยืนยันล่าสุดของรอบนี้ในช่อง “ผู้เชี่ยวชาญ” ด้านบน</p></div></div>)}
         <details className="referral-reason"><summary>รายละเอียดที่ส่งให้ผู้เชี่ยวชาญ{historical ? ' · รายการก่อนหน้า' : ''}</summary><p className="platform-preserve-text">{referral.reason}</p></details>
       </div><ReferralConversation key={referral.id} session={session} referral={referral} allowUpload={!historical} onChanged={() => { setNotice('ส่งภาพเพิ่มเติมแล้ว รายการกลับเข้าคิวรอตรวจ'); reload.current(); onReferred?.('ส่งภาพเพิ่มเติมแล้ว รายการกลับเข้าคิวรอตรวจ') }}/></>}
       {!active && !historical && detail.value?.status === 'completed' && <form className="referral-form" onSubmit={event => { event.preventDefault(); void submit() }}><label>สิ่งที่ต้องการให้ผู้เชี่ยวชาญช่วยตรวจ<textarea required value={reason} onChange={event => setReason(event.target.value)} maxLength={4000} rows={3} placeholder="เช่น ไม่แน่ใจชนิดของไข่ หรือพบวัตถุที่ AI ยังไม่ได้ตีกรอบ" disabled={busy}/></label><button className="platform-button primary" type="submit" disabled={busy || !reason.trim()}><Send size={17}/>{busy ? 'กำลังส่งภาพ…' : referral ? 'ส่งให้ตรวจเพิ่มเติม' : 'ส่งให้ผู้เชี่ยวชาญ'}<ArrowRight size={16}/></button></form>}

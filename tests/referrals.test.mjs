@@ -255,7 +255,7 @@ test('public expert approval, private request-more images and full confirmation 
     assert.equal(needsMore.latest_review_id, null, 'Requesting an image does not claim the AI review is complete')
 
     await ownerPage.getByRole('button', { name: 'รีเฟรชสถานะภาพส่งต่อ', exact: true }).click()
-    await ownerPage.locator('.referral-response').filter({ hasText: requestMore }).waitFor()
+    await ownerPage.getByRole('region', { name: 'ข้อความตอบกลับระหว่างตรวจ', exact: true }).filter({ hasText: requestMore }).waitFor()
     await ownerPage.getByLabel('ภาพเพิ่มเติม', { exact: true }).setInputFiles({ name: 'SYNTHETIC_additional_chart.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64') })
     await ownerPage.getByLabel('ข้อความประกอบภาพ (ไม่บังคับ)', { exact: true }).fill('SYNTHETIC owner attachment: a second generated chart, not a clinical image.')
     const attachmentSaved = ownerPage.waitForResponse(response => response.url().includes(`/referrals/${ownerReferral.id}/`) && response.request().method() === 'POST')

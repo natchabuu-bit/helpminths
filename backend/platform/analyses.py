@@ -21,6 +21,7 @@ from fastapi.responses import FileResponse
 
 from backend.images import decode_image, read_upload
 from backend.model import ModelNotReadyError
+from .admin_archive import create_archive_image, update_archive_image, link_archived_image, archive_existing_document
 from .auth import assert_access, get_store, require_roles, require_user
 from .quality import assess_quality, configured_confidence, enforce_quality, image_work_slot
 from .store import PlatformStore, flatten_document, utc_now
@@ -216,17 +217,23 @@ async def create_analysis(
     started = time.perf_counter()
     sample_code = sample_code.strip()
     document = None
+    archived = None
     decoded = None
     try:
         with image_work_slot():
             decoded = await run_in_threadpool(decode_image, await read_upload(image))
+            analysis_id = uuid.uuid4().hex
+            sample_code = sample_code or f"HM-{analysis_id[:8].upper()}"
+            archived = await run_in_threadpool(create_archive_image, store, decoded, user,
+                                               source="analysis", source_document_id=analysis_id,
+                                               sample_code=sample_code)
             quality = await run_in_threadpool(assess_quality, decoded)
             try:
                 enforce_quality(quality, acknowledge_quality, quality_comment)
             except HTTPException:
+                archived = update_archive_image(store, archived, user["id"], status="quality_rejected", quality=quality)
                 store.create_document("quality_assessment", {"quality": quality, "sample_code": sample_code, "site_code": site_code, "accepted": False, "analysis_id": None}, user["id"], user["id"])
                 raise
-            analysis_id = uuid.uuid4().hex
             # A display label is optional. Generate it once from this record's
             # ID, never from a filename or a separately changing counter.
             sample_code = sample_code or f"HM-{analysis_id[:8].upper()}"
@@ -238,13 +245,15 @@ async def create_analysis(
             assert store.image_dir is not None
             path = store.image_dir / f"{analysis_id}.png"
             try:
-                await run_in_threadpool(_save_image, decoded, path)
+                await run_in_threadpool(link_archived_image, store, archived, path)
             except OSError:
                 raise HTTPException(503, "พื้นที่เก็บภาพส่วนตัวไม่พร้อมใช้งาน กรุณาตรวจการตั้งค่าพื้นที่จัดเก็บ") from None
+            archived = update_archive_image(store, archived, user["id"], analysis_id=analysis_id, status="processing", quality=quality)
             try:
                 document = store.create_document("analysis", data, user["id"], user["id"], document_id=analysis_id)
             except BaseException:
                 path.unlink(missing_ok=True)
+                archived = update_archive_image(store, archived, user["id"], status="failed", error_message="บันทึกผลตรวจไม่สำเร็จ")
                 raise
             if not model.ready:
                 data.update(status="failed", error_code="model_not_configured", error_message="ยังไม่ได้เชื่อมต่อโมเดลที่พร้อมตรวจจริง", total_duration_ms=round((time.perf_counter() - started) * 1000))
@@ -262,6 +271,10 @@ async def create_analysis(
             data.update(status="completed", detections=detections, duration_ms=round((time.perf_counter() - inference_started) * 1000), total_duration_ms=round((time.perf_counter() - started) * 1000), review_status="pending")
             document = store.update_document("analysis", analysis_id, data, user["id"], expected_revision=document["revision"])
             return present_analysis(store, document)
+    except HTTPException as exc:
+        if archived is not None and document is None and archived["data"].get("status") == "received":
+            update_archive_image(store, archived, user["id"], status="failed", error_message="การส่งตรวจไม่สำเร็จก่อนเริ่มวิเคราะห์")
+        raise
     except asyncio.CancelledError:
         if document is not None and document["data"].get("status") == "processing":
             cancelled = {**document["data"], "status": "cancelled", "error_code": "request_cancelled", "error_message": "คำขอสิ้นสุดก่อนส่งผลกลับ การยกเลิกคำขอไม่รับประกันว่าการคำนวณในโมเดลหยุดทันที", "total_duration_ms": round((time.perf_counter() - started) * 1000)}
@@ -356,6 +369,7 @@ def delete_analysis(analysis_id: str, request: Request, user: Annotated[dict[str
         attachments = [{**dict(row), "data": json.loads(row["data"])} for row in attachment_rows]
         paths = []
         for image_record in [document, *attachments]:
+            archive_existing_document(store, image_record, user["id"], conn=conn)
             try:
                 paths.append(analysis_image_path(store, image_record))
             except HTTPException as exc:
@@ -370,7 +384,7 @@ def delete_analysis(analysis_id: str, request: Request, user: Annotated[dict[str
         for attachment in attachments:
             store.soft_delete_document("referral_attachment", attachment["id"], user["id"], attachment["revision"], conn=conn)
         store.soft_delete_document("analysis", analysis_id, user["id"], expected_revision, conn=conn)
-    return {"id": analysis_id, "status": "deleted", "image_removed": True, "audit_retained": True}
+    return {"id": analysis_id, "status": "deleted", "image_removed": True, "audit_retained": True, "admin_archive_retained": True}
 
 
 @router.get("/analyses/{analysis_id}/audit")

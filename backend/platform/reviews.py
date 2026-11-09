@@ -13,7 +13,8 @@ from fastapi.responses import FileResponse
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 from backend.images import decode_image, read_upload
-from .analyses import _date_bound, _limiter, _save_image, analysis_image_path, effective_counts, get_analysis, present_analysis
+from .analyses import _date_bound, _limiter, analysis_image_path, effective_counts, get_analysis, present_analysis
+from .admin_archive import create_archive_image, update_archive_image, link_archived_image
 from .auth import get_store, require_expert_verification, require_roles, require_user
 from .notifications import create_response_notification
 from .quality import image_work_slot
@@ -128,7 +129,7 @@ def save_review(analysis_id: str, body: ReviewRequest, request: Request, user: A
         status = body.status
         if status == "in_review" and any(item["action"] == "request_review" for item in annotations):
             status = "needs_additional_review"
-        review = store.create_document("review", {"analysis_id": analysis_id, "analysis_revision": analysis["revision"], "reviewer_id": user["id"], "reviewer_username": user["username"], "reviewed_at": utc_now(), "model_version": data.get("model_version"), "status": status, "full_image_reviewed": body.full_image_reviewed, "comment": body.comment.strip(), "annotations": annotations, "previous_review_id": data.get("latest_review_id")}, analysis["owner_id"], user["id"], conn=conn)
+        review = store.create_document("review", {"analysis_id": analysis_id, "analysis_revision": analysis["revision"], "reviewer_id": user["id"], "reviewer_username": user["username"], "reviewer_name": user.get("full_name") or user["username"], "reviewed_at": utc_now(), "model_version": data.get("model_version"), "status": status, "full_image_reviewed": body.full_image_reviewed, "comment": body.comment.strip(), "annotations": annotations, "previous_review_id": data.get("latest_review_id")}, analysis["owner_id"], user["id"], conn=conn)
         updated = {**data, "review_status": status, "latest_review_id": review["id"]}
         referral_id = data.get("referral_id")
         if referral_id:
@@ -149,6 +150,18 @@ def save_review(analysis_id: str, body: ReviewRequest, request: Request, user: A
     return present_analysis(store, analysis)
 
 
+@router.get("/analyses/{analysis_id}/reviews/{review_id}")
+def review_detail(analysis_id: str, review_id: str, request: Request, response: Response,
+                  user: Annotated[dict[str, Any], Depends(require_user)]) -> dict[str, Any]:
+    store = get_store(request)
+    analysis = get_analysis(store, analysis_id, user)
+    review = store.get_document("review", review_id)
+    if review is None or review["owner_id"] != analysis["owner_id"] or review["data"].get("analysis_id") != analysis_id:
+        raise HTTPException(404, "ไม่พบผลตรวจทานในภาพนี้")
+    response.headers["Cache-Control"] = "private, no-store"
+    return flatten_document(review)
+
+
 @router.get("/analyses/{analysis_id}/reviews")
 def review_history(analysis_id: str, request: Request, user: Annotated[dict[str, Any], Depends(require_user)], limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0)) -> dict[str, Any]:
     store = get_store(request)
@@ -163,12 +176,14 @@ def review_history(analysis_id: str, request: Request, user: Annotated[dict[str,
 def _present_referral(store: PlatformStore, referral: dict[str, Any], analysis: dict[str, Any], *, conn=None) -> dict[str, Any]:
     """A referral points to one private image; it never creates a public copy."""
     data = analysis["data"]
-    latest_review_id = data.get("latest_review_id")
+    latest_review_id = referral["data"].get("latest_review_id")
     latest_review = store.get_document("review", latest_review_id, conn=conn) if latest_review_id else None
-    return {**flatten_document(referral), "analysis": {
+    if latest_review and (latest_review["owner_id"] != referral["owner_id"] or latest_review["data"].get("analysis_id") != analysis["id"]):
+        latest_review = None
+    return {**flatten_document(referral), "latest_review": flatten_document(latest_review) if latest_review else None, "analysis": {
         "id": analysis["id"], "sample_code": data.get("sample_code"),
         "created_at": analysis["created_at"], "revision": analysis["revision"],
-        "status": data.get("status"), "review_status": data.get("review_status"),
+        "status": data.get("status"), "review_status": latest_review["data"].get("status") if latest_review else "unreviewed",
         "image_url": f"/api/platform/analyses/{analysis['id']}/image" if data.get("image_filename") else None,
         "model_version": data.get("model_version"), "counts": effective_counts(analysis, latest_review),
     }}
@@ -361,6 +376,7 @@ async def upload_referral_attachment(
     store = get_store(request)
     decoded = None
     path = None
+    archived = None
     committed = False
     try:
         referral, analysis = _get_referral(store, referral_id, user)
@@ -373,10 +389,15 @@ async def upload_referral_attachment(
         with image_work_slot():
             decoded = await run_in_threadpool(decode_image, await read_upload(image))
             attachment_id = uuid.uuid4().hex
+            archived = await run_in_threadpool(create_archive_image, store, decoded, user,
+                                               source="supplemental", source_document_id=attachment_id,
+                                               sample_code=analysis["data"].get("sample_code", ""),
+                                               analysis_id=analysis["id"], referral_id=referral_id,
+                                               attachment_id=attachment_id)
             assert store.image_dir is not None
             path = store.image_dir / f"{attachment_id}.png"
             try:
-                await run_in_threadpool(_save_image, decoded, path)
+                await run_in_threadpool(link_archived_image, store, archived, path)
             except OSError:
                 raise HTTPException(503, "พื้นที่เก็บภาพส่วนตัวไม่พร้อมใช้งาน กรุณาลองอีกครั้ง") from None
             with store.transaction() as conn:
@@ -404,11 +425,14 @@ async def upload_referral_attachment(
                     **analysis["data"], "referral_status": "pending",
                 }, user["id"], expected_revision=analysis["revision"], conn=conn)
             committed = True
+            archived = update_archive_image(store, archived, user["id"], status="completed")
             response.headers["Cache-Control"] = "private, no-store"
             return {"attachment": _present_attachment(attachment), "referral": _present_referral(store, referral, analysis)}
     finally:
         if path is not None and not committed:
             path.unlink(missing_ok=True)
+        if archived is not None and not committed:
+            update_archive_image(store, archived, user["id"], status="failed", error_message="ส่งภาพเพิ่มเติมไม่สำเร็จ")
         if decoded is not None:
             decoded.close()
         await image.close()

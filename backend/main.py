@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import io
 import os
@@ -21,9 +22,10 @@ from backend.images import MAX_IMAGE_PIXELS, MAX_UPLOAD_BYTES, decode_image, dec
 from backend.model import ModelNotReadyError, YOLOModelService
 from backend.request_limits import RequestBodyLimitMiddleware
 from backend.platform.auth import require_user, router as auth_router
+from backend.platform.admin_archive import create_archive_image, update_archive_image
 from backend.platform.owner_bootstrap import bootstrap_owner
 from backend.platform.quality import QualityThresholds, assess_quality, enforce_quality, image_work_slot, quality_router
-from backend.platform.store import PlatformStore
+from backend.platform.store import PlatformStore, utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -151,28 +153,75 @@ def create_app(
         acknowledge_quality: Annotated[bool, Form()] = False,
         quality_comment: Annotated[str, Form(max_length=1000)] = "",
     ) -> AnalysisResponse:
-        """Backward-compatible ephemeral inference; never creates a clinical record."""
+        """Compatibility response; authenticated submissions retain an owner-only archive."""
         started = time.perf_counter()
+        identifier = uuid.uuid4().hex
+        archive = None
+        archive_user = None
+        snapshot = None
+
+        async def archive_status(status: str, error_code=None, error_message=None):
+            nonlocal archive
+            if archive is None or archive_user is None or snapshot is None:
+                return
+            snapshot.update(status=status, error_code=error_code, error_message=error_message,
+                            updated_at=utc_now())
+            archive = await run_in_threadpool(update_archive_image, store, archive, archive_user['id'],
+                                               status=status, quality=snapshot.get('quality'),
+                                               error_code=error_code, error_message=error_message,
+                                               analysis_snapshot=dict(snapshot))
+
         try:
             if store.configured:
-                # The compatibility route must not bypass the account-mode
-                # inference permissions enforced on the persistent endpoint.
-                user = require_user(request)
-                if user['role'] not in {'admin', 'reviewer', 'lab'}:
+                # Both diagnostic routes apply account permissions. The legacy
+                # response stays compatible while its image/results join the
+                # same owner-only archive as ordinary persisted submissions.
+                archive_user = require_user(request)
+                if archive_user['role'] not in {'admin', 'reviewer', 'lab'}:
                     raise HTTPException(403, 'บัญชีนี้ไม่มีสิทธิ์วิเคราะห์ภาพด้วย AI')
+                from backend.platform.analyses import _limiter as analysis_limiter
+                analysis_limiter.check(archive_user['id'])
             with image_work_slot():
                 decoded = await run_in_threadpool(decode_image, await read_upload(image))
                 try:
+                    if archive_user is not None:
+                        examined_at = utc_now()
+                        snapshot = {
+                            'id': identifier, 'owner_id': archive_user['id'],
+                            'sample_code': f'HM-{identifier[:8].upper()}',
+                            'filename': f'microscopy-{identifier[:8]}.png',
+                            'width': decoded.width, 'height': decoded.height,
+                            'status': 'processing', 'created_at': examined_at,
+                            'revision': 1, 'model': model_service.name,
+                            'model_version': getattr(model_service, 'version', None),
+                            'confidence_threshold': confidence, 'detections': [],
+                            'quality': None, 'review_status': 'not_available', 'latest_review': None,
+                        }
+                        try:
+                            archive = await run_in_threadpool(
+                                create_archive_image, store, decoded, archive_user,
+                                source='analysis', source_document_id=identifier,
+                                sample_code=snapshot['sample_code'], examined_at=examined_at,
+                            )
+                        except OSError:
+                            raise HTTPException(503, 'พื้นที่คลังภาพผู้ดูแลไม่พร้อมใช้งาน') from None
                     if not model_service.ready:
                         raise HTTPException(503, model_service.message)
                     assessment = await run_in_threadpool(assess_quality, decoded)
+                    if snapshot is not None:
+                        snapshot['quality'] = assessment
                     enforce_quality(assessment, acknowledge_quality, quality_comment)
                     inference_started = time.perf_counter()
                     detections = await run_in_threadpool(model_service.predict, decoded, confidence)
                     inference_ms = round((time.perf_counter() - inference_started) * 1000)
+                    if snapshot is not None:
+                        snapshot.update(detections=detections, duration_ms=inference_ms,
+                                        quality_acknowledged=acknowledge_quality,
+                                        quality_comment=quality_comment.strip(), review_status='pending')
+                        await archive_status('completed')
                     filename = (image.filename or "image").replace("\\", "/").rsplit("/", 1)[-1]
                     return AnalysisResponse(
-                        id=uuid.uuid4().hex, filename=filename, width=decoded.width,
+                        id=identifier, filename=filename, width=decoded.width,
                         height=decoded.height, model=model_service.name or "YOLO",
                         model_version=getattr(model_service, "version", None),
                         duration_ms=round((time.perf_counter() - started) * 1000),
@@ -180,11 +229,20 @@ def create_app(
                     )
                 finally:
                     decoded.close()
+        except asyncio.CancelledError:
+            await archive_status('cancelled', 'request_cancelled', 'คำขอตรวจสิ้นสุดก่อนส่งผลกลับ')
+            raise
         except ModelNotReadyError as exc:
+            await archive_status('failed', 'model_not_configured', 'โมเดลยังไม่พร้อมตรวจภาพ')
             raise HTTPException(503, str(exc)) from None
-        except HTTPException:
+        except HTTPException as exc:
+            detail = exc.detail if isinstance(exc.detail, dict) else {}
+            code = detail.get('code') or ('model_not_configured' if not model_service.ready else 'request_failed')
+            message = detail.get('message') or (exc.detail if isinstance(exc.detail, str) else 'คำขอตรวจภาพไม่สำเร็จ')
+            await archive_status('quality_rejected' if code in {'quality_acknowledgement_required', 'quality_rejected'} else 'failed', code, message)
             raise
         except Exception as exc:
+            await archive_status('failed', 'inference_failed', 'ประมวลผลภาพไม่สำเร็จ โปรดตรวจบริการหรือโมเดล')
             logger.warning("Image inference failed (%s)", type(exc).__name__)
             raise HTTPException(500, "ประมวลผลภาพไม่สำเร็จ กรุณาตรวจสอบบริการหรือโมเดล") from None
         finally:
@@ -193,8 +251,8 @@ def create_app(
     app.include_router(auth_router)
     app.include_router(quality_router)
     # Domain routers use the same service, authorization and private transactional store.
-    from backend.platform import analyses, reviews, reporting, analytics, feedback, modelversions, evaluation, learning, sheets_dashboard, notifications
-    for module in (analyses, reviews, reporting, analytics, feedback, modelversions, evaluation, learning, sheets_dashboard, notifications):
+    from backend.platform import analyses, reviews, reporting, analytics, feedback, modelversions, evaluation, learning, sheets_dashboard, notifications, admin_archive
+    for module in (analyses, reviews, reporting, analytics, feedback, modelversions, evaluation, learning, sheets_dashboard, notifications, admin_archive):
         app.include_router(module.router)
 
     if serve_web:

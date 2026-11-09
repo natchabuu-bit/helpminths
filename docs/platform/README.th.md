@@ -169,7 +169,7 @@ Git/ZIP โค้ดไม่รวม private data ต้องสำรอง 
 
 Restore บนพื้นที่ private ที่หยุด writer คง permissions/schema ที่รองรับ ทดสอบบัญชี/ภาพ/detail/report ก่อนเปิด เพิกถอน sessions ตามนโยบายเมื่อย้ายเครื่อง ชุดใน `backups/` เป็น snapshot ของวันที่สร้าง ไม่ใช่ backup บัญชีและข้อมูลรุ่นนี้
 
-ยังไม่มี automatic retention job หรือหน้ากำหนดอายุข้อมูล ผู้ดูแลต้องกำหนดนโยบายสถาบัน ปุ่มเอารายการออกลบ image และ soft-delete analysis แต่คง metadata/review/audit จึงไม่ใช่การ erase ทุกสำเนาหรือ backup ห้ามแก้ audit โดยตรงเพื่อหลบข้อจำกัด
+ยังไม่มี automatic retention job หรือหน้ากำหนดอายุข้อมูล ผู้ดูแลต้องกำหนดนโยบายสถาบัน ปุ่มเอารายการออกลบภาพส่วนใช้งานและ soft-delete analysis แต่คงสำเนาภาพในคลัง Super Admin พร้อม metadata/review/audit ตามนโยบายใหม่ ดู [คลังภาพและผลตรวจ](IMAGE-ARCHIVE-AND-RESULTS.th.md) จึงไม่ใช่การ erase ทุกสำเนาหรือ backup ห้ามแก้ audit โดยตรงเพื่อหลบข้อจำกัด
 
 ## Render และ production
 
