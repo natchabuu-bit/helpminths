@@ -102,6 +102,11 @@ class SheetsConfig:
     credential_json: str
     data_format: str = 'auto'
 
+    @property
+    def school_summary(self) -> bool:
+        # Publication of named school statistics is an explicit schema choice.
+        return self.mapping.get('preset') == 'health2-kpd-school-v1'
+
     @classmethod
     def from_environment(cls):
         try:
@@ -110,11 +115,13 @@ class SheetsConfig:
             worksheet = os.getenv('HELPMINTHS_SHEETS_WORKSHEET', '').strip()
             refresh = int(os.getenv('HELPMINTHS_SHEETS_REFRESH_SECONDS', '30'))
             mapping = json.loads(os.getenv('HELPMINTHS_SHEETS_COLUMN_MAPPING', '{}'))
-            if not re.fullmatch(r'[A-Za-z0-9_-]{10,128}', sheet_id) or not re.fullmatch(r'\d{1,20}', gid):
+            if not re.fullmatch(r'[A-Za-z0-9_-]{10,128}', sheet_id) or (gid and not re.fullmatch(r'\d{1,20}', gid)):
                 raise ValueError
             if len(worksheet) > 100 or any(ord(char) < 32 for char in worksheet) or not 15 <= refresh <= 300 or not isinstance(mapping, dict):
                 raise ValueError
             if not isinstance(mapping.get('columns', mapping), dict) or type(mapping.get('header_row', 1)) is not int or not 1 <= mapping.get('header_row', 1) <= 100:
+                raise ValueError
+            if mapping.get('preset') == 'health2-kpd-school-v1' and 'year' in mapping and _year(mapping['year']) is None:
                 raise ValueError
             credential = os.getenv('HELPMINTHS_GOOGLE_SERVICE_ACCOUNT_JSON', '').strip()
             data_format = os.getenv('HELPMINTHS_SHEETS_FORMAT', 'auto').strip().lower()
@@ -128,13 +135,21 @@ class SheetsConfig:
     def source(self):
         return {'provider': 'google_sheets', 'spreadsheet_id': self.spreadsheet_id,
                 'url': f'https://docs.google.com/spreadsheets/d/{self.spreadsheet_id}/edit',
-                'gid': self.gid, 'worksheet': self.worksheet or None, 'format': self.data_format}
+                'gid': self.gid, 'worksheet': self.worksheet or None, 'format': self.data_format,
+                **({'year': _year(self.mapping.get('year')), 'year_basis': 'configuration' if self.mapping.get('year') is not None else None}
+                   if self.school_summary else {})}
 
     def metadata(self):
         return {'configured': self.enabled, 'source': self.source(), 'refresh_seconds': self.refresh_seconds,
                 'access': 'public_aggregates' if self.public else 'authenticated',
                 'mapping_configured': bool(self.mapping), 'capabilities': {'read_only': True, 'raw_rows_exposed': False,
-                    'filters': ['year', 'province', 'from_date', 'to_date', 'status'],
+                    'filters': ((['year'] if self.mapping.get('year') is not None else []) +
+                                ['province', 'district', 'affiliation', 'record_status', 'positivity_band', 'school_search'])
+                               if self.school_summary else ['year', 'province', 'from_date', 'to_date', 'status'],
+                    'school_summary': self.school_summary, 'named_school_statistics': self.school_summary,
+                    'school_details_extended': self.school_summary, 'person_records_exposed': False,
+                    'school_details_scope': 'tested_units_only' if self.school_summary else None,
+                    'clinical_validation_claimed': False,
                     'person_counts_require_explicit_schema': True, 'formats': ['csv', 'xlsx'],
                     'authentication': 'service_account' if self.credential_json else 'public_readonly'}}
 
@@ -270,7 +285,9 @@ def _fetch_table(config: SheetsConfig) -> list[list[Any]]:
             raise SourceError('credentials_unavailable', 'บัญชีบริการอ่านชีตไม่ได้ กรุณาตรวจ credentials และสิทธิ์บนเซิร์ฟเวอร์') from None
     if config.data_format == 'xlsx':
         return _public_excel(config)
-    parameters = {'format': 'csv', 'gid': config.gid}
+    parameters = {'format': 'csv'}
+    if config.gid:
+        parameters['gid'] = config.gid
     if config.worksheet:
         # gviz supports a worksheet name without publishing a new URL or changing sharing.
         parameters = {'tqx': 'out:csv', 'sheet': config.worksheet, 'headers': '0'}
@@ -404,30 +421,52 @@ def _school_rows(table: list[list[Any]], start: int) -> tuple[list[dict], dict, 
         missing_province += int(province is None)
         identity = hashlib.sha256(json.dumps([_school_identity(cell(index)) for index in (0, 1, 2, 3)], ensure_ascii=False).encode()).hexdigest()
         total, tested, infected = _count(cell(4)), _count(cell(5)), _count(cell(7))
+        blank = lambda value: str(value).strip() in {'', '-', '–', '—'}
+        pending_counts = all(blank(cell(index)) for index in (4, 5, 7, 25))
         inconsistent = (total is not None and tested is not None and tested > total) or (tested is not None and infected is not None and infected > tested)
         if inconsistent:
             total = tested = infected = None
             invalid_counts += 1
         parasites = {label: _count(cell(index)) for index, label in SCHOOL_PARASITES}
+        parasite_conflicts = {label: int(parasites[label] is None and not blank(cell(index))) for index, label in SCHOOL_PARASITES}
         for label, count in parasites.items():
             if count is not None and infected is not None and count > infected:
                 parasites[label] = None
+                parasite_conflicts[label] = 1
                 invalid_counts += 1
         multiple = _count(cell(25))
+        multiple_conflict = multiple is None and not blank(cell(25))
         if multiple is not None and infected is not None and multiple > infected:
             multiple = None
+            multiple_conflict = True
             invalid_counts += 1
         row = {'date': None, 'year': None, 'province': province, 'status': 'unspecified', 'tested': tested,
                'infected': infected, 'total_students': total, 'multiple_infections': multiple,
-               'school_id': identity, 'school_parasites': parasites, 'parasite': None, 'count': None}
+               'school_id': identity, 'school_parasites': parasites, 'parasite': None, 'count': None,
+               # Kept server-side unless the explicit school publication preset is configured.
+               'school': unicodedata.normalize('NFC', str(cell(0))).strip()[:400],
+               'tambon': unicodedata.normalize('NFC', str(cell(1))).strip()[:160] if province else '',
+               'district': unicodedata.normalize('NFC', str(cell(2))).strip()[:160] if province else '',
+               'affiliation': unicodedata.normalize('NFC', str(cell(27))).strip()[:160] if province else '',
+               '_pending_counts': pending_counts,
+               '_formula_errors': sum(str(cell(index)).strip().startswith('#') for index in (6, 8, *range(10, 27, 2))),
+               '_invalid_counts': int(inconsistent) + int(multiple_conflict)
+                                  + sum(_count(cell(index)) is None and not blank(cell(index)) for index in (4, 5, 7)),
+               '_parasite_conflicts': parasite_conflicts}
         if identity in identities:
             previous = identities[identity]
-            if previous == row:
+            same_affiliation = _school_identity(previous['affiliation']) == _school_identity(row['affiliation'])
+            if same_affiliation and all(previous[key] == row[key] for key in ('province', 'tested', 'infected', 'total_students',
+                                                                            'multiple_infections', 'school_parasites', '_pending_counts')):
                 duplicates += 1
                 continue
             conflicts += 1
             previous.update(tested=None, infected=None, total_students=None, multiple_infections=None,
-                            school_parasites={label: None for _, label in SCHOOL_PARASITES})
+                            school_parasites={label: None for _, label in SCHOOL_PARASITES},
+                            _pending_counts=False, _invalid_counts=1,
+                            _parasite_conflicts={label: 1 for _, label in SCHOOL_PARASITES})
+            if not same_affiliation:
+                previous['affiliation'] = ''
             continue
         identities[identity] = row
         rows.append(row)
@@ -450,13 +489,31 @@ def _school_rows(table: list[list[Any]], start: int) -> tuple[list[dict], dict, 
 
 def parse_table(table: list[list[Any]], config: SheetsConfig) -> tuple[list[dict], dict, list[str]]:
     if not table:
+        if config.school_summary:
+            raise SourceError('mapping_required', 'ไม่พบหัวตารางสรุปโรงเรียนสามแถวที่ยืนยันไว้ กรุณาตรวจแท็บต้นทาง')
         return [], {'matched_roles': [], 'schema_valid': False, 'status_mapped': False}, []
     if not isinstance(table, list) or any(not isinstance(row, list) or len(row) > 200 for row in table):
         raise SourceError('invalid_sheet_data', 'ตารางต้นทางมีโครงสร้างไม่ถูกต้องหรือเกิน 200 คอลัมน์')
     if (config.spreadsheet_id == PROJECT_SHEET_ID and not config.mapping) or config.mapping.get('preset') == 'health2-kpd-school-v1':
         school_start = _school_header(table)
         if school_start is not None:
-            return _school_rows(table, school_start)
+            rows, info, warnings = _school_rows(table, school_start)
+            if config.school_summary:
+                year = _year(config.mapping.get('year'))
+                basis = 'configuration' if year is not None else None
+                if year is None:
+                    # A title may explicitly state a reporting year. Never infer
+                    # it from a previous artifact, the current date, or a filename.
+                    title = ' '.join(str(cell).translate(THAI_DIGITS) for row in table[:school_start - 3] for cell in row)
+                    years = {_year(match) for match in re.findall(r'(?:ปี(?:งบประมาณ|การศึกษา)?|พ\.?\s*ศ\.?|ค\.?\s*ศ\.?)\s*[:：]?\s*([12]\d{3})', title)} - {None}
+                    if len(years) == 1:
+                        year, basis = years.pop(), 'source_header'
+                info.update(dataset_year=year, year_basis=basis)
+                for row in rows:
+                    row['year'] = year
+            return rows, info, warnings
+        if config.school_summary:
+            raise SourceError('mapping_required', 'หัวตารางต้นทางไม่ตรงกับสรุปโรงเรียนสามแถวที่ยืนยันไว้ กรุณาตรวจแท็บและคอลัมน์')
     header_index = config.mapping.get('header_row', 1) - 1
     if len(table) > MAX_ROWS + header_index + 1 or any(not isinstance(row, list) or len(row) > 200 for row in table):
         raise SourceError('source_too_large', 'ชีตเกินขีดจำกัด 10,000 แถวหรือ 200 คอลัมน์ กรุณาใช้แท็บสรุป')
@@ -505,6 +562,9 @@ def parse_table(table: list[list[Any]], config: SheetsConfig) -> tuple[list[dict
 
 
 def aggregate(rows: list[dict], info: dict, config: SheetsConfig, filters: dict) -> tuple[dict, list[str]]:
+    if config.school_summary and info.get('schema_id') == 'health2-kpd-school-v1':
+        from .live_school_summary import aggregate_school_summary
+        return aggregate_school_summary(rows, info, filters)
     warnings = []
     all_rows = rows
     for key in ('year', 'province', 'status'):
@@ -598,13 +658,24 @@ class SheetsCache:
         self.last_attempt_at = None
         self.next_attempt = 0.0
         self.error = None
+        self.signature = None
 
     def snapshot(self, config: SheetsConfig, filters: dict):
         with self.lock:
+            signature = (config.spreadsheet_id, config.gid, config.worksheet, config.public,
+                         json.dumps(config.mapping, sort_keys=True), config.credential_json, config.data_format)
+            if self.signature != signature:
+                self.rows = self.info = self.fetched_at = self.last_attempt_at = self.error = None
+                self.warnings = []
+                self.next_attempt = 0.0
+                self.signature = signature
             if time.monotonic() >= self.next_attempt:
                 self.last_attempt_at = datetime.now(timezone.utc).isoformat()
                 try:
-                    self.rows, self.info, self.warnings = parse_table(fetch_table(config), config)
+                    # Validate the complete new payload before replacing the last
+                    # successful same-source data, including the approved header.
+                    rows, info, warnings = parse_table(fetch_table(config), config)
+                    self.rows, self.info, self.warnings = rows, info, warnings
                     self.fetched_at = datetime.now(timezone.utc).isoformat()
                     self.error = None
                 except SourceError as error:
@@ -612,7 +683,10 @@ class SheetsCache:
                 except Exception:
                     self.error = {'code': 'source_unavailable', 'message': 'อ่านข้อมูล Google Sheets ไม่สำเร็จ กรุณาตรวจการตั้งค่าและลองใหม่ตามรอบ'}
                 self.next_attempt = time.monotonic() + config.refresh_seconds
-            base = {'source': config.source(), 'refresh_seconds': config.refresh_seconds, 'fetched_at': self.fetched_at,
+            source = config.source()
+            if config.school_summary and self.info:
+                source.update(year=self.info.get('dataset_year'), year_basis=self.info.get('year_basis'))
+            base = {'source': source, 'refresh_seconds': config.refresh_seconds, 'fetched_at': self.fetched_at,
                     'last_attempt_at': self.last_attempt_at, 'error': self.error, 'warnings': list(self.warnings), 'data': None}
             if self.rows is None:
                 return {**base, 'status': 'unavailable'}
@@ -667,12 +741,18 @@ def operations_dashboard(request: Request, year: int | None = Query(None, ge=190
     config = SheetsConfig.from_environment()
     if not config.public:
         require_user(request)
-    if any(value for value in (district, affiliation, record_status, positivity_band, school_search)):
+    if not config.school_summary and any(value for value in (district, affiliation, record_status, positivity_band, school_search)):
         raise HTTPException(422, 'ตัวกรองอำเภอ สังกัด สถานะหน่วยรายงาน และช่วงร้อยละตรวจพบใช้ได้กับชุดข้อมูลไฟล์นำเข้าเท่านั้น')
     if not config.enabled:
         return {'status': 'not_configured', 'source': config.source(), 'refresh_seconds': config.refresh_seconds,
                 'fetched_at': None, 'last_attempt_at': None, 'error': None, 'warnings': [], 'data': None}
     filters = {}
+    if config.school_summary:
+        if any(value for value in (from_date, to_date, status)):
+            raise HTTPException(422, 'สรุปโรงเรียนไม่มีข้อมูลวันที่หรือสถานะการดำเนินงานรายบุคคล')
+        filters.update({key: value for key, value in (
+            ('district', district), ('affiliation', affiliation), ('record_status', record_status),
+            ('positivity_band', positivity_band), ('school_search', school_search)) if value})
     if year is not None:
         selected_year = _year(year)
         if selected_year is None:

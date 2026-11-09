@@ -12,5 +12,19 @@ services:
         value: "1"
       - key: HELPMINTHS_AUTO_STORAGE
         value: "1"
+      - key: HELPMINTHS_DASHBOARD_SOURCE
+        value: "google_sheets"
+      - key: HELPMINTHS_SHEETS_ENABLED
+        value: "1"
+      - key: HELPMINTHS_SHEETS_ID
+        value: "1pvGSBJEykTf5NUEsd3SqVdOqpYbpibTj07p23yJ5o-8"
+      - key: HELPMINTHS_SHEETS_GID
+        value: ""
+      - key: HELPMINTHS_SHEETS_PUBLIC_AGGREGATES
+        value: "1"
+      - key: HELPMINTHS_SHEETS_COLUMN_MAPPING
+        value: '{"preset":"health2-kpd-school-v1"}'
+      - key: HELPMINTHS_SHEETS_REFRESH_SECONDS
+        value: "30"
       - key: PORT
         value: "8000"

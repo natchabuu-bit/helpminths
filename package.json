@@ -18,6 +18,7 @@
     "test:offline": "node --test tests/offline.test.mjs",
     "test:platform": "node --test tests/platform.test.mjs",
     "test:health-dashboard": "node --test tests/health-dashboard.test.mjs",
+    "test:live-sheets": "node --test tests/live-sheets-dashboard.test.mjs",
     "test:health-snapshot": "node --test tests/health-snapshot.test.mjs",
     "test:history-dashboard": "node --test tests/history-dashboard.test.mjs"
   },
