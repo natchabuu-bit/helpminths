@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
 import { existsSync } from 'node:fs'
 import { chromium } from 'playwright'
+import { navigate as nav } from './helpers/navigation.mjs'
 
 const baseURL = process.env.HELPMINTHS_TEST_URL || 'http://127.0.0.1:8089'
 let browser
@@ -60,13 +61,10 @@ test('entering Settings rechecks a stale session and exposes clean account forms
     assert.equal(await page.getByLabel('ชื่อบัญชี', { exact: true }).isDisabled(), true)
     assert.equal(await page.locator('.account-readiness').count(), 0)
     assert.equal(await page.getByRole('button', { name: 'ตรวจสอบระบบอีกครั้ง', exact: true }).count(), 0)
-    const menu = page.getByRole('button', { name: 'เปิดเมนู', exact: true })
-    await menu.click()
-    await page.locator('.sidebar .nav-item').filter({ hasText: 'ภาพรวม' }).click()
+    await nav(page, 'ภาพรวม')
     const before = sessionReads
     available = true
-    await menu.click()
-    await page.locator('.sidebar .nav-item').filter({ hasText: 'ตั้งค่าและบัญชี' }).click()
+    await nav(page, 'ตั้งค่าและบัญชี')
     await page.waitForFunction(() => { const input = document.querySelector('.account-auth-form input'); return !!input && !input.disabled })
     assert.ok(sessionReads > before, 'Reentering Settings must ask the session API again, not enable client-side fake state')
     assert.equal(await login.isDisabled(), false)

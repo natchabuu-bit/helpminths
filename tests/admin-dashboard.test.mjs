@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
 import { existsSync } from 'node:fs'
 import { chromium } from 'playwright'
+import { navigate as nav } from './helpers/navigation.mjs'
 
 // Real approval mutations are restricted to the opt-in localhost fixture. This
 // suite never promotes an existing account or writes to a configured deployment.
@@ -74,12 +75,6 @@ async function signIn(page, username, password = staffPassword) {
   assert.equal(response.status(), 200, await response.text())
   return response.json()
 }
-async function nav(page, label) {
-  await page.locator('.topbar').waitFor({ state: 'visible' })
-  const menu = page.getByRole('button', { name: 'เปิดเมนู', exact: true })
-  if (await menu.isVisible() && await menu.getAttribute('aria-expanded') !== 'true') await menu.click()
-  await page.locator('.sidebar .nav-item').filter({ hasText: label }).click()
-}
 async function assertFitsPhone(page, label) {
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${label} must fit a 375px viewport`)
 }
@@ -93,7 +88,7 @@ function ownerRequests(page) {
 function assertNoMemberControls(page) {
   return Promise.all([
     page.locator('.account-super-admin,.platform-user-entry,.platform-user-list').count().then(count => assert.equal(count, 0)),
-    page.locator('.sidebar .nav-item').filter({ hasText: 'หลังบ้าน' }).count().then(count => assert.equal(count, 0)),
+    page.getByRole('navigation', { name: 'เมนูหลัก', exact: true }).getByRole('button', { name: /หลังบ้าน/ }).count().then(count => assert.equal(count, 0)),
   ])
 }
 

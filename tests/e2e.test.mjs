@@ -23,6 +23,11 @@ async function openPage(options = {}) {
   return page
 }
 
+async function openSessionWork(page) {
+  await page.getByRole('navigation', { name: 'เมนูหลัก', exact: true }).getByRole('button', { name: 'งานของฉัน', exact: true }).click()
+  await page.getByRole('tab', { name: 'ผลในเซสชันนี้', exact: true }).click()
+}
+
 test('live API health reports actual readiness', async () => {
   const page = await openPage()
   try {
@@ -56,7 +61,7 @@ test('demo overlays filter, select, omit JSON export, and retain session history
     assert.equal(await page.getByRole('button', { name: 'ส่งออกรายงาน JSON' }).count(), 0, 'The removed JSON export action must not return')
     assert.equal(await page.locator('.scan-detection-box').count(), 3)
     assert.deepEqual(await page.locator('.scan-detection-name strong').allTextContents(), ['Ascaris lumbricoides', 'Ascaris lumbricoides', 'Trichuris trichiura'])
-    await page.getByRole('button', { name: /ประวัติการตรวจ/ }).click()
+    await openSessionWork(page)
     assert.equal(await page.locator('.history-card').count(), 1)
     await page.locator('.history-card').click()
     await page.locator('.scan-demo-banner').waitFor()
@@ -68,7 +73,7 @@ test('upload stays available without a model, and unsupported files are rejected
   await page.route('**/api/health', route => route.fulfill({ json: { status: 'ok', model_ready: false, model_name: null, message: 'No trained checkpoint configured' } }))
   try {
     await page.goto(baseURL, { waitUntil: 'networkidle' })
-    await page.getByRole('button', { name: 'ตรวจวิเคราะห์ AI' }).click()
+    await page.getByRole('navigation', { name: 'เมนูหลัก', exact: true }).getByRole('button', { name: 'ตรวจวิเคราะห์', exact: true }).click()
     const input = page.getByLabel('เลือกภาพจากอุปกรณ์')
     await input.setInputFiles({ name: 'wrong.txt', mimeType: 'text/plain', buffer: Buffer.from('text') })
     await page.getByRole('alert').waitFor()
@@ -113,7 +118,7 @@ test('mocked inference preserves exact model labels and links only supported tax
   })
   try {
     await page.goto(baseURL, { waitUntil: 'networkidle' })
-    await page.getByRole('button', { name: 'ตรวจวิเคราะห์ AI' }).click()
+    await page.getByRole('navigation', { name: 'เมนูหลัก', exact: true }).getByRole('button', { name: 'ตรวจวิเคราะห์', exact: true }).click()
     const png = await page.evaluate(() => {
       const canvas = document.createElement('canvas')
       canvas.width = 100; canvas.height = 80
@@ -159,7 +164,7 @@ test('mocked inference preserves exact model labels and links only supported tax
       await page.locator('.scan-atlas-link').click()
       await page.locator('.atlas-model-stage canvas').waitFor()
       assert.equal(await page.locator('.atlas-specimen-caption h2').innerText(), name)
-      await page.getByRole('button', { name: /ประวัติการตรวจ/ }).click()
+      await openSessionWork(page)
       await page.locator('.history-card').click()
       await page.locator('.scan-detection-box').first().waitFor()
     }
@@ -242,7 +247,7 @@ test('Atlas renders WebGL, updates structures, toggles labels without React erro
     assert.equal(await page.getByRole('dialog').evaluate(dialog => dialog.contains(document.activeElement)), true, 'Focus must stay in the expanded viewer when wrapping backwards')
     await page.keyboard.press('Escape')
     assert.equal(await page.getByRole('dialog').count(), 0)
-    await page.getByRole('button', { name: 'ภาพรวม', exact: true }).click()
+    await page.getByRole('button', { name: 'HelpMinths หน้าหลัก', exact: true }).click()
     await page.locator('.specimen-card').filter({ hasText: 'Opisthorchis viverrini' }).click()
     await page.locator('.atlas-model-stage canvas').waitFor()
     assert.equal(await page.locator('.atlas-specimen-caption h2').innerText(), 'Opisthorchis viverrini', 'The featured OV home card must remount the Atlas at OV rather than the fallback specimen')
@@ -263,10 +268,8 @@ test('mobile navigation offers rear camera capture; fallback drawings show the d
   try {
     await page.goto(baseURL, { waitUntil: 'networkidle' })
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
-    await page.getByRole('button', { name: 'เปิดเมนู' }).click()
-    await page.getByRole('button', { name: 'ตรวจวิเคราะห์ AI' }).click()
+    await page.getByRole('navigation', { name: 'เมนูหลัก', exact: true }).getByRole('button', { name: 'ตรวจวิเคราะห์', exact: true }).click()
     assert.equal(await page.getByLabel('ถ่ายภาพด้วยกล้อง').getAttribute('capture'), 'environment')
-    await page.getByRole('button', { name: 'เปิดเมนู' }).click()
     await page.getByRole('button', { name: 'Atlas 3D', exact: true }).click()
     await page.locator('.atlas-svg-fallback').waitFor()
     assert.match(await page.locator('.atlas-svg-fallback').innerText(), /ไม่รองรับ WebGL/)
@@ -438,7 +441,6 @@ test('mobile micrographs respond to real two-finger pinch and keep the viewport 
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
   try {
     await page.goto(baseURL, { waitUntil: 'networkidle' })
-    await page.getByRole('button', { name: 'เปิดเมนู' }).click()
     await page.getByRole('button', { name: 'Atlas 3D', exact: true }).click()
     const frame = page.locator('.atlas-photo-frame')
     await frame.waitFor()
@@ -556,7 +558,6 @@ test('phone fallback illustrations distinguish all Ascaris stages and preserve t
   }
   try {
     await page.goto(baseURL, { waitUntil: 'networkidle' })
-    await page.getByRole('button', { name: 'เปิดเมนู' }).click()
     await page.getByRole('button', { name: 'Atlas 3D', exact: true }).click()
     await page.locator('.atlas-svg-fallback').waitFor()
     for (const [id, contentName] of Object.entries(contentNames)) {
@@ -655,7 +656,6 @@ test('phone fallback shows a larva with a highlighted internal genital primordiu
   page.on('pageerror', error => errors.push(error.message))
   try {
     await page.goto(baseURL, { waitUntil: 'networkidle' })
-    await page.getByRole('button', { name: 'เปิดเมนู' }).click()
     await page.getByRole('button', { name: 'Atlas 3D', exact: true }).click()
     await page.getByLabel('ค้นหาชื่อพยาธิ').fill('Strongyloides')
     await page.locator('.atlas-species-item').click()

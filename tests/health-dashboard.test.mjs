@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
 import { existsSync } from 'node:fs'
 import { chromium } from 'playwright'
+import { navigate as nav } from './helpers/navigation.mjs'
 
 // All numbers below are SYNTHETIC software-test fixtures. They never become
 // published project statistics, source data, patient records or model evidence.
@@ -62,11 +63,6 @@ async function openDashboard({ response = () => responseFixture(), metadataRespo
   await page.getByTestId('health-survey-dashboard').waitFor()
   return { page, context, requests, finish: async () => { await context.close(); assert.deepEqual(errors, []); assert.deepEqual(writes, [], 'The public survey dashboard must never write source or clinical data') } }
 }
-async function nav(page, label) {
-  const menu = page.getByRole('button', { name: 'เปิดเมนู', exact: true })
-  if (await menu.isVisible() && await menu.getAttribute('aria-expanded') !== 'true') await menu.click()
-  await page.locator('.sidebar .nav-item').filter({ hasText: label }).click()
-}
 function card(page, key) {
   if (key === 'infected_count') return page.getByTestId('survey-positive')
   if (key === 'infection_rate_percent') return page.getByTestId('survey-positivity')
@@ -79,8 +75,8 @@ test('public Dashboard navigation and upstream failure never manufacture screeni
   const { page, finish } = await openDashboard({ response: () => responseFixture('unavailable', null, { error: { code: 'connection_failed', message: 'SYNTHETIC TEST: upstream is unavailable' } }) })
   try {
     await page.getByRole('heading', { name: 'ยังอ่านข้อมูลจาก Google Sheets ไม่ได้', exact: true }).waitFor()
-    assert.equal(await page.locator('.sidebar .nav-item').count(), 9)
-    assert.equal(await page.locator('.sidebar .nav-item[aria-current="page"]').innerText(), 'Dashboard')
+    assert.equal(await page.getByRole('navigation', { name: 'เมนูหลัก', exact: true }).getByRole('button').count(), 4)
+    assert.equal(await page.getByRole('navigation', { name: 'เมนูหลัก', exact: true }).locator('[aria-current="page"]').innerText(), 'สถิติโรค')
     for (const key of ['total_students', 'tested_count', 'infected_count', 'infection_rate_percent', 'coverage_percent']) assert.equal(await card(page, key).textContent(), '—')
     assert.equal(await page.locator('.hsd-status.is-ready').count(), 0)
     assert.equal(await page.locator('.hsd-province-table tbody tr').count(), 0)

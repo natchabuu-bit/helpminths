@@ -1,6 +1,5 @@
 import { Activity, MessageSquare, Save, ShieldCheck } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import type { ReactNode } from 'react'
 import { apiRequest, buildQuery, formatDate } from '../platform/api'
 import type { Paged, PlatformSession } from '../platform/api'
 import { AccessState, ErrorNotice, LoadingNotice, PlatformHeading, StatusBadge, usePlatformResource } from './PlatformShared'
@@ -11,16 +10,16 @@ interface ModelData { items: ModelRecord[]; configured_model: { ready: boolean; 
 interface EvaluationData { status: string; message: string; sample_size: number; metrics: Record<string, unknown> | null; reason?: string; dataset_version?: string; iou_threshold?: number; confidence_threshold?: number }
 interface FeedbackRecord { id: string; analysis_id?: string | null; object_id?: string | null; category: string; message: string; status: string; created_at: string; revision: number; reviewer_comment?: string; verified_category?: string }
 
-export default function ModelPerformance({ session, analysisId, children }: { session: PlatformSession; analysisId?: string; children?: ReactNode }) {
-  const [tab, setTab] = useState<'quality' | 'feedback' | 'sus'>(() => {
-    try { const saved = sessionStorage.getItem('helpminths-performance-tab'); if (saved === 'feedback' || saved === 'sus') return saved } catch { /* A browser may disable preference storage. */ }
+export default function ModelPerformance({ session, analysisId }: { session: PlatformSession; analysisId?: string }) {
+  const [tab, setTab] = useState<'quality' | 'feedback'>(() => {
+    try { const saved = sessionStorage.getItem('helpminths-performance-tab'); if (saved === 'feedback') return saved } catch { /* A browser may disable preference storage. */ }
     return 'quality'
   })
   useEffect(() => { try { sessionStorage.setItem('helpminths-performance-tab', tab) } catch { /* Selection still works without browser storage. */ } }, [tab])
-  return <div className="platform-page"><PlatformHeading kicker="MODEL QUALITY & FEEDBACK" title="คุณภาพโมเดลและข้อเสนอแนะ" description="แยกประสิทธิภาพที่ทดสอบกับข้อมูลอ้างอิง ออกจากความคิดเห็นต่อผลตรวจและความสะดวกในการใช้เว็บ"/>
-    <div className="platform-tabs" role="tablist" aria-label="คุณภาพโมเดลและข้อเสนอแนะ">{([{ id: 'quality', label: 'คุณภาพโมเดล' }, { id: 'feedback', label: 'ข้อเสนอแนะผลตรวจ' }, { id: 'sus', label: 'แบบประเมิน SUS' }] as const).map(item => <button id={`performance-tab-${item.id}`} role="tab" key={item.id} aria-selected={tab === item.id} aria-controls={`performance-panel-${item.id}`} onClick={() => setTab(item.id)}>{item.label}</button>)}</div>
+  return <div className="platform-page"><PlatformHeading kicker="MODEL QUALITY & FEEDBACK" title="ประเมินโมเดล" description="ดูผลประเมินโมเดลและเสนอแนะเกี่ยวกับผลตรวจ"/>
+    <div className="platform-tabs" role="tablist" aria-label="คุณภาพโมเดลและข้อเสนอแนะ">{([{ id: 'quality', label: 'คุณภาพโมเดล' }, { id: 'feedback', label: 'ข้อเสนอแนะผลตรวจ' }] as const).map(item => <button id={`performance-tab-${item.id}`} role="tab" key={item.id} aria-selected={tab === item.id} aria-controls={`performance-panel-${item.id}`} onClick={() => setTab(item.id)}>{item.label}</button>)}</div>
     <section role="tabpanel" id={`performance-panel-${tab}`} aria-labelledby={`performance-tab-${tab}`}>
-      {tab === 'sus' ? children ?? <p className="platform-muted">เปิดแบบประเมินการใช้งานจากเมนูประเมินและข้อเสนอแนะ</p> : <AccessState session={session}>{tab === 'quality' ? <ModelQuality session={session}/> : <FeedbackPanel session={session} analysisId={analysisId}/>}</AccessState>}
+      <AccessState session={session}>{tab === 'quality' ? <ModelQuality session={session}/> : <FeedbackPanel session={session} analysisId={analysisId}/>}</AccessState>
     </section>
   </div>
 }

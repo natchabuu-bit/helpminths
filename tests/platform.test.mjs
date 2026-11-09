@@ -3,6 +3,7 @@ import { after, before, test } from 'node:test'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { chromium } from 'playwright'
+import { navigate as nav } from './helpers/navigation.mjs'
 
 // This suite may mutate ONLY the deliberately opt-in, localhost synthetic
 // fixture. Never substitute the public site URL or real clinical photographs.
@@ -48,12 +49,6 @@ async function fixturePage() {
   page.on('pageerror', error => pageErrors.push(error.message))
   await page.goto(`${fixtureURL}/#settings`, { waitUntil: 'networkidle' })
   return { page, context, finish: async () => { await context.close(); assert.deepEqual(safetyErrors, []); assert.deepEqual(pageErrors, []) } }
-}
-async function nav(page, label) {
-  const menu = page.getByRole('button', { name: 'เปิดเมนู', exact: true })
-  const item = page.locator('.sidebar .nav-item').filter({ hasText: label })
-  if (await menu.isVisible() && await menu.getAttribute('aria-expanded') !== 'true') await menu.click()
-  await item.click()
 }
 async function login(page, role) {
   await nav(page, 'ตั้งค่าและบัญชี')
@@ -161,7 +156,10 @@ test('authenticated quality gate, saved predictions, expert decisions, audit, re
     await page.locator('#scan-confidence').focus(); await page.locator('#scan-confidence').press('Home')
     assert.equal(await page.locator('.scan-detection-item').count(), 2)
     await page.getByRole('button', { name: 'เปิดรายการและทบทวนผล', exact: true }).click()
-    await page.locator('.platform-object').first().waitFor()
+    const predictedImage = page.getByRole('img', { name: 'ภาพและกรอบที่ AI ทำนาย', exact: true })
+    await predictedImage.waitFor()
+    assert.deepEqual(await predictedImage.locator('g[role="button"]').evaluateAll(items => items.map(item => item.getAttribute('aria-label'))), ['เลือกวัตถุ 1 TEST FIXTURE object A', 'เลือกวัตถุ 2 TEST FIXTURE object B'])
+    assert.equal(await page.locator('.platform-object').count(), 0, 'Lab users see prediction overlays without expert editing controls')
     assert.equal(await page.getByRole('button', { name: 'บันทึกผลตรวจทาน', exact: true }).count(), 0, 'Lab users can read but cannot adjudicate')
     const denied = await mutate(page, `/analyses/${original.id}/reviews`, { expected_revision: original.revision, status: 'in_review', annotations: [] })
     assert.equal(denied.status(), 403)
@@ -231,7 +229,7 @@ test('authenticated quality gate, saved predictions, expert decisions, audit, re
       if (prefix) assert.equal(content.subarray(0, 4).toString(), prefix)
       else { assert.match(content.toString('utf8'), /TEST FIXTURE object A/); assert.match(content.toString('utf8'), /TEST FIXTURE corrected A/); assert.match(content.toString('utf8'), /TEST FIXTURE missed object/) }
     }
-    await nav(page, 'ประเมินและข้อเสนอแนะ')
+    await nav(page, 'ประเมินโมเดล')
     await page.getByText('Model evaluation data unavailable', { exact: true }).waitFor()
     const evaluation = await (await page.request.get(`${fixtureURL}/api/platform/evaluation`)).json()
     assert.equal(evaluation.status, 'unavailable'); assert.equal(evaluation.sample_size, 0); assert.equal(evaluation.metrics, null)
@@ -258,7 +256,8 @@ test('authenticated quality gate, saved predictions, expert decisions, audit, re
     const unauthorizedPromise = page.waitForResponse(response => response.url().includes('/api/platform/dashboard') && response.status() === 401)
     await nav(page, 'ภาพรวม')
     await unauthorizedPromise
-    await page.getByRole('heading', { name: 'เข้าสู่ระบบเพื่อดูข้อมูล', exact: true }).waitFor()
+    await page.getByRole('button', { name: 'เข้าสู่ระบบหรือสมัครสมาชิก', exact: true }).waitFor()
+    assert.equal(await page.locator('.platform-stat-grid').count(), 0, 'Expired sessions must discard operational statistics')
     await nav(page, 'ตั้งค่าและบัญชี')
     await page.getByLabel('ชื่อบัญชี', { exact: true }).waitFor()
     assert.equal(await page.getByRole('button', { name: 'ออกจากระบบ', exact: true }).count(), 0)
@@ -270,7 +269,7 @@ test('the removed Learning Lab route returns home while read-only account restri
   const { page, finish } = await fixturePage()
   try {
     await login(page, 'student')
-    assert.equal(await page.locator('.sidebar .nav-item').count(), 9)
+    assert.equal(await page.getByRole('navigation', { name: 'เมนูหลัก', exact: true }).getByRole('button').count(), 4)
     assert.equal(await page.getByRole('button', { name: 'ห้องเรียนพยาธิ', exact: true }).count(), 0)
     await nav(page, 'Atlas 3D')
     await page.locator('.atlas-workspace').waitFor()
@@ -301,7 +300,8 @@ test('admin user inventory and rejected credentials use real authentication', { 
     await page.locator('.platform-error').waitFor()
     assert.equal(await page.getByLabel('ชื่อบัญชี', { exact: true }).count(), 1)
     await login(page, 'admin')
-    await page.getByRole('heading', { name: 'Super admin', exact: true }).waitFor()
+    await page.getByRole('button', { name: 'เปิดหลังบ้าน', exact: true }).click()
+    await page.getByRole('heading', { name: 'อนุมัติคำขอและจัดการสมาชิก', exact: true }).waitFor()
     const usersResponse = await page.request.get(`${fixtureURL}/api/platform/users`)
     assert.equal(usersResponse.status(), 200)
     const users = await usersResponse.json()
@@ -327,8 +327,16 @@ test('unconfigured platform pages remain truthful and usable at 375px and 1440px
       const page = await context.newPage()
       await page.setViewportSize({ width, height: 1000 })
       page.on('pageerror', error => errors.push(error.message))
+      const homePrivateReads = []
+      const observeHome = request => {
+        const path = new URL(request.url()).pathname
+        if (path.startsWith('/api/platform/') && !['/api/platform/session', '/api/platform/status'].includes(path)) homePrivateReads.push(path)
+      }
+      page.on('request', observeHome)
       await page.goto(`${defaultURL}/#home`, { waitUntil: 'networkidle' })
-      const pages = { home: 'ภาพรวม', history: 'ประวัติการตรวจ', verification: 'ทบทวนโดยผู้เชี่ยวชาญ', reports: 'รายงาน', performance: 'ประเมินและข้อเสนอแนะ', settings: 'ตั้งค่าและบัญชี', scan: 'ตรวจวิเคราะห์' }
+      assert.deepEqual(homePrivateReads, [], 'The guest home page must not request operational or clinical data')
+      page.off('request', observeHome)
+      const pages = { home: 'ภาพรวม', work: 'ประวัติการตรวจ', settings: 'ตั้งค่าและบัญชี', scan: 'ตรวจวิเคราะห์' }
       for (const [id, label] of Object.entries(pages)) {
         await nav(page, label)
         await page.waitForFunction(expected => location.hash === `#${expected}`, id)
@@ -337,17 +345,29 @@ test('unconfigured platform pages remain truthful and usable at 375px and 1440px
         const size = await page.evaluate(() => ({ width: innerWidth, documentWidth: document.documentElement.scrollWidth, fontSize: parseFloat(getComputedStyle(document.querySelector('main p:not(.field-eyebrow)')).fontSize) }))
         assert.ok(size.documentWidth <= size.width + 1, `${id} must not overflow the ${width}px viewport (${size.documentWidth})`)
         assert.ok(size.fontSize >= 14, `${id} supporting text must remain readable`)
-        if (['home', 'history', 'verification', 'reports', 'performance'].includes(id)) {
-          await page.getByText('Not configured', { exact: true }).first().waitFor()
+        if (['home', 'work'].includes(id)) {
+          if (id === 'work') await page.getByText('Not configured', { exact: true }).first().waitFor()
           assert.equal(await page.locator('.platform-stat-grid').count(), 0, 'Unconfigured state must not fabricate dashboard statistics')
         }
         if (id === 'settings') assert.equal(await page.getByRole('button', { name: 'เข้าสู่ระบบ', exact: true }).isDisabled(), true)
-        if (id === 'performance') {
-          await page.getByRole('tab', { name: 'แบบประเมิน SUS', exact: true }).click()
-          await page.locator('.feedback-question').first().waitFor()
-          assert.equal(await page.locator('.feedback-question').count(), 10, 'Simple SUS remains available separately from model research feedback')
-        }
       }
+      assert.equal(await page.getByRole('button', { name: 'จัดการ', exact: true }).count(), 0, 'Management navigation requires an approved staff session')
+      for (const id of ['verification', 'reports', 'performance']) {
+        const privateReads = []
+        const observe = request => {
+          const path = new URL(request.url()).pathname
+          if (path.startsWith('/api/platform/') && !['/api/platform/session', '/api/platform/status'].includes(path)) privateReads.push(path)
+        }
+        page.on('request', observe)
+        await page.goto(`${defaultURL}/#${id}`, { waitUntil: 'networkidle' })
+        await page.getByRole('heading', { name: 'เข้าสู่ระบบเพื่อใช้งานส่วนนี้', exact: true }).waitFor()
+        assert.equal(await page.locator('.platform-stat-grid').count(), 0, 'A gated page must not fabricate private statistics')
+        assert.deepEqual(privateReads, [], `${id} must not request staff data before authentication`)
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${id} gate must fit the ${width}px viewport`)
+        page.off('request', observe)
+      }
+      await nav(page, 'ประเมินและเสนอแนะ')
+      assert.equal(await page.locator('.feedback-question').count(), 10, 'Public SUS remains available from the footer separately from model research feedback')
       await page.close()
     }
     assert.deepEqual(errors, [])

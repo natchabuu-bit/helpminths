@@ -7,6 +7,7 @@ import { readFile, readdir } from 'node:fs/promises'
 import { extname, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
+import { primaryNavigationItem as nav } from './helpers/navigation.mjs'
 
 // Run against a production build: development mode does not install the worker.
 const baseURL = process.env.BASE_URL || process.env.HELPMINTHS_TEST_URL || 'http://127.0.0.1:4173'
@@ -76,9 +77,6 @@ async function cachedPaths(page) {
   })
 }
 
-function nav(page, label) {
-  return page.locator('.sidebar .nav-item').filter({ hasText: label })
-}
 
 test('offline navigation keeps the dark admin entry separate from the public app and never caches account APIs', { timeout: 60_000 }, async () => {
   const context = await browser.newContext({ viewport: { width: 375, height: 1000 }, serviceWorkers: 'allow', reducedMotion: 'reduce' })

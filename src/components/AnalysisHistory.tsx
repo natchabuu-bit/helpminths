@@ -13,7 +13,7 @@ interface HistoryDays { items: HistoryDay[]; total_days: number; total_analyses:
 const thaiDay = (value: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' }).format(value)
 const dayName = (value: string) => new Intl.DateTimeFormat('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'long' }).format(new Date(`${value}T12:00:00+07:00`))
 
-export default function AnalysisHistory({ session, onOpenAnalysis, onOpenReferrals }: { session: PlatformSession; onOpenAnalysis: (id: string) => void; onOpenReferrals?: () => void }) {
+export default function AnalysisHistory({ session, onOpenAnalysis, onOpenReferrals, embedded = false }: { session: PlatformSession; onOpenAnalysis: (id: string) => void; onOpenReferrals?: () => void; embedded?: boolean }) {
   const [filters, setFilters] = useState<AnalysisFilters>(emptyFilters)
   const [day, setDay] = useState('')
   const [referralState, setReferralState] = useState<'all' | 'pending' | 'not_pending'>('all')
@@ -29,7 +29,7 @@ export default function AnalysisHistory({ session, onOpenAnalysis, onOpenReferra
   }
   const chooseDay = (value: string) => { setDay(value); setOffset(0) }
   const refresh = () => { resource.reload(); days.reload() }
-  return <div className="platform-page history-page"><PlatformHeading kicker="DAILY ANALYSIS HISTORY" title="ประวัติการตรวจรายวัน" description="ภาพที่คุณส่งทั้งหมดตั้งแต่เริ่มใช้งาน แยกตามวันที่และเวลาไทย พร้อมสถานะและคำตอบจากผู้เชี่ยวชาญ"><button className="platform-button" onClick={refresh}><RefreshCw size={17}/>รีเฟรชประวัติ</button></PlatformHeading>
+  return <div className="platform-page history-page">{embedded ? <div className="my-work-history-toolbar"><p>รายการในบัญชี แยกตามวันตรวจและสถานะผู้เชี่ยวชาญ</p><button className="platform-button" onClick={refresh}><RefreshCw size={17}/>รีเฟรชประวัติ</button></div> : <PlatformHeading kicker="DAILY ANALYSIS HISTORY" title="ประวัติการตรวจรายวัน" description="ภาพที่คุณส่งทั้งหมดตั้งแต่เริ่มใช้งาน แยกตามวันที่และเวลาไทย พร้อมสถานะและคำตอบจากผู้เชี่ยวชาญ"><button className="platform-button" onClick={refresh}><RefreshCw size={17}/>รีเฟรชประวัติ</button></PlatformHeading>}
     <AccessState session={session} roles={['admin', 'reviewer', 'lab']}>
       <section className="history-referral-note"><div><Send size={20}/><p><strong>ภาพทุกสถานะอยู่ในประวัติของบัญชีคุณ</strong><span>เปิดดูภาพที่รอตรวจหรือเสร็จสิ้นได้ตามวันที่เดิม รวมคำตอบและภาพเพิ่มเติมในรายการส่งต่อ</span></p></div><button className="platform-button" onClick={onOpenReferrals}>ดูภาพส่งต่อ <ArrowRight size={16}/></button></section>
       <div className="history-state-tabs expert-queue-tabs" role="tablist" aria-label="สถานะประวัติการตรวจ">{([{ value: 'all', label: 'ทั้งหมด' }, { value: 'pending', label: 'รอตรวจ' }, { value: 'not_pending', label: 'เสร็จสิ้น' }] as const).map(item => <button key={item.value} role="tab" aria-selected={referralState === item.value} onClick={() => { setReferralState(item.value); setOffset(0) }}>{item.label}</button>)}</div>

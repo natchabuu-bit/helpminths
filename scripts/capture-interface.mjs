@@ -34,9 +34,7 @@ try {
       files.push({ filename, viewport: { width, height }, source: 'actual local public application', patientImages: false })
     }
     const nav = async label => {
-      const menu = page.getByRole('button', { name: 'เปิดเมนู', exact: true })
-      if (await menu.isVisible() && await menu.getAttribute('aria-expanded') !== 'true') await menu.click()
-      await page.locator('.sidebar .nav-item').filter({ hasText: label }).click()
+      await page.getByRole('navigation', { name: 'เมนูหลัก', exact: true }).getByRole('button', { name: label, exact: true }).click()
     }
     await page.goto(baseURL, { waitUntil: 'networkidle' })
     await page.locator('.field-model-stage canvas').waitFor()
@@ -49,7 +47,7 @@ try {
     await page.locator('.atlas-model-stage canvas').waitFor()
     await page.waitForTimeout(500)
     await capture('atlas')
-    await nav('Dashboard')
+    await nav('สถิติโรค')
     await page.getByTestId('health-survey-dashboard').waitFor()
     await page.locator('.hd-hero').waitFor()
     await capture('dashboard')

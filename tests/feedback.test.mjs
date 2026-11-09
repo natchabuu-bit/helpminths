@@ -2,12 +2,13 @@ import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
 import { existsSync } from 'node:fs'
 import { chromium } from 'playwright'
+import { navigate as nav } from './helpers/navigation.mjs'
 
 const baseURL = process.env.HELPMINTHS_TEST_URL || 'http://127.0.0.1:5173'
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined)
 const feedbackKey = 'helpminths.feedback.v1'
 const legacyKey = 'helpminths.evaluation.v1'
-const evaluationNav = 'ประเมินและข้อเสนอแนะ'
+const evaluationNav = 'ประเมินและเสนอแนะ'
 let browser
 
 before(async () => {
@@ -23,16 +24,6 @@ async function openPage(options = {}, setup) {
   return page
 }
 
-async function nav(page, name) {
-  const item = page.locator('.sidebar .nav-item').filter({ hasText: name })
-  const mobileMenu = page.getByRole('button', { name: 'เปิดเมนู', exact: true })
-  if (await mobileMenu.isVisible() && !(await page.locator('.sidebar').getAttribute('class')).includes('is-open')) await mobileMenu.click()
-  await item.click()
-  if (name === evaluationNav) {
-    await page.getByRole('tab', { name: 'แบบประเมิน SUS', exact: true }).click()
-    await page.getByRole('heading', { name: 'ประเมินการใช้งาน', exact: true }).waitFor()
-  }
-}
 
 async function answerSUS(page, answers) {
   for (let index = 0; index < answers.length; index++) {
@@ -53,7 +44,7 @@ async function save(page) {
 test('navigation removes project and workspace UI; an old project URL safely opens the home page', async () => {
   const page = await openPage()
   try {
-    assert.equal(await page.locator('.sidebar .nav-item').count(), 9)
+    assert.equal(await page.getByRole('navigation', { name: 'เมนูหลัก', exact: true }).getByRole('button').count(), 4)
     assert.equal(await page.getByRole('button', { name: 'ห้องเรียนพยาธิ', exact: true }).count(), 0)
     assert.doesNotMatch(await page.locator('body').innerText(), /โครงงานและหลักฐาน|พื้นที่ทำงาน|WORKSPACE/)
     assert.equal(await page.getByRole('button', { name: 'โครงงานและหลักฐาน', exact: true }).count(), 0)

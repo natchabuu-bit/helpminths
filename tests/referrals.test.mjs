@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
 import { existsSync } from 'node:fs'
 import { chromium } from 'playwright'
+import { navigate as nav } from './helpers/navigation.mjs'
 
 // Mutations are allowed only on the explicit localhost synthetic fixture.
 const baseURL = process.env.HELPMINTHS_REFERRAL_TEST_URL || 'http://127.0.0.1:5197'
@@ -37,11 +38,6 @@ async function contextForTest(storageState) {
   return { context, errors }
 }
 async function session(context) { return (await context.request.get(`${baseURL}/api/platform/session`)).json() }
-async function nav(page, name) {
-  const menu = page.getByRole('button', { name: 'เปิดเมนู', exact: true })
-  if (await menu.isVisible() && await menu.getAttribute('aria-expanded') !== 'true') await menu.click()
-  await page.locator('.sidebar .nav-item').filter({ hasText: name }).click()
-}
 async function post(context, path, data, method = 'post') {
   await fixture(context.request)
   const identity = await session(context)
@@ -577,7 +573,7 @@ test('Scan saves a blank-code image, retries a failed expert referral, then keep
     assert.equal(referral.status, 'pending')
     assert.equal(attempts, 2)
     await page.waitForURL(`${baseURL}/#verification`)
-    await page.getByRole('img', { name: 'ภาพต้นฉบับและกรอบสำหรับตรวจทาน', exact: true }).waitFor()
+    await page.getByRole('img', { name: 'ภาพและกรอบที่ AI ทำนาย', exact: true }).waitFor()
     const preview = await privateImage
     assert.equal(preview.status(), 200, 'Success loads the exact selected private image through its authenticated endpoint')
     assert.match(preview.headers()['cache-control'], /no-store/)
