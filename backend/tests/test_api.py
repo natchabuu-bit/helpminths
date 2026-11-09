@@ -239,3 +239,57 @@ def test_production_static_cannot_escape_build_directory(tmp_path, monkeypatch):
         response = client.get("/%2e%2e/private.txt")
         assert response.status_code == 404
         assert "must not be served" not in response.text
+
+
+def test_production_admin_is_a_separate_entry_with_safe_navigation(tmp_path, monkeypatch):
+    web_dir = tmp_path / "dist"
+    (web_dir / "admin").mkdir(parents=True)
+    (web_dir / "index.html").write_text("<!doctype html><title>Public HelpMinths</title>", encoding="utf-8")
+    (web_dir / "admin" / "index.html").write_text("<!doctype html><title>Private admin shell</title>", encoding="utf-8")
+    (tmp_path / "private.txt").write_text("private-record-must-not-leak", encoding="utf-8")
+    monkeypatch.setenv("HELPMINTHS_SERVE_WEB", "1")
+    with TestClient(create_app(YOLOModelService(""), static_dir=web_dir)) as client:
+        assert "Public HelpMinths" in client.get("/").text
+        redirect = client.get("/admin", follow_redirects=False)
+        assert redirect.status_code == 308
+        assert redirect.headers["location"] == "/admin/"
+        for path in ("/admin/", "/admin/index.html", "/admin/users", "/admin/users/pending/"):
+            response = client.get(path)
+            assert response.status_code == 200
+            assert "Private admin shell" in response.text
+            assert "Public HelpMinths" not in response.text
+            assert response.headers["cache-control"] == "no-store"
+            assert response.headers["x-robots-tag"] == "noindex, nofollow"
+        head = client.head("/admin/")
+        assert head.status_code == 200
+        assert not head.content
+        for path in ("/admin/missing.js", "/admin/%2e%2e/private.txt", "/admin/.env", "/admin/%5cprivate.txt", "/api/admin/unknown"):
+            response = client.get(path)
+            assert response.status_code == 404
+            assert "Private admin shell" not in response.text
+            assert "private-record-must-not-leak" not in response.text
+
+
+def test_admin_without_separate_build_never_falls_back_to_public_entry(tmp_path, monkeypatch):
+    web_dir = tmp_path / "dist"
+    web_dir.mkdir()
+    (web_dir / "index.html").write_text("<!doctype html><title>Public HelpMinths</title>", encoding="utf-8")
+    monkeypatch.setenv("HELPMINTHS_SERVE_WEB", "1")
+    with TestClient(create_app(YOLOModelService(""), static_dir=web_dir)) as client:
+        response = client.get("/admin/")
+        assert response.status_code == 404
+        assert "Public HelpMinths" not in response.text
+
+
+def test_admin_entry_symlink_cannot_escape_build_directory(tmp_path, monkeypatch):
+    web_dir = tmp_path / "dist"
+    (web_dir / "admin").mkdir(parents=True)
+    (web_dir / "index.html").write_text("Public HelpMinths", encoding="utf-8")
+    outside = tmp_path / "private.html"
+    outside.write_text("private-record-must-not-leak", encoding="utf-8")
+    (web_dir / "admin" / "index.html").symlink_to(outside)
+    monkeypatch.setenv("HELPMINTHS_SERVE_WEB", "1")
+    with TestClient(create_app(YOLOModelService(""), static_dir=web_dir)) as client:
+        response = client.get("/admin/")
+        assert response.status_code == 404
+        assert "private-record-must-not-leak" not in response.text

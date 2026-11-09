@@ -10,11 +10,23 @@
 .referral-current > p { margin: 17px 0 0; }
 .referral-current > p > strong, .referral-current > p > span { display: block; }
 .referral-current > p > strong { color: #28584b; margin-bottom: 5px; }
-.referral-response { display: flex; align-items: flex-start; gap: 11px; padding: 17px; margin-top: 18px; border-left: 3px solid #0d7c70; background: #fff; border-radius: 0 8px 8px 0; }
+.referral-response { display: flex; align-items: flex-start; gap: 15px; padding: 24px; margin-top: 18px; border: 1px solid #96cbbd; border-left: 5px solid #14826c; background: #fff; border-radius: 12px; box-shadow: 0 6px 22px #185b4510; }
 .referral-response > svg { color: #0d7c70; margin-top: 4px; }
 .referral-response > div { flex: 1; min-width: 0; }
-.referral-response p { margin: 7px 0 8px; }
+.referral-response strong { color: #125d4d; font-size: 1.125rem; }
+.referral-response p { margin: 12px 0; color: #203f35; font-size: 1.125rem; line-height: 1.9; overflow-wrap: anywhere; }
 .referral-response span { color: #557467; font-size: .875rem; }
+.referral-response .referral-answer-action { display: block; margin-top: 6px; color: #2c7765; }
+.referral-response-selected { scroll-margin-top: 120px; outline-offset: 4px; }
+.referral-reason { margin-top: 18px; font-size: .9375rem; color: #496e5e; }
+.referral-reason summary { cursor: pointer; padding: 5px 0; }
+.referral-reason p { margin-bottom: 0; }
+.referral-history > summary { display: flex; align-items: center; gap: 8px; padding: 14px 0; cursor: pointer; color: #315f50; font-weight: 600; }
+.referral-history > summary::after { content: '+'; margin-left: auto; font-weight: 400; font-size: 1.25rem; }
+.referral-history[open] > summary::after { content: '−'; }
+.referral-history > div { padding-top: 12px; }
+.expert-technical-history > summary { cursor: pointer; color: #406758; padding: 4px 0; font-size: 1rem; }
+.expert-technical-history[open] > summary { margin-bottom: 22px; }
 .referral-waiting { display: flex; align-items: flex-start; gap: 7px; color: #647264; font-size: .9375rem !important; }
 .referral-waiting > svg { margin-top: 5px; }
 .referral-form { padding-top: 20px; }

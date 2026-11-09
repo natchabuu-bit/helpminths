@@ -23,12 +23,27 @@ from fastapi import HTTPException
 
 from .config import PlatformConfig
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 ROLES = ("admin", "reviewer", "lab", "student")
 APPROVAL_STATUSES = ("pending", "approved", "rejected")
 KINDS = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 USERNAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_. -]*$")
 USERNAME_MESSAGE = "ชื่อผู้ใช้ต้องไม่ว่าง เริ่มด้วย A–Z, a–z หรือ 0–9 และใช้ตัวอักษรเหล่านี้ ช่องว่าง จุด ขีดกลาง หรือขีดล่างได้"
+PROFILE_LIMITS = {"full_name": 200, "workplace": 300, "affiliation": 300}
+
+
+def normalize_profile_field(key: str, value: str) -> str:
+    """Validate only supplied profile values; legacy/operator accounts may omit them."""
+    if not isinstance(value, str):
+        raise ValueError("ข้อมูลผู้สมัครต้องเป็นข้อความ")
+    normalized = value.strip()
+    if key == "phone":
+        if not re.fullmatch(r"[0-9]{10}", normalized):
+            raise ValueError("กรุณากรอกเบอร์โทรเป็นตัวเลข 10 หลัก")
+    elif not normalized or len(normalized) > PROFILE_LIMITS[key]:
+        labels = {"full_name": "ชื่อ-นามสกุล", "workplace": "สถานที่ทำงาน", "affiliation": "สังกัด"}
+        raise ValueError(f"กรุณากรอก{labels[key]} และไม่เกิน {PROFILE_LIMITS[key]} ตัวอักษร")
+    return normalized
 
 
 def owner_username() -> str:
@@ -81,7 +96,8 @@ def public_user(row: sqlite3.Row | dict[str, Any]) -> dict[str, Any]:
     return {"id": row["id"], "username": row["username"], "role": row["role"], "active": bool(row["active"]),
             "created_at": row["created_at"], "approval_status": row["approval_status"],
             "requested_role": row["requested_role"], "approved_by": row["approved_by"],
-            "approved_at": row["approved_at"], "is_super_admin": bool(row["is_super_admin"])}
+            "approved_at": row["approved_at"], "is_super_admin": bool(row["is_super_admin"]),
+            **{key: row[key] if key in row.keys() else None for key in (*PROFILE_LIMITS, "phone")}}
 
 
 _SCHEMA = """
@@ -93,7 +109,8 @@ CREATE TABLE IF NOT EXISTS users(
  approval_status TEXT NOT NULL DEFAULT 'pending' CHECK(approval_status IN ('pending','approved','rejected')),
  requested_role TEXT NOT NULL DEFAULT 'lab' CHECK(requested_role IN ('admin','reviewer','lab','student')),
  approved_by TEXT REFERENCES users(id), approved_at TEXT,
- is_super_admin INTEGER NOT NULL DEFAULT 0 CHECK(is_super_admin IN (0,1))
+ is_super_admin INTEGER NOT NULL DEFAULT 0 CHECK(is_super_admin IN (0,1)),
+ full_name TEXT, workplace TEXT, affiliation TEXT, phone TEXT
 );
 CREATE TABLE IF NOT EXISTS sessions(
  token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id),
@@ -158,10 +175,13 @@ class PlatformStore:
                 versions = conn.execute("SELECT version FROM schema_version").fetchall()
                 if not versions:
                     conn.execute("INSERT INTO schema_version(version) VALUES (?)", (SCHEMA_VERSION,))
-                elif len(versions) == 1 and versions[0]["version"] == 1:
-                    self._migrate_v1(conn)
-                elif len(versions) != 1 or versions[0]["version"] != SCHEMA_VERSION:
+                elif len(versions) != 1 or versions[0]["version"] not in (1, 2, SCHEMA_VERSION):
                     raise RuntimeError("Unsupported platform schema version; restore a compatible backup or migrate first")
+                else:
+                    if versions[0]["version"] == 1:
+                        self._migrate_v1(conn)
+                    if versions[0]["version"] in (1, 2):
+                        self._migrate_v2(conn)
                 conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS users_single_owner ON users(is_super_admin) WHERE is_super_admin=1")
                 # These also apply to upgraded tables, whose original CREATE
                 # statement cannot receive a new table-level constraint.
@@ -202,7 +222,13 @@ class PlatformStore:
         conn.execute("DELETE FROM sessions")
         for row in conn.execute("SELECT * FROM users").fetchall():
             self.append_audit("users", row["id"], owner_id, "account_approval_migrated", after=public_user(row), conn=conn)
-        conn.execute("UPDATE schema_version SET version=? WHERE version=1", (SCHEMA_VERSION,))
+        conn.execute("UPDATE schema_version SET version=2 WHERE version=1")
+
+    def _migrate_v2(self, conn: sqlite3.Connection) -> None:
+        """Add private registration profiles without changing existing credentials or access."""
+        for key in (*PROFILE_LIMITS, "phone"):
+            conn.execute(f"ALTER TABLE users ADD COLUMN {key} TEXT")
+        conn.execute("UPDATE schema_version SET version=? WHERE version=2", (SCHEMA_VERSION,))
 
     def _restrict_database_files(self) -> None:
         if self.data_dir:
@@ -345,7 +371,9 @@ class PlatformStore:
             return [{**dict(row), "before_data": json.loads(row["before_data"]) if row["before_data"] else None, "after_data": json.loads(row["after_data"]) if row["after_data"] else None} for row in rows]
 
     def create_user(self, username: str, password: str, role: str = "lab", actor_id: str | None = None, conn: sqlite3.Connection | None = None,
-                    *, approval_status: str = "approved", requested_role: str | None = None, is_super_admin: bool = False) -> dict[str, Any]:
+                    *, approval_status: str = "approved", requested_role: str | None = None, is_super_admin: bool = False,
+                    full_name: str | None = None, workplace: str | None = None,
+                    affiliation: str | None = None, phone: str | None = None) -> dict[str, Any]:
         if not isinstance(username, str) or not USERNAME.fullmatch(username.strip()):
             raise HTTPException(422, USERNAME_MESSAGE)
         if role not in ROLES:
@@ -357,6 +385,12 @@ class PlatformStore:
             raise HTTPException(422, "The owner must be an approved administrator")
         if not is_super_admin and is_reserved_owner_username(username):
             raise HTTPException(409, "ชื่อบัญชีนี้สงวนไว้สำหรับเจ้าของระบบ")
+        try:
+            profile = {key: normalize_profile_field(key, value) if value is not None else None
+                       for key, value in {"full_name": full_name, "workplace": workplace,
+                                          "affiliation": affiliation, "phone": phone}.items()}
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from None
         encoded = hash_password(password)
         user_id = uuid.uuid4().hex
         with self._use(conn, write=True) as db:
@@ -364,11 +398,13 @@ class PlatformStore:
                 raise HTTPException(409, "มีเจ้าของระบบแล้ว")
             try:
                 db.execute("""INSERT INTO users(id,username,password_hash,role,active,created_at,
-                    approval_status,requested_role,approved_by,approved_at,is_super_admin)
-                    VALUES (?,?,?,?,1,?,?,?,?,?,?)""",
+                    approval_status,requested_role,approved_by,approved_at,is_super_admin,
+                    full_name,workplace,affiliation,phone)
+                    VALUES (?,?,?,?,1,?,?,?,?,?,?,?,?,?,?)""",
                     (user_id, username.strip(), encoded, role, utc_now(), approval_status, requested_role,
                      (actor_id or (user_id if is_super_admin else None)) if approval_status == "approved" else None,
-                     utc_now() if approval_status == "approved" else None, int(is_super_admin)))
+                     utc_now() if approval_status == "approved" else None, int(is_super_admin),
+                     profile["full_name"], profile["workplace"], profile["affiliation"], profile["phone"]))
             except sqlite3.IntegrityError:
                 raise HTTPException(409, "ชื่อผู้ใช้นี้ถูกใช้แล้ว") from None
             row = db.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()

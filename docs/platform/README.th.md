@@ -143,7 +143,7 @@ SUS อยู่แท็บแยก ใช้คำตอบ10ข้อคร�
 
 ## Schema และการป้องกันข้อมูล
 
-เปิด private path แล้วสร้าง `helpminths.sqlite3` กับ `images/` permissions0700/0600 ใช้ SQLite WAL/foreign keys และ schema version2 รุ่นไม่รองรับจะปฏิเสธ ไม่เดา migration ทับข้อมูล รุ่นก่อนเก็บผลใน memory จึงไม่มี clinical DB เดิมต้องย้าย
+เปิด private path แล้วสร้าง `helpminths.sqlite3` กับ `images/` permissions0700/0600 ใช้ SQLite WAL/foreign keys และ schema version3 พร้อม migration จากรุ่น 1/2 โดยเก็บบัญชีและประวัติเดิม รุ่นไม่รองรับจะปฏิเสธ ไม่เดา migration ทับข้อมูล รุ่นก่อนเก็บผลใน memory จึงไม่มี clinical DB เดิมต้องย้าย
 
 | ตาราง | เนื้อหา |
 | --- | --- |

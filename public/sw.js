@@ -82,9 +82,13 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET' || url.origin !== self.location.origin || url.protocol !== self.location.protocol) return;
   // Medical images/results and every API request always bypass the static cache.
   if (url.pathname === '/api' || url.pathname.startsWith('/api/')) return;
+  const adminNavigation = url.pathname === '/admin' || url.pathname === '/admin/' || url.pathname === '/admin/index.html'
+    || /^\/admin\/[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*\/?$/.test(url.pathname);
   const pathname = request.mode === 'navigate' && (url.pathname === '/' || url.pathname === '/index.html')
     ? '/index.html'
-    : url.pathname;
+    : request.mode === 'navigate' && adminNavigation
+      ? '/admin/index.html'
+      : url.pathname;
   const asset = ASSETS_BY_PATH.get(pathname);
   if (!asset) return;
   event.respondWith((async () => {

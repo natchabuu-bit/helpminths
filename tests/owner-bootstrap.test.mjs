@@ -110,12 +110,12 @@ test('a host-bootstrapped owner signs in directly and approves real requests at 
 
     await submitOwner(page, initial.owner_login_username, 'Synthetic-wrong-owner-password-only!', 401)
     assert.equal((await session(owner)).user, null, 'A failed login cannot create an owner session')
-    assert.equal(new URL(page.url()).hash, '#admin')
+    assert.equal(new URL(page.url()).pathname, '/admin/')
     assert.deepEqual(inventoryReads, [], 'A failed login cannot read the owner inventory')
     const identity = await submitOwner(page, initial.owner_login_username, ownerPassword, 200)
     assert.equal(identity.user.is_super_admin, true)
     await page.getByRole('heading', { name: 'อนุมัติคำขอและจัดการสมาชิก', exact: true }).waitFor()
-    assert.equal(new URL(page.url()).hash, '#admin', 'Owner login must remain on the backoffice')
+    assert.equal(new URL(page.url()).pathname, '/admin/', 'Owner login must remain on the backoffice')
     const inventory = await owner.request.get(`${origin}/api/platform/users`)
     fixtureHeader(inventory)
     assert.equal(inventory.status(), 200)
@@ -132,7 +132,7 @@ test('a host-bootstrapped owner signs in directly and approves real requests at 
     const applicants = []
     for (const [index, accountType] of ['user', 'expert'].entries()) {
       const context = await newContext()
-      const response = await mutate(context, '/register', { username: `boot_${accountType === 'expert' ? 'e' : 'u'}_${Date.now().toString(36)}_${index}`, password: syntheticPassword, account_type: accountType })
+      const response = await mutate(context, '/register', { username: `boot_${accountType === 'expert' ? 'e' : 'u'}_${Date.now().toString(36)}_${index}`, password: syntheticPassword, account_type: accountType, full_name: 'ผู้ทดสอบ ระบบ', workplace: 'ห้องปฏิบัติการทดสอบ', affiliation: 'หน่วยงานทดสอบ', phone: '0812345678' })
       assert.equal(response.status(), 201, await response.text())
       const { user } = await response.json()
       assert.equal(user.approval_status, 'pending')
@@ -157,9 +157,9 @@ test('a host-bootstrapped owner signs in directly and approves real requests at 
       }
       await initiallyVisible(pending, `Pending filter at ${width}px`)
       await initiallyVisible(page.locator('.platform-user-entry').first().getByRole('button', { name: /^อนุมัติบัญชี / }), `First approval button at ${width}px`)
-      const management = await page.locator('.account-super-admin').boundingBox()
-      const help = await page.locator('.admin-approval-guide').boundingBox()
-      assert.ok(management && help && management.y < help.y, 'Real pending requests must appear before setup/help content')
+      assert.equal(await page.locator('.sidebar').count(), 0, 'Owner site must use its separate shell')
+      await page.locator('.admin-site-account').waitFor()
+      await page.locator('.account-super-admin').waitFor()
       await fits(page, `Owner pending requests at ${width}px`)
     }
     assert.ok(inventoryReads.some(url => new URL(url).searchParams.get('approval_status') === 'pending'))

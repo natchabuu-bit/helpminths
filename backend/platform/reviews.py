@@ -15,6 +15,7 @@ from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 from backend.images import decode_image, read_upload
 from .analyses import _date_bound, _limiter, _save_image, analysis_image_path, effective_counts, get_analysis, present_analysis
 from .auth import get_store, require_expert_verification, require_roles, require_user
+from .notifications import create_response_notification
 from .quality import image_work_slot
 from .store import PlatformStore, flatten_document, utc_now
 
@@ -187,11 +188,14 @@ def _get_referral(store: PlatformStore, referral_id: str, user: dict[str, Any], 
 def _append_referral_message(store: PlatformStore, referral: dict[str, Any], user: dict[str, Any],
                              action: str, comment: str, *, conn, **details: Any) -> dict[str, Any]:
     """Create a new conversation event; previous messages are never edited."""
-    return store.create_document("referral_message", {
+    message = store.create_document("referral_message", {
         "referral_id": referral["id"], "analysis_id": referral["data"]["analysis_id"],
         "action": action, "comment": comment, "author_id": user["id"],
-        "author_username": user["username"], "author_role": user["role"], **details,
+        "author_username": user["username"], "author_name": user.get("full_name") or user["username"],
+        "author_role": user["role"], **details,
     }, referral["owner_id"], user["id"], conn=conn)
+    create_response_notification(store, referral, message, user, conn=conn)
+    return message
 
 
 def _require_current_referral(referral: dict[str, Any], analysis: dict[str, Any], expected_revision: int) -> None:
@@ -330,6 +334,20 @@ def referral_messages(referral_id: str, request: Request, response: Response,
         rows = conn.execute("SELECT * FROM documents WHERE kind='referral_message' AND deleted_at IS NULL AND json_extract(data,'$.referral_id')=? ORDER BY created_at ASC,rowid ASC LIMIT ? OFFSET ?", (referral_id, limit, offset)).fetchall()
     items = [flatten_document({**dict(row), "data": json.loads(row["data"])}) for row in rows]
     return {"items": items, "total": total, "limit": limit, "offset": offset}
+
+
+@router.get("/referrals/{referral_id}/messages/{message_id}")
+def referral_message(referral_id: str, message_id: str, request: Request, response: Response,
+                     user: Annotated[dict[str, Any], Depends(require_user)]) -> dict[str, Any]:
+    store = get_store(request)
+    referral, analysis = _get_referral(store, referral_id, user)
+    message = store.get_document("referral_message", message_id)
+    if (message is None or message["owner_id"] != referral["owner_id"]
+            or message["data"].get("referral_id") != referral_id
+            or message["data"].get("analysis_id") != analysis["id"]):
+        raise HTTPException(404, "ไม่พบข้อความในรายการส่งต่อนี้")
+    response.headers["Cache-Control"] = "private, no-store"
+    return flatten_document(message)
 
 
 @router.post("/referrals/{referral_id}/attachments", status_code=201)

@@ -16,6 +16,7 @@ from backend.platform.store import PlatformStore
 
 PASSWORD = "SYNTHETIC-auto-storage-password-2026!"
 ORIGIN = {"Origin": "https://testserver"}
+PROFILE = {"full_name": "ชื่อ นามสกุลทดสอบ", "workplace": "สถานที่ทำงานทดสอบ", "affiliation": "หน่วยงานทดสอบ", "phone": "0812345678"}
 
 
 class SyntheticModel:
@@ -126,7 +127,7 @@ def test_reopening_the_same_private_files_retains_real_signup_login_and_owned_re
         assert status["administrator_setup_pending"] is True
         assert status["storage"]["mode"] == "temporary"
         assert status["storage"]["automatic"] is True and status["storage"]["durable"] is False
-        response = owner.post("/api/platform/register", json={"username": "synthetic_owner", "password": PASSWORD}, headers=ORIGIN)
+        response = owner.post("/api/platform/register", json={**PROFILE, "username": "synthetic_owner", "password": PASSWORD}, headers=ORIGIN)
         assert response.status_code == 201, response.text
         account = response.json()
         assert account["user"]["role"] == "lab"
@@ -170,7 +171,7 @@ def test_reopening_the_same_private_files_retains_real_signup_login_and_owned_re
         assert results["total"] == 1
         assert results["items"][0]["id"] == record["id"]
         assert owner.get(f'/api/platform/analyses/{record["id"]}/image').content == saved_pixels
-        signup = other.post("/api/platform/register", json={"username": "synthetic_other", "password": PASSWORD}, headers=ORIGIN)
+        signup = other.post("/api/platform/register", json={**PROFILE, "username": "synthetic_other", "password": PASSWORD}, headers=ORIGIN)
         assert signup.status_code == 201
         assert signup.json()["user"]["approval_status"] == "pending"
         assert other.get("/api/platform/analyses?scope=mine").status_code == 401

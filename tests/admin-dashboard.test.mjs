@@ -75,6 +75,7 @@ async function signIn(page, username, password = staffPassword) {
   return response.json()
 }
 async function nav(page, label) {
+  await page.locator('.topbar').waitFor({ state: 'visible' })
   const menu = page.getByRole('button', { name: 'เปิดเมนู', exact: true })
   if (await menu.isVisible() && await menu.getAttribute('aria-expanded') !== 'true') await menu.click()
   await page.locator('.sidebar .nav-item').filter({ hasText: label }).click()
@@ -96,7 +97,7 @@ function assertNoMemberControls(page) {
   ])
 }
 
-test('public backoffice signs the actual owner in directly and appears in owner navigation', { timeout: 90_000 }, async () => {
+test('standalone dark backoffice signs the actual owner in directly and links back to the public application', { timeout: 90_000 }, async () => {
   const { context, finish } = await fixtureContext()
   try {
     const page = await context.newPage(), reads = ownerRequests(page)
@@ -106,26 +107,28 @@ test('public backoffice signs the actual owner in directly and appears in owner 
     assert.deepEqual(reads, [], 'The logged-out gate must not request the owner inventory')
     await assertFitsPhone(page, 'Logged-out backoffice')
     await page.getByRole('heading', { name: 'เข้าสู่ระบบ Super Admin', exact: true }).waitFor()
-    assert.equal(new URL(page.url()).hash, '#admin', 'The owner form opens directly in the backoffice')
+    assert.equal(new URL(page.url()).pathname, '/admin/', 'The owner form opens directly in the backoffice')
     assert.equal(await page.getByLabel('รหัสผ่าน', { exact: true }).getAttribute('type'), 'password')
     assert.deepEqual(reads, [], 'The direct owner form must not read the owner inventory')
     const identity = await signIn(page, 'fixture-admin')
     assert.equal(identity.user.is_super_admin, true)
-    await page.waitForFunction(() => location.hash === '#admin')
+    await page.waitForFunction(() => location.pathname === '/admin/')
     await page.getByRole('heading', { name: 'หลังบ้าน Super Admin', exact: true }).waitFor()
     await page.getByRole('heading', { name: 'อนุมัติคำขอและจัดการสมาชิก', exact: true }).waitFor()
     await page.locator('.platform-loading').waitFor({ state: 'hidden' })
     assert.ok(reads.some(url => new URL(url).searchParams.get('approval_status') === 'pending'), 'The backoffice opens with real pending requests')
     assert.equal(await page.getByRole('group', { name: 'กรองสมาชิก', exact: true }).getByRole('button', { name: 'รออนุมัติ', exact: true }).getAttribute('aria-pressed'), 'true')
-    assert.equal(await page.locator('.sidebar .nav-item').filter({ hasText: 'หลังบ้าน' }).count(), 1)
+    assert.equal(await page.locator('.sidebar').count(), 0, 'Backoffice has an independent application shell')
+    await page.locator('.admin-site').waitFor()
+    const background = await page.locator('.admin-site').evaluate(node => getComputedStyle(node).backgroundColor)
+    const colors = background.match(/\d+/g)?.map(Number) ?? []
+    assert.ok(colors.length >= 3 && Math.max(...colors.slice(0, 3)) < 100, 'Backoffice uses a dark background')
     await assertFitsPhone(page, 'Owner backoffice')
     ownerStorageState = await context.storageState()
+    await page.getByRole('link', { name: 'กลับไป HelpMinths', exact: true }).click()
     await nav(page, 'ตั้งค่าและบัญชี')
     await page.getByRole('button', { name: 'เปิดหลังบ้าน', exact: true }).click()
-    await page.waitForFunction(() => location.hash === '#admin')
-    await nav(page, 'ตั้งค่าและบัญชี')
-    await nav(page, 'หลังบ้าน')
-    await page.waitForFunction(() => location.hash === '#admin')
+    await page.waitForFunction(() => location.pathname === '/admin/')
     await page.reload({ waitUntil: 'networkidle' })
     await page.getByRole('heading', { name: 'อนุมัติคำขอและจัดการสมาชิก', exact: true }).waitFor()
   } finally { await finish() }
@@ -140,7 +143,7 @@ test('owner approves and rejects real pending requests in the phone backoffice a
       const applicant = await fixtureContext()
       applicants.push(applicant)
       const username = `admin_${kind}_${decision}_${suffix}`
-      const response = await mutate(applicant.context, '/register', { username, password: applicantPassword, account_type: kind })
+      const response = await mutate(applicant.context, '/register', { username, password: applicantPassword, account_type: kind, full_name: 'ผู้ทดสอบ ระบบ', workplace: 'ห้องปฏิบัติการทดสอบ', affiliation: 'หน่วยงานทดสอบ', phone: '0812345678' })
       assert.equal(response.status(), 201, await response.text())
       const pending = await response.json()
       assert.equal(pending.user.approval_status, 'pending')

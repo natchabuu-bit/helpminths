@@ -17,7 +17,7 @@
 .account-form-intro { color: var(--muted); max-width: 860px; }
 .account-auth-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 0 18px; align-items: end; max-width: 980px; }
 .account-auth-form > button { margin-bottom: 17px; }
-.account-register-form { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.account-register-form { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 800px; }
 .account-register-form > button { grid-column: 1 / -1; justify-self: start; margin-bottom: 0; }
 .account-auth-form .account-setup-token { grid-column: 1 / -1; max-width: 680px; }
 .account-setup-token small { color: var(--muted); font-size: .875rem; font-weight: 400; }
@@ -51,15 +51,10 @@
 .account-create-member > summary { width: fit-content; cursor: pointer; font-weight: 600; color: #245d50; }
 .account-create-member form { margin-top: 20px; }
 .account-page .platform-actions > button { overflow-wrap: anywhere; }
-.account-readiness { display:flex;align-items:center;justify-content:space-between;gap:18px;margin:20px 0;padding:20px 22px;border:1px solid #bad8ce;border-radius:10px;background:#edf8f2; }
-.account-readiness-main { display:flex;align-items:flex-start;gap:13px;min-width:0; }
-.account-readiness-main>svg { flex-shrink:0;margin-top:4px;color:#1f7b55; }
-.account-page .account-readiness h2 { margin:0 0 5px;font-size:1.1875rem;color:#1a5a42; }
-.account-page .account-readiness p { margin:0;font-size:1rem;line-height:1.85;color:#3e6a59; }
-.account-readiness>.platform-button { flex-shrink:0;background:#fff; }
-.account-readiness.is-unavailable { background:#f4f9f7;border-color:#ccdeda; }
-.account-readiness.is-unavailable h2,.account-readiness.is-unavailable svg { color:#3d6a66; }
-@media(max-width:680px){.account-readiness{align-items:stretch;flex-direction:column;padding:18px}.account-readiness>.platform-button{width:100%}}
 @media(max-width:680px){.account-admin-access{align-items:stretch;flex-direction:column}.account-admin-access>.platform-button{width:100%}}
 @media (max-width: 1100px) { .account-auth-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } .account-auth-form > button { justify-self: start; } .account-register-form > button { grid-column: auto; } .account-member-metadata { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 680px) { .account-portal-tabs { grid-template-columns: minmax(0, 1fr); gap: 8px; } .account-portal-tabs > button { padding: 14px; } .account-page .account-tabs { width: 100%; } .account-tabs button { flex: 1; padding: 10px 12px; } .account-tabs.has-admin-setup > button:last-child { flex-basis: 100%; } .account-auth-form { grid-template-columns: minmax(0, 1fr); } .account-auth-form > button { width: 100%; margin: 3px 0 0; } .account-current-actions { align-items: stretch; flex-direction: column; } .account-current-actions .platform-actions { align-items: stretch; flex-direction: column; } .account-current-actions .platform-actions > button { width: 100%; } .account-member-filters > button { flex: 1 1 40%; } .account-member-metadata { gap: 12px; } .account-pending-registration { padding: 14px; } .account-super-admin .platform-actions { align-items: stretch; flex-direction: column; } }
+
+.account-privacy { margin: 26px 0; color: var(--muted); font-size: .9375rem; }
+.account-privacy summary { width: fit-content; cursor: pointer; }
+.account-privacy p { max-width: 760px; margin: 12px 0 0; }

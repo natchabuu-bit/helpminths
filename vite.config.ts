@@ -61,5 +61,13 @@ export default defineConfig({
     port: 4173,
     proxy: { '/api': { target: 'http://127.0.0.1:8000', changeOrigin: false } },
   },
-  build: { chunkSizeWarningLimit: 1200 },
+  build: {
+    chunkSizeWarningLimit: 1200,
+    rollupOptions: {
+      input: {
+        app: path.resolve(import.meta.dirname, 'index.html'),
+        admin: path.resolve(import.meta.dirname, 'admin/index.html'),
+      },
+    },
+  },
 })

@@ -77,8 +77,14 @@ async function approveUser(user, role = 'lab') {
     return approved.json()
   } finally { await admin.context.close() }
 }
+async function fillProfile(page) {
+  await page.getByLabel('ชื่อ-นามสกุล', { exact: true }).fill('ผู้ทดสอบ ระบบ')
+  await page.getByLabel('สถานที่ทำงาน', { exact: true }).fill('ห้องปฏิบัติการทดสอบ')
+  await page.getByLabel('สังกัด', { exact: true }).fill('หน่วยงานทดสอบ')
+  await page.getByLabel('เบอร์โทร 10 หลัก', { exact: true }).fill('0812345678')
+}
 async function registerApproved(context, username, password = testPassword) {
-  const registered = await post(context, '/register', { username, password, account_type: 'user' })
+  const registered = await post(context, '/register', { username, password, account_type: 'user', full_name: 'ผู้ทดสอบ ระบบ', workplace: 'ห้องปฏิบัติการทดสอบ', affiliation: 'หน่วยงานทดสอบ', phone: '0812345678' })
   assert.equal(registered.status(), 201, await registered.text())
   const body = await registered.json()
   assert.equal(body.user.approval_status, 'pending')
@@ -131,6 +137,7 @@ test('public expert approval, private request-more images and full confirmation 
     await ownerPage.getByLabel('ชื่อบัญชี', { exact: true }).fill(ownerName)
     await passwordVisibility(ownerPage, 'รหัสผ่าน', 'รหัสผ่าน', testPassword)
     await passwordVisibility(ownerPage, 'ยืนยันรหัสผ่าน', 'รหัสผ่านยืนยัน', testPassword)
+    await fillProfile(ownerPage)
     const ownerSignup = ownerPage.waitForResponse(response => response.url().endsWith('/api/platform/register') && response.request().method() === 'POST')
     await ownerPage.getByRole('button', { name: 'สมัครและส่งคำขออนุมัติ', exact: true }).click()
     const ownerRegistered = await ownerSignup
@@ -154,6 +161,7 @@ test('public expert approval, private request-more images and full confirmation 
     await expertPage.getByLabel('ชื่อบัญชี', { exact: true }).fill(expertName)
     await passwordVisibility(expertPage, 'รหัสผ่าน', 'รหัสผ่าน', testPassword)
     await passwordVisibility(expertPage, 'ยืนยันรหัสผ่าน', 'รหัสผ่านยืนยัน', testPassword)
+    await fillProfile(expertPage)
     const expertSignup = expertPage.waitForResponse(response => response.url().endsWith('/api/platform/register') && response.request().method() === 'POST')
     await expertPage.getByRole('button', { name: 'ส่งคำขอเป็นผู้เชี่ยวชาญ', exact: true }).click()
     const expertRegistered = await expertSignup
@@ -166,11 +174,11 @@ test('public expert approval, private request-more images and full confirmation 
     assert.equal((await post(expert.context, '/expert-signin', { username: expertName, password: testPassword })).status(), 403)
     await expertPage.getByRole('heading', { name: 'สมัครสมาชิกแล้ว รอการอนุมัติ', exact: true }).waitFor()
 
-    await adminPage.goto(`${baseURL}/#settings`, { waitUntil: 'networkidle' })
+    await adminPage.goto(`${baseURL}/admin/`, { waitUntil: 'networkidle' })
     await adminPage.getByLabel('ชื่อบัญชี', { exact: true }).fill('fixture-admin')
     await adminPage.getByLabel('รหัสผ่าน', { exact: true }).fill(staffPassword)
-    await adminPage.getByRole('button', { name: 'เข้าสู่ระบบ', exact: true }).click()
-    await adminPage.getByRole('heading', { name: 'Super admin', exact: true }).waitFor()
+    await adminPage.getByRole('button', { name: 'เข้าสู่หลังบ้าน', exact: true }).click()
+    await adminPage.getByRole('heading', { name: 'อนุมัติคำขอและจัดการสมาชิก', exact: true }).waitFor()
     approvalStorageState = await admin.context.storageState()
     for (const [username, role] of [[ownerName, 'lab'], [expertName, 'reviewer']]) {
       await adminPage.getByLabel(`สิทธิ์ที่จะอนุมัติของ ${username}`).selectOption(role)
@@ -270,6 +278,7 @@ test('public expert approval, private request-more images and full confirmation 
     await expertPage.getByRole('tab', { name: 'รอตรวจ', exact: true }).click()
     await expertPage.getByRole('button', { name: 'รีเฟรช', exact: true }).click()
     await expertPage.locator('.expert-referral-card').filter({ hasText: analysis.sample_code }).getByRole('button', { name: 'เปิดภาพและตรวจทาน', exact: true }).click()
+    await expertPage.locator('.referral-history > summary').click()
     await expertPage.locator('.referral-attachments img').waitFor()
     assert.equal((await expert.context.request.get(`${baseURL}${attachmentURL}`)).status(), 200, 'The approved expert can inspect the additional private image')
     await expertPage.getByRole('button', { name: 'ยืนยันกรอบที่ยังไม่ทบทวน', exact: true }).click()
@@ -326,7 +335,7 @@ test('account settings verify the current password, rotate sessions and preserve
     const page = await owner.context.newPage()
     await page.setViewportSize({ width: 375, height: 1000 })
     await page.goto(`${baseURL}/#settings`, { waitUntil: 'networkidle' })
-    await page.getByRole('heading', { name: 'เปลี่ยนชื่อบัญชีและรหัสผ่าน', exact: true }).waitFor()
+    await page.getByRole('heading', { name: 'ข้อมูลบัญชี', exact: true }).waitFor()
     const newUsername = `${username}_new`, newPassword = 'Changed-synthetic-account-2026!'
     await page.getByLabel('ชื่อบัญชีที่ต้องการใช้', { exact: true }).fill(newUsername)
     await passwordVisibility(page, 'รหัสผ่านปัจจุบัน', 'รหัสผ่านปัจจุบัน', 'incorrect-SYNTHETIC-password')
@@ -342,7 +351,7 @@ test('account settings verify the current password, rotate sessions and preserve
     const accepted = page.waitForResponse(response => response.url().endsWith('/api/platform/account') && response.request().method() === 'PATCH')
     await page.getByRole('button', { name: 'บันทึกบัญชีของฉัน', exact: true }).click()
     assert.equal((await accepted).status(), 200)
-    await page.getByText('บันทึกบัญชีแล้ว เซสชันเดิมถูกยกเลิก กรุณาใช้ชื่อบัญชีและรหัสผ่านล่าสุดในอุปกรณ์อื่น', { exact: true }).waitFor()
+    await page.getByText('บันทึกข้อมูลบัญชีแล้ว', { exact: true }).waitFor()
     assert.equal(await page.getByLabel('รหัสผ่านปัจจุบัน', { exact: true }).inputValue(), '')
     assert.equal(await page.getByLabel('รหัสผ่านใหม่ (เว้นว่างหากไม่เปลี่ยน)', { exact: true }).inputValue(), '')
     assert.equal(await page.getByLabel('ยืนยันรหัสผ่านใหม่', { exact: true }).inputValue(), '')
@@ -374,6 +383,8 @@ test('account forms accept one-character and long usernames with four-character 
     assert.equal(await usernameInput.getAttribute('maxlength'), null)
     await passwordInput.fill('abcd'); await confirmation.fill('abcd')
     assert.equal(await passwordInput.evaluate(input => input.checkValidity()), true, 'Letters-only passwords of length4 must be allowed')
+
+    await fillProfile(page)
 
     // Names are deliberately short; a successful account edit below releases
     // the name for reruns on the same isolated fixture. A conflict is not a
@@ -419,7 +430,7 @@ test('account forms accept one-character and long usernames with four-character 
     const changed = page.waitForResponse(response => response.url().endsWith('/api/platform/account') && response.request().method() === 'PATCH')
     await page.getByRole('button', { name: 'บันทึกบัญชีของฉัน', exact: true }).click()
     assert.equal((await changed).status(), 200)
-    await page.getByText('บันทึกบัญชีแล้ว เซสชันเดิมถูกยกเลิก กรุณาใช้ชื่อบัญชีและรหัสผ่านล่าสุดในอุปกรณ์อื่น', { exact: true }).waitFor()
+    await page.getByText('บันทึกข้อมูลบัญชีแล้ว', { exact: true }).waitFor()
     const updated = await session(owner.context)
     assert.equal(updated.user.id, original.user.id)
     assert.equal(updated.user.username, longUsername)
@@ -445,8 +456,8 @@ test('administrator account creation and password reset controls show and hide w
   try {
     const page = await admin.context.newPage()
     await page.setViewportSize({ width: 375, height: 1000 })
-    await page.goto(`${baseURL}/#settings`, { waitUntil: 'networkidle' })
-    await page.getByRole('heading', { name: 'Super admin', exact: true }).waitFor()
+    await page.goto(`${baseURL}/admin/`, { waitUntil: 'networkidle' })
+    await page.getByRole('heading', { name: 'อนุมัติคำขอและจัดการสมาชิก', exact: true }).waitFor()
     await page.locator('.account-create-member summary').click()
     await passwordVisibility(page, 'รหัสผ่านใหม่ (อย่างน้อย 4 ตัว)', 'รหัสผ่านใหม่', 'unused-admin-created-password')
     await page.getByRole('button', { name: 'สมาชิกทั้งหมด', exact: true }).click()
@@ -463,15 +474,15 @@ test('Super admin rejects a pending expert request and rejected credentials stay
   const applicant = await contextForTest(), admin = await ownerContextForTest()
   try {
     const username = `rejected_expert_${Date.now()}`
-    const registered = await post(applicant.context, '/register', { username, password: testPassword, account_type: 'expert' })
+    const registered = await post(applicant.context, '/register', { username, password: testPassword, account_type: 'expert', full_name: 'ผู้ทดสอบ ระบบ', workplace: 'ห้องปฏิบัติการทดสอบ', affiliation: 'หน่วยงานทดสอบ', phone: '0812345678' })
     assert.equal(registered.status(), 201)
     const pending = (await registered.json()).user
     assert.equal(pending.approval_status, 'pending')
     assert.equal((await session(applicant.context)).user, null)
     const page = await admin.context.newPage()
     await page.setViewportSize({ width: 375, height: 1000 })
-    await page.goto(`${baseURL}/#settings`, { waitUntil: 'networkidle' })
-    await page.getByRole('heading', { name: 'Super admin', exact: true }).waitFor()
+    await page.goto(`${baseURL}/admin/`, { waitUntil: 'networkidle' })
+    await page.getByRole('heading', { name: 'อนุมัติคำขอและจัดการสมาชิก', exact: true }).waitFor()
     assert.equal(await page.getByLabel(`สิทธิ์ที่จะอนุมัติของ ${username}`).inputValue(), 'reviewer')
     const rejected = page.waitForResponse(response => response.url().endsWith(`/users/${pending.id}`) && response.request().method() === 'PATCH')
     await page.getByRole('button', { name: `ไม่อนุมัติบัญชี ${username}`, exact: true }).click()

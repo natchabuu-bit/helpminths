@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from backend.platform.auth import COOKIE_NAME, router
-from backend.platform.store import PlatformStore, hash_password
+from backend.platform.store import SCHEMA_VERSION, PlatformStore, hash_password
 
 
 PASSWORD = "Synthetic-migration-only-2026!"
@@ -65,7 +65,7 @@ def test_v1_migration_preserves_operator_credentials_and_restricts_every_other_a
     assert analysis["data"]["note"] == "synthetic preserved record"
     assert store.list_audit("analysis", "legacy-analysis")[0]["after_data"] == {"note": "synthetic original audit"}
     with store.connection() as conn:
-        assert conn.execute("SELECT version FROM schema_version").fetchone()[0] == 2
+        assert conn.execute("SELECT version FROM schema_version").fetchone()[0] == SCHEMA_VERSION
         rows = {row["id"]: dict(row) for row in conn.execute("SELECT * FROM users")}
         assert conn.execute("SELECT count(*) FROM sessions").fetchone()[0] == 0
     owner = rows["established-operator"]

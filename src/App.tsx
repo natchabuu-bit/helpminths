@@ -1,12 +1,15 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { BarChart3, ArrowRight, ArrowUpRight, BookOpen, Box, Camera, CircleHelp, Clock3, FileText, Focus, History, LayoutDashboard, LoaderCircle, LogIn, Menu, MessageCircle, ScanLine, Search, ShieldCheck, Settings, Upload, UserRound, Users, X } from 'lucide-react'
+import { BarChart3, ArrowRight, ArrowUpRight, BookOpen, Box, Camera, CircleHelp, Clock3, FileText, Focus, History, LayoutDashboard, LoaderCircle, Menu, MessageCircle, ScanLine, Search, ShieldCheck, Settings, Upload, X } from 'lucide-react'
 import Scan from './components/Scan'
+import AccountMenu from './components/AccountMenu'
+import NotificationMenu from './components/NotificationMenu'
+import type { NotificationTarget } from './components/NotificationMenu'
 import type { AnalysisRecord } from './components/Scan'
 import EggIllustration from './components/EggIllustration'
 import Evaluation from './components/Evaluation'
 import FieldOverview from './components/FieldOverview'
 import { useFeedback } from './hooks/useFeedback'
-import { usePlatformSession, roleNames } from './platform/api'
+import { usePlatformSession } from './platform/api'
 import './styles/platform-shell.css'
 import { getSpeciesById, groupLabels, matchSpeciesLabel, species } from './data/species'
 
@@ -18,11 +21,10 @@ const ExpertVerification = lazy(() => import('./components/ExpertVerification'))
 const PlatformReports = lazy(() => import('./components/PlatformReports'))
 const ModelPerformance = lazy(() => import('./components/ModelPerformance'))
 const PlatformSettings = lazy(() => import('./components/PlatformSettings'))
-const AdminDashboard = lazy(() => import('./components/AdminDashboard'))
 const pendingPage = <div className="loading-state"><LoaderCircle className="spin"/><p>กำลังเตรียมหน้าที่เลือก…</p></div>
-type Page = 'home' | 'dashboard' | 'scan' | 'atlas' | 'history' | 'evaluation' | 'verification' | 'reports' | 'performance' | 'settings' | 'admin'
+type Page = 'home' | 'dashboard' | 'scan' | 'atlas' | 'history' | 'evaluation' | 'verification' | 'reports' | 'performance' | 'settings'
 const featuredSpecies = ['opisthorchis', 'mif', 'hymenolepis-nana'].map(getSpeciesById)
-const pageNames: Record<Page, string> = { home: 'ภาพรวม', dashboard: 'Dashboard', scan: 'ตรวจวิเคราะห์', atlas: 'Atlas 3D', history: 'ประวัติการตรวจ', evaluation: 'แบบประเมิน SUS', verification: 'ทบทวนโดยผู้เชี่ยวชาญ', reports: 'รายงาน', performance: 'ประเมินและข้อเสนอแนะ', settings: 'ตั้งค่าและบัญชี', admin: 'หลังบ้าน Super Admin' }
+const pageNames: Record<Page, string> = { home: 'ภาพรวม', dashboard: 'Dashboard', scan: 'ตรวจวิเคราะห์', atlas: 'Atlas 3D', history: 'ประวัติการตรวจ', evaluation: 'แบบประเมิน SUS', verification: 'ทบทวนโดยผู้เชี่ยวชาญ', reports: 'รายงาน', performance: 'ประเมินและข้อเสนอแนะ', settings: 'ตั้งค่าและบัญชี' }
 
 function Brand({ small = false }: { small?: boolean }) {
   return <div className={`brand ${small ? 'brand-small' : ''}`}><div className="brand-symbol"><svg viewBox="0 0 40 40" aria-hidden="true"><ellipse cx="20" cy="20" rx="9" ry="13" transform="rotate(32 20 20)"/><ellipse cx="20" cy="20" rx="3.4" ry="6" transform="rotate(32 20 20)"/><circle cx="31" cy="8" r="2.5"/></svg></div><span>Help<span className="brand-light">Minths</span><small>PARASITOLOGY AI PLATFORM</small></span></div>
@@ -36,8 +38,8 @@ export default function App() {
   const feedback = useFeedback()
   const platform = usePlatformSession()
   const [platformAnalysisId, setPlatformAnalysisId] = useState<string | undefined>()
+  const [notificationTarget, setNotificationTarget] = useState<NotificationTarget | undefined>()
   const [accountPortal, setAccountPortal] = useState<'user' | 'expert'>('user')
-  const [loginDestination, setLoginDestination] = useState<'settings' | 'admin'>('settings')
   const [menuOpen, setMenuOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [records, setRecords] = useState<AnalysisRecord[]>([])
@@ -59,7 +61,7 @@ export default function App() {
     if (platform.loading || lastIdentity.current === authIdentity) return
     lastIdentity.current = authIdentity
     setRecords(previous => previous.filter(record => record.mode === 'demo'))
-    setSelectedRecord(null); setPlatformAnalysisId(undefined); setDemo(false); setScanKey(previous => previous + 1)
+    setSelectedRecord(null); setPlatformAnalysisId(undefined); setNotificationTarget(undefined); setDemo(false); setScanKey(previous => previous + 1)
   }, [authIdentity, platform.loading])
 
   useEffect(() => {
@@ -120,12 +122,15 @@ export default function App() {
     mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
-  const openSettings = (portal: 'user' | 'expert' = 'user', destination: 'settings' | 'admin' = 'settings') => { setAccountPortal(portal); setLoginDestination(destination); navigate('settings') }
+  const openSettings = (portal: 'user' | 'expert' = 'user') => { setAccountPortal(portal); navigate('settings') }
+  const openAdmin = () => { window.location.assign('/admin/') }
+  const openAnalysis = (id: string) => { setNotificationTarget(undefined); setPlatformAnalysisId(id); navigate('verification') }
+  const openNotification = (target: NotificationTarget) => { setNotificationTarget(target); setPlatformAnalysisId(target.analysis_id); navigate('verification') }
   useEffect(() => {
-    if (page === 'settings' && loginDestination === 'admin' && !platform.loading && platform.session.user?.is_super_admin) {
-      setLoginDestination('settings'); navigate('admin')
-    }
-  }, [page, loginDestination, platform.loading, platform.session.user?.id, platform.session.user?.is_super_admin])
+    const legacyAdmin = () => { if (window.location.hash === '#admin') window.location.replace('/admin/') }
+    window.addEventListener('hashchange', legacyAdmin)
+    return () => window.removeEventListener('hashchange', legacyAdmin)
+  }, [])
   const openScan = (showDemo = false, record: AnalysisRecord | null = null) => {
     setDemo(showDemo); setSelectedRecord(record); setScanKey(key => key + 1); navigate('scan')
   }
@@ -138,23 +143,21 @@ export default function App() {
     setRecords(old => [record, ...old.filter(item => item.id !== record.id)])
   }
 
-  const dashboard = <Suspense fallback={pendingPage}><PlatformDashboard key={authIdentity} session={platform.session} onNavigate={navigate} onOpenAnalysis={id => { setPlatformAnalysisId(id); navigate('verification') }}/></Suspense>
+  const dashboard = <Suspense fallback={pendingPage}><PlatformDashboard key={authIdentity} session={platform.session} onNavigate={navigate} onOpenAnalysis={openAnalysis}/></Suspense>
 
   return <div className="app-shell platform-shell instrument-shell">
     <a className="skip-navigation" href="#main-content" onClick={event => { event.preventDefault(); mainRef.current?.focus(); mainRef.current?.scrollIntoView({ block: 'start' }) }}>ข้ามไปเนื้อหาหลัก</a>
     {menuOpen && <button className="sidebar-backdrop" aria-label="ปิดเมนู" onClick={() => setMenuOpen(false)} />}
     <aside className={`sidebar ${menuOpen ? 'is-open' : ''}`}>
       <button className="brand-button" onClick={() => navigate('home')} aria-label="HelpMinths หน้าหลัก"><Brand /></button>
-      <div className="navigation-caption" aria-hidden="true"><span>EXPLORE THE FIELD</span><span>{platform.session.user?.is_super_admin ? '01—10' : '01—09'}</span></div>
       <nav id="primary-navigation" aria-label="เมนูหลัก">
         {([{ id: 'home', icon: LayoutDashboard, label: 'ภาพรวม' }, { id: 'dashboard', icon: BarChart3, label: 'Dashboard' }, { id: 'scan', icon: ScanLine, label: 'ตรวจวิเคราะห์', badge: 'AI' }, { id: 'atlas', icon: Box, label: 'Atlas 3D' }, { id: 'history', icon: History, label: 'ประวัติการตรวจ' }, { id: 'verification', icon: ShieldCheck, label: 'ทบทวนโดยผู้เชี่ยวชาญ' }, { id: 'reports', icon: FileText, label: 'รายงาน' }, { id: 'performance', icon: MessageCircle, label: 'ประเมินและข้อเสนอแนะ' }, { id: 'settings', icon: Settings, label: 'ตั้งค่าและบัญชี' }] as const).map(item => <button key={item.id} className={`nav-item ${page === item.id || (page === 'evaluation' && item.id === 'performance') ? 'active' : ''}`} onClick={() => item.id === 'scan' ? openScan() : navigate(item.id)} aria-current={page === item.id || (page === 'evaluation' && item.id === 'performance') ? 'page' : undefined}><item.icon size={19} /><span>{item.label}</span>{'badge' in item && <span className="nav-badge">{item.badge}</span>}{item.id === 'history' && visibleRecords.length > 0 && <span className="nav-count">{visibleRecords.length}</span>}</button>)}
-        {platform.session.user?.is_super_admin && <button className={`nav-item ${page === 'admin' ? 'active' : ''}`} onClick={() => navigate('admin')} aria-current={page === 'admin' ? 'page' : undefined}><Users size={19}/><span>หลังบ้าน</span></button>}
       </nav>
-      <div className="sidebar-bottom"><button className="help-link" onClick={() => setHelpOpen(true)}><CircleHelp size={18}/><span>คู่มือการใช้งาน</span><ArrowUpRight size={14}/></button><div className="workspace-profile"><div className="profile-avatar">HM</div><div><strong>{platform.session.user?.username ?? 'ผู้เยี่ยมชม'}</strong><span>{platform.session.user ? (platform.session.user.is_super_admin ? 'Super Admin' : roleNames[platform.session.user.role]) : 'Atlas และการเรียนรู้เปิดให้ใช้งาน'}</span></div><span className="profile-dot"/></div></div>
+      <div className="sidebar-bottom"><button className="help-link" onClick={() => setHelpOpen(true)}><CircleHelp size={18}/><span>คู่มือการใช้งาน</span><ArrowUpRight size={14}/></button></div>
     </aside>
 
     <div className="main-layout">
-      <header className="topbar"><div className="breadcrumb"><button className="mobile-menu icon-button" onClick={() => setMenuOpen(true)} aria-label="เปิดเมนู" aria-expanded={menuOpen} aria-controls="primary-navigation"><Menu size={21}/></button><div><span className="shell-caption">HELPMINTHS / FIELD LAB</span><strong>{pageNames[page]}</strong></div></div><div className="topbar-right"><span className="education-badge"><ShieldCheck size={14}/> เพื่อการศึกษาและวิจัย</span><button className="topbar-help icon-button" onClick={() => setHelpOpen(true)} aria-label="คู่มือการใช้งาน"><CircleHelp size={19}/></button><button className="topbar-account" onClick={() => openSettings()} aria-label={platform.session.user ? 'บัญชีและการตั้งค่า' : 'เข้าสู่ระบบหรือสมัครสมาชิก'}>{platform.session.user ? <UserRound size={18}/> : <LogIn size={18}/>}<span>{platform.session.user ? 'บัญชีของฉัน' : 'เข้าสู่ระบบ'}</span></button></div></header>
+      <header className="topbar"><div className="breadcrumb"><button className="mobile-menu icon-button" onClick={() => setMenuOpen(true)} aria-label="เปิดเมนู" aria-expanded={menuOpen} aria-controls="primary-navigation"><Menu size={21}/></button><div><strong>{pageNames[page]}</strong></div></div><div className="topbar-right"><button className="topbar-help icon-button" onClick={() => setHelpOpen(true)} aria-label="คู่มือการใช้งาน"><CircleHelp size={19}/></button><NotificationMenu key={authIdentity} session={platform.session} onOpenCase={openNotification}/><AccountMenu session={platform.session} onSettings={() => openSettings()} onLogout={platform.logout}/></div></header>
       <main ref={mainRef} id="main-content" tabIndex={-1} className={`main-content page-${page}`}>
         {page === 'home' && <>
           <FieldOverview modelReady={modelReady} backendReady={backendReady} backendChecked={backendChecked} onScan={() => openScan()} onDemo={() => openScan(true)} onAtlas={openAtlas}/>
@@ -169,15 +172,14 @@ export default function App() {
           <section className="feedback-invite"><div><span className="section-kicker"><MessageCircle size={16}/> เสียงของคุณช่วยเราได้</span><h2>ช่วยให้ HelpMinths ดีขึ้นไปด้วยกัน</h2><p>ตอบแบบประเมินสั้น ๆ หรือบอกสิ่งที่อยากให้เราปรับปรุง</p></div><button className="button-primary" onClick={() => navigate('evaluation')}>ประเมินและเสนอแนะ <ArrowRight size={17}/></button></section>
         </>}
         {page === 'dashboard' && <Suspense fallback={pendingPage}><HealthSurveyDashboard key={authIdentity} session={platform.session}/></Suspense>}
-        {page === 'scan' && <Scan key={`${scanKey}:${authIdentity}`} startDemo={demo} initialRecord={safeSelectedRecord} onResult={saveRecord} openAtlas={openAtlas} platformSession={platform.session} onOpenSettings={() => openSettings()} onOpenHistory={() => navigate('history')} onOpenReview={id => { setPlatformAnalysisId(id); navigate('verification') }}/>}
+        {page === 'scan' && <Scan key={`${scanKey}:${authIdentity}`} startDemo={demo} initialRecord={safeSelectedRecord} onResult={saveRecord} openAtlas={openAtlas} platformSession={platform.session} onOpenSettings={() => openSettings()} onOpenHistory={() => navigate('history')} onOpenReview={openAnalysis}/>}
         {page === 'atlas' && <Suspense fallback={<div className="loading-state"><LoaderCircle className="spin"/><p>กำลังเตรียม Atlas 3D…</p></div>}><Atlas initialSpecies={initialSpecies}/></Suspense>}
-        {page === 'verification' && <Suspense fallback={pendingPage}><ExpertVerification key={authIdentity} session={platform.session} analysisId={platformAnalysisId} onChooseAnalysis={setPlatformAnalysisId} onOpenSettings={() => openSettings('expert')} onSessionChanged={platform.refresh}/></Suspense>}
+        {page === 'verification' && <Suspense fallback={pendingPage}><ExpertVerification key={authIdentity} session={platform.session} analysisId={platformAnalysisId} referralId={notificationTarget?.referral_id} messageId={notificationTarget?.message_id} onChooseAnalysis={(id, referralId) => { setPlatformAnalysisId(id); setNotificationTarget(referralId ? { analysis_id: id, referral_id: referralId, message_id: '' } : undefined) }} onOpenSettings={() => openSettings('expert')} onSessionChanged={platform.refresh}/></Suspense>}
         {page === 'reports' && <Suspense fallback={pendingPage}><PlatformReports key={authIdentity} session={platform.session} analysisId={platformAnalysisId}/></Suspense>}
         {page === 'performance' && <Suspense fallback={pendingPage}><ModelPerformance key={authIdentity} session={platform.session} analysisId={platformAnalysisId}><Evaluation feedback={feedback}/></ModelPerformance></Suspense>}
-        {page === 'settings' && <Suspense fallback={pendingPage}><PlatformSettings key={authIdentity} session={platform.session} onSessionChanged={platform.refresh} initialPortal={accountPortal} onExpertSignedIn={() => navigate('verification')} onOpenAdmin={() => navigate('admin')}/></Suspense>}
-        {page === 'admin' && <Suspense fallback={pendingPage}><AdminDashboard key={authIdentity} session={platform.session} loading={platform.loading} onSessionChanged={platform.refresh} onOpenSettings={() => openSettings('user', 'admin')}/></Suspense>}
+        {page === 'settings' && <Suspense fallback={pendingPage}><PlatformSettings key={authIdentity} session={platform.session} onSessionChanged={platform.refresh} initialPortal={accountPortal} onExpertSignedIn={() => navigate('verification')} onOpenAdmin={openAdmin}/></Suspense>}
         {page === 'evaluation' && <Evaluation feedback={feedback}/>}
-        {page === 'history' && <><Suspense fallback={pendingPage}><AnalysisHistory key={authIdentity} session={platform.session} onOpenAnalysis={id => { setPlatformAnalysisId(id); navigate('verification') }} onOpenReferrals={() => { setPlatformAnalysisId(undefined); navigate('verification') }}/></Suspense><section className="session-history"><div className="page-heading"><div><div className="section-kicker">YOUR DISCOVERIES</div><h2>ผลในเซสชันนี้</h2><p>ผลวิเคราะห์ในเซสชันนี้ ภาพจะหายไปเมื่อรีเฟรชหรือปิดหน้าเว็บ</p></div><button className="button-primary" onClick={() => openScan()}><ScanLine size={17}/> ตรวจภาพใหม่</button></div>{visibleRecords.length === 0 ? <div className="empty-state"><div className="empty-icon"><History size={32}/></div><h2>ยังไม่มีผลในเซสชันนี้</h2><p>เริ่มตรวจภาพแรก หรือทดลองดูผลสาธิตเพื่อเรียนรู้วิธีใช้งาน</p><button className="button-primary" onClick={() => openScan()}>เริ่มตรวจวิเคราะห์ <ArrowRight size={17}/></button></div> : <div className="history-grid">{visibleRecords.map(record => <button className="history-card" key={record.id} onClick={() => openScan(false, record)}><img src={record.imageUrl} alt={`ภาพ ${record.filename}`}/><div><span className={`record-mode ${record.mode}`}>{record.mode === 'demo' ? 'ข้อมูลสาธิต' : 'ผลจากโมเดล'}</span><h3>{record.filename}</h3><p><Clock3 size={13}/>{new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }).format(new Date(record.createdAt))}</p><div className="history-card-bottom"><strong>{record.detections.length} ตำแหน่ง</strong><span>เปิดผลตรวจ <ArrowUpRight size={15}/></span></div></div></button>)}</div>}</section></>}
+        {page === 'history' && <><Suspense fallback={pendingPage}><AnalysisHistory key={authIdentity} session={platform.session} onOpenAnalysis={openAnalysis} onOpenReferrals={() => { setPlatformAnalysisId(undefined); setNotificationTarget(undefined); navigate('verification') }}/></Suspense><section className="session-history"><div className="page-heading"><div><div className="section-kicker">YOUR DISCOVERIES</div><h2>ผลในเซสชันนี้</h2><p>ผลวิเคราะห์ในเซสชันนี้ ภาพจะหายไปเมื่อรีเฟรชหรือปิดหน้าเว็บ</p></div><button className="button-primary" onClick={() => openScan()}><ScanLine size={17}/> ตรวจภาพใหม่</button></div>{visibleRecords.length === 0 ? <div className="empty-state"><div className="empty-icon"><History size={32}/></div><h2>ยังไม่มีผลในเซสชันนี้</h2><p>เริ่มตรวจภาพแรก หรือทดลองดูผลสาธิตเพื่อเรียนรู้วิธีใช้งาน</p><button className="button-primary" onClick={() => openScan()}>เริ่มตรวจวิเคราะห์ <ArrowRight size={17}/></button></div> : <div className="history-grid">{visibleRecords.map(record => <button className="history-card" key={record.id} onClick={() => openScan(false, record)}><img src={record.imageUrl} alt={`ภาพ ${record.filename}`}/><div><span className={`record-mode ${record.mode}`}>{record.mode === 'demo' ? 'ข้อมูลสาธิต' : 'ผลจากโมเดล'}</span><h3>{record.filename}</h3><p><Clock3 size={13}/>{new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }).format(new Date(record.createdAt))}</p><div className="history-card-bottom"><strong>{record.detections.length} ตำแหน่ง</strong><span>เปิดผลตรวจ <ArrowUpRight size={15}/></span></div></div></button>)}</div>}</section></>}
         <footer className="app-footer"><span><b>HELPMINTHS</b><span className="footer-dot">/</span> PARASITOLOGY FIELD LAB</span><span>สร้างเพื่อการศึกษาและวิจัย <span className="footer-version">v0.1</span></span></footer>
       </main>
     </div>

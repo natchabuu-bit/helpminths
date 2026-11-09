@@ -80,6 +80,31 @@ function nav(page, label) {
   return page.locator('.sidebar .nav-item').filter({ hasText: label })
 }
 
+test('offline navigation keeps the dark admin entry separate from the public app and never caches account APIs', { timeout: 60_000 }, async () => {
+  const context = await browser.newContext({ viewport: { width: 375, height: 1000 }, serviceWorkers: 'allow', reducedMotion: 'reduce' })
+  const page = await context.newPage(), errors = []
+  page.on('pageerror', error => errors.push(error.message))
+  try {
+    await page.goto(baseURL, { waitUntil: 'networkidle' })
+    assert.equal((await waitForReady(page)).ready, true)
+    const paths = await cachedPaths(page)
+    assert.ok(paths.includes('/admin/index.html'), 'The separate static admin entry must be available')
+    assert.ok(!paths.some(path => /^\/api(?:\/|$)/.test(path)), 'Private account and clinical APIs must never enter static caches')
+    await context.setOffline(true)
+    await page.goto(new URL('/admin/', baseURL).href, { waitUntil: 'networkidle' })
+    await page.getByRole('heading', { name: 'หลังบ้าน Super Admin', exact: true }).waitFor()
+    assert.equal(await page.locator('.admin-site').count(), 1)
+    assert.equal(await page.locator('.app-shell,.sidebar').count(), 0)
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme), 'dark')
+    assert.equal(await page.locator('.platform-user-entry').count(), 0, 'No private member inventory is available offline')
+    await page.goto(new URL('/index.html#settings', baseURL).href, { waitUntil: 'networkidle' })
+    await page.getByRole('heading', { name: 'ตั้งค่าและบัญชีผู้ใช้', exact: true }).waitFor()
+    assert.equal(await page.locator('.admin-site').count(), 0)
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme), 'light')
+    assert.deepEqual(errors, [])
+  } finally { await context.close() }
+})
+
 // This scenario opens every reference and developmental stage in software WebGL.
 // Keep the individual Playwright timeouts; allow the complete tour to finish on CPU renderers.
 test('a first home visit prepares unvisited Atlas, fonts, local images and explicitly labelled demo for offline use', { timeout: 180_000 }, async () => {

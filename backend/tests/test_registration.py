@@ -16,6 +16,7 @@ from backend.platform.store import PlatformStore
 PASSWORD = "Synthetic-public-account-2026!"
 NEW_PASSWORD = "Synthetic-changed-password-2026!"
 ORIGIN = {"Origin": "https://testserver"}
+PROFILE = {"full_name": "ชื่อ นามสกุลทดสอบ", "workplace": "สถานที่ทำงานทดสอบ", "affiliation": "หน่วยงานทดสอบ", "phone": "0812345678"}
 # Deliberately recognizable test fixture, never a production setup credential.
 TEST_SETUP_TOKEN = "SYNTHETIC-SETUP-TOKEN-ONLY_not-a-production-secret_2026"
 
@@ -51,7 +52,7 @@ def sign_in(client, username):
 
 
 def register(client, username="normal_user", account_type="user"):
-    response = client.post("/api/platform/register", json={"username": username, "password": PASSWORD, "account_type": account_type}, headers=ORIGIN)
+    response = client.post("/api/platform/register", json={**PROFILE, "username": username, "password": PASSWORD, "account_type": account_type}, headers=ORIGIN)
     assert response.status_code == 201, response.text
     return response
 
@@ -74,7 +75,7 @@ def test_public_registration_chooses_credentials_but_never_privileged_roles(prep
     app, store = prepared
     with client_for(app) as client:
         for role in ["admin", "reviewer"]:
-            rejected = client.post("/api/platform/register", json={"username": "forged_user", "password": PASSWORD, "role": role}, headers=ORIGIN)
+            rejected = client.post("/api/platform/register", json={**PROFILE, "username": "forged_user", "password": PASSWORD, "role": role}, headers=ORIGIN)
             assert rejected.status_code == 422
         response = register(client)
         body = response.json()
@@ -109,11 +110,11 @@ def test_registration_checks_origin_duplicates_and_current_identity(prepared):
     app, store = prepared
     store.create_user("existing_name", PASSWORD)
     with client_for(app) as client:
-        assert client.post("/api/platform/register", json={"username": "new_user", "password": PASSWORD}, headers={"Origin": "https://elsewhere.example"}).status_code == 403
-        assert client.post("/api/platform/register", json={"username": "EXISTING_NAME", "password": PASSWORD}, headers=ORIGIN).status_code == 409
+        assert client.post("/api/platform/register", json={**PROFILE, "username": "new_user", "password": PASSWORD}, headers={"Origin": "https://elsewhere.example"}).status_code == 403
+        assert client.post("/api/platform/register", json={**PROFILE, "username": "EXISTING_NAME", "password": PASSWORD}, headers=ORIGIN).status_code == 409
         register(client, "another_user")
         sign_in(client, "existing_name")
-        assert client.post("/api/platform/register", json={"username": "third_user", "password": PASSWORD}, headers=ORIGIN).status_code == 409
+        assert client.post("/api/platform/register", json={**PROFILE, "username": "third_user", "password": PASSWORD}, headers=ORIGIN).status_code == 409
         assert client.get("/api/platform/session").json()["user"]["username"] == "existing_name"
 
 
@@ -122,8 +123,8 @@ def test_public_registration_uses_real_bounded_rate_limit(prepared):
     store.create_user("taken_name", PASSWORD)
     with client_for(app) as client:
         for _ in range(5):
-            assert client.post("/api/platform/register", json={"username": "taken_name", "password": PASSWORD}).status_code == 409
-        limited = client.post("/api/platform/register", json={"username": "taken_name", "password": PASSWORD})
+            assert client.post("/api/platform/register", json={**PROFILE, "username": "taken_name", "password": PASSWORD}).status_code == 409
+        limited = client.post("/api/platform/register", json={**PROFILE, "username": "taken_name", "password": PASSWORD})
         assert limited.status_code == 429
         assert limited.headers["retry-after"] == "60"
 
@@ -340,7 +341,7 @@ def test_normal_signup_before_admin_setup_cannot_claim_privileges(prepared, monk
         normal = register(ordinary).json()
         assert normal["user"]["role"] == "lab" and normal["admin_setup_available"] is True
         assert ordinary.get("/api/platform/users").status_code == 401
-        forged = ordinary.post("/api/platform/register", json={"username": "forged_admin", "password": PASSWORD, "setup_token": TEST_SETUP_TOKEN, "role": "admin"}, headers=ORIGIN)
+        forged = ordinary.post("/api/platform/register", json={**PROFILE, "username": "forged_admin", "password": PASSWORD, "setup_token": TEST_SETUP_TOKEN, "role": "admin"}, headers=ORIGIN)
         assert forged.status_code == 422
         assert ordinary.post("/api/platform/admin-setup", json={"setup_token": "not-the-host-secret", "username": "forged_admin", "password": PASSWORD}, headers=ORIGIN).status_code == 403
         setup = owner.post("/api/platform/admin-setup", json={"setup_token": TEST_SETUP_TOKEN, "username": "Super Admin", "password": PASSWORD}, headers=ORIGIN)
@@ -475,7 +476,7 @@ def test_current_sessions_check_approval_on_each_request_even_before_session_cle
 def test_public_registration_cannot_forge_owner_or_approval_fields(prepared, forged):
     app, store = prepared
     with client_for(app) as client:
-        denied = client.post("/api/platform/register", json={"username": "forged_account", "password": PASSWORD, **forged}, headers=ORIGIN)
+        denied = client.post("/api/platform/register", json={**PROFILE, "username": "forged_account", "password": PASSWORD, **forged}, headers=ORIGIN)
         assert denied.status_code == 422
         assert client.cookies.get(COOKIE_NAME) is None
         with store.connection() as conn:
@@ -505,7 +506,7 @@ def test_dedicated_expert_signin_creates_its_own_session_and_bounded_gate(prepar
 def test_public_registration_reserves_the_host_owned_super_admin_name(prepared, username):
     app, store = prepared
     with client_for(app) as client:
-        response = client.post("/api/platform/register", json={"username": username, "password": PASSWORD}, headers=ORIGIN)
+        response = client.post("/api/platform/register", json={**PROFILE, "username": username, "password": PASSWORD}, headers=ORIGIN)
         assert response.status_code == 409, response.text
         assert client.get("/api/platform/session").json()["user"] is None
         with store.connection() as conn:

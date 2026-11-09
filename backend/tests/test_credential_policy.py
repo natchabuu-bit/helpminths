@@ -12,6 +12,7 @@ from backend.platform.auth import router
 from backend.platform.store import PlatformStore, hash_password
 
 ORIGIN = {"Origin": "https://testserver"}
+PROFILE = {"full_name": "ชื่อ นามสกุลทดสอบ", "workplace": "สถานที่ทำงานทดสอบ", "affiliation": "หน่วยงานทดสอบ", "phone": "0812345678"}
 # Test fixture only; this value is never a configured production credential.
 SETUP_TOKEN = "SYNTHETIC-POLICY-SETUP-ONLY_not-a-production-token"
 LONG_USERNAME = "Synthetic_" + "a" * 140 + "-9"
@@ -37,7 +38,7 @@ def login(client, username, password):
 def test_registration_login_and_self_edit_accept_unbounded_name_count_and_four_char_passwords(prepared, username, password):
     app, store = prepared
     with TestClient(app, base_url="https://testserver") as client:
-        response = client.post("/api/platform/register", json={"username": username, "password": password}, headers=ORIGIN)
+        response = client.post("/api/platform/register", json={**PROFILE, "username": username, "password": password}, headers=ORIGIN)
         assert response.status_code == 201, response.text
         created = response.json()
         assert created["user"]["username"] == username and created["user"]["role"] == "lab"
@@ -107,7 +108,7 @@ def test_passwords_shorter_than_four_are_rejected_for_creation_update_and_reset(
     with TestClient(app, base_url="https://testserver") as admin, TestClient(app, base_url="https://testserver") as anonymous:
         invalid_setup = anonymous.post("/api/platform/admin-setup", json={"setup_token": SETUP_TOKEN, "username": "a", "password": short_password}, headers=ORIGIN)
         assert invalid_setup.status_code == 422
-        invalid_signup = anonymous.post("/api/platform/register", json={"username": "b", "password": short_password}, headers=ORIGIN)
+        invalid_signup = anonymous.post("/api/platform/register", json={**PROFILE, "username": "b", "password": short_password}, headers=ORIGIN)
         assert invalid_signup.status_code == 422
         account = store.create_user("a", "abcd", "admin", is_super_admin=True)
         headers = login(admin, "a", "abcd")
@@ -120,10 +121,10 @@ def test_passwords_shorter_than_four_are_rejected_for_creation_update_and_reset(
 def test_short_names_keep_case_insensitive_uniqueness_and_registration_role_limits(prepared):
     app, _store = prepared
     with TestClient(app, base_url="https://testserver") as first, TestClient(app, base_url="https://testserver") as second:
-        response = first.post("/api/platform/register", json={"username": "a", "password": "abcd"}, headers=ORIGIN)
+        response = first.post("/api/platform/register", json={**PROFILE, "username": "a", "password": "abcd"}, headers=ORIGIN)
         assert response.status_code == 201
-        assert second.post("/api/platform/register", json={"username": "A", "password": "1234"}, headers=ORIGIN).status_code == 409
-        assert second.post("/api/platform/register", json={"username": "b", "password": "1234", "role": "reviewer"}, headers=ORIGIN).status_code == 422
+        assert second.post("/api/platform/register", json={**PROFILE, "username": "A", "password": "1234"}, headers=ORIGIN).status_code == 409
+        assert second.post("/api/platform/register", json={**PROFILE, "username": "b", "password": "1234", "role": "reviewer"}, headers=ORIGIN).status_code == 422
         assert second.post("/api/platform/login", json={"username": "a", "password": "1234"}, headers=ORIGIN).status_code == 401
         assert first.get("/api/platform/users").status_code == 401
 

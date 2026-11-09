@@ -29,7 +29,7 @@ async function passwordVisibility(page, label, toggleLabel, value) {
   assert.equal(await page.evaluate(() => window.passwordToggleSubmissions), 0, 'Visibility controls cannot submit the form')
 }
 
-test('Settings rechecks a stale unavailable session and enables working account forms with clean account guidance', { timeout: 60_000 }, async () => {
+test('entering Settings rechecks a stale session and exposes clean account forms without a readiness banner', { timeout: 60_000 }, async () => {
   const page = await browser.newPage({ viewport: { width: 375, height: 1000 }, serviceWorkers: 'block' })
   let available = false, sessionReads = 0
   const errors = [], mutations = []
@@ -58,12 +58,17 @@ test('Settings rechecks a stale unavailable session and enables working account 
     const login = page.getByRole('button', { name: 'เข้าสู่ระบบ', exact: true })
     assert.equal(await login.isDisabled(), true)
     assert.equal(await page.getByLabel('ชื่อบัญชี', { exact: true }).isDisabled(), true)
-    await page.getByRole('button', { name: 'ตรวจสอบระบบอีกครั้ง', exact: true }).waitFor()
+    assert.equal(await page.locator('.account-readiness').count(), 0)
+    assert.equal(await page.getByRole('button', { name: 'ตรวจสอบระบบอีกครั้ง', exact: true }).count(), 0)
+    const menu = page.getByRole('button', { name: 'เปิดเมนู', exact: true })
+    await menu.click()
+    await page.locator('.sidebar .nav-item').filter({ hasText: 'ภาพรวม' }).click()
     const before = sessionReads
     available = true
-    await page.getByRole('button', { name: 'ตรวจสอบระบบอีกครั้ง', exact: true }).click()
-    await page.getByRole('heading', { name: 'ระบบบัญชีพร้อมใช้งาน', exact: true }).waitFor()
-    assert.ok(sessionReads > before, 'A retry must ask the session API again, not enable client-side fake state')
+    await menu.click()
+    await page.locator('.sidebar .nav-item').filter({ hasText: 'ตั้งค่าและบัญชี' }).click()
+    await page.waitForFunction(() => { const input = document.querySelector('.account-auth-form input'); return !!input && !input.disabled })
+    assert.ok(sessionReads > before, 'Reentering Settings must ask the session API again, not enable client-side fake state')
     assert.equal(await login.isDisabled(), false)
     assert.equal(await page.getByLabel('ชื่อบัญชี', { exact: true }).isDisabled(), false)
     await passwordVisibility(page, 'รหัสผ่าน', 'รหัสผ่าน', 'login-synthetic-only')
@@ -92,6 +97,14 @@ test('Settings rechecks a stale unavailable session and enables working account 
     }
     await password.fill('abc')
     assert.equal(await password.evaluate(input => input.checkValidity()), false, 'The requested four-character minimum remains enforced')
+    for (const label of ['ชื่อ-นามสกุล', 'สถานที่ทำงาน', 'สังกัด', 'เบอร์โทร 10 หลัก']) {
+      const field = page.getByLabel(label, { exact: true })
+      assert.equal(await field.getAttribute('required'), '')
+      assert.equal(await field.evaluate(input => input.checkValidity()), false, `${label} must be required`)
+    }
+    const phone = page.getByLabel('เบอร์โทร 10 หลัก', { exact: true })
+    await phone.fill('081234567'); assert.equal(await phone.evaluate(input => input.checkValidity()), false)
+    await phone.fill('0812345678'); assert.equal(await phone.evaluate(input => input.checkValidity()), true)
     assert.equal(await page.getByRole('heading', { name: 'สถานะระบบที่ตรวจได้', exact: true }).count(), 0)
     assert.doesNotMatch(await page.locator('body').innerText(), /บัญชีใหม่เป็นผู้ใช้ทั่วไป สิทธิ์ผู้เชี่ยวชาญต้องได้รับอนุมัติจากผู้ดูแล/)
     assert.equal(await page.locator('.account-temporary-storage').count(), 0)

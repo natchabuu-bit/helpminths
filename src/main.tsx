@@ -10,6 +10,7 @@ import { registerOfflineSupport } from './offline'
 
 void registerOfflineSupport()
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+if (window.location.hash === '#admin') window.location.replace('/admin/')
+else ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode><App /></React.StrictMode>,
 )

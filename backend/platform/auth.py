@@ -16,7 +16,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from .owner_bootstrap import BOOTSTRAP_DOCUMENT_KIND, configured_owner_username, owner_login_username
-from .store import ROLES, SCHEMA_VERSION, USERNAME, USERNAME_MESSAGE, PlatformStore, hash_password, is_reserved_owner_username, json_text, owner_username, public_user, utc_now, verify_password
+from .store import ROLES, SCHEMA_VERSION, USERNAME, USERNAME_MESSAGE, PlatformStore, hash_password, is_reserved_owner_username, json_text, normalize_profile_field, owner_username, public_user, utc_now, verify_password
 
 router = APIRouter(prefix="/api/platform", tags=["Platform accounts and settings"])
 COOKIE_NAME = "helpminths_session"
@@ -197,6 +197,10 @@ def _validate_username(value: str) -> str:
 # There is deliberately no username length policy beyond nonempty valid syntax;
 # the application still bounds the whole HTTP request before parsing it.
 Username = Annotated[str, AfterValidator(_validate_username)]
+FullName = Annotated[str, AfterValidator(lambda value: normalize_profile_field("full_name", value))]
+Workplace = Annotated[str, AfterValidator(lambda value: normalize_profile_field("workplace", value))]
+Affiliation = Annotated[str, AfterValidator(lambda value: normalize_profile_field("affiliation", value))]
+Phone = Annotated[str, AfterValidator(lambda value: normalize_profile_field("phone", value))]
 
 
 class LoginRequest(BaseModel):
@@ -217,6 +221,10 @@ class RegisterRequest(BaseModel):
     username: Username
     password: str = Field(min_length=4, max_length=1024)
     account_type: Literal["user", "expert"] = "user"
+    full_name: FullName
+    workplace: Workplace
+    affiliation: Affiliation
+    phone: Phone
 
 
 class AdminSetupRequest(BaseModel):
@@ -231,6 +239,10 @@ class AccountRequest(BaseModel):
     current_password: str = Field(min_length=4, max_length=1024)
     username: Username | None = None
     new_password: str | None = Field(default=None, min_length=4, max_length=1024)
+    full_name: FullName | None = None
+    workplace: Workplace | None = None
+    affiliation: Affiliation | None = None
+    phone: Phone | None = None
 
 
 class ExpertLoginRequest(BaseModel):
@@ -369,7 +381,9 @@ def register(body: RegisterRequest, request: Request, response: Response) -> dic
     requested_role = "reviewer" if body.account_type == "expert" else "lab"
     with store.transaction() as conn:
         user = store.create_user(body.username, body.password, "lab", conn=conn,
-                                 approval_status="pending", requested_role=requested_role)
+                                 approval_status="pending", requested_role=requested_role,
+                                 full_name=body.full_name, workplace=body.workplace,
+                                 affiliation=body.affiliation, phone=body.phone)
         store.append_audit("users", user["id"], user["id"], "self_registered", after=user, conn=conn)
     response.headers["Cache-Control"] = "no-store"
     return {"configured": True, "user": user, "csrf_token": None, "pending_approval": True,
@@ -430,8 +444,10 @@ def update_account(body: AccountRequest, request: Request, response: Response, u
         raise HTTPException(422, USERNAME_MESSAGE)
     if not user["is_super_admin"] and is_reserved_owner_username(username):
         raise HTTPException(409, "ชื่อบัญชีนี้สงวนไว้สำหรับเจ้าของระบบ")
-    if body.username is None and body.new_password is None:
-        raise HTTPException(422, "ระบุชื่อบัญชีหรือรหัสผ่านใหม่ที่ต้องการเปลี่ยน")
+    profile = {key: getattr(body, key) for key in ("full_name", "workplace", "affiliation", "phone")
+               if getattr(body, key) is not None}
+    if body.username is None and body.new_password is None and not profile:
+        raise HTTPException(422, "ระบุข้อมูลบัญชีที่ต้องการเปลี่ยน")
     encoded = hash_password(body.new_password) if body.new_password is not None else None
     raw_old = request.cookies.get(COOKIE_NAME, "")
     with store.transaction() as conn:
@@ -443,7 +459,9 @@ def update_account(body: AccountRequest, request: Request, response: Response, u
             raise HTTPException(403, "รหัสผ่านปัจจุบันไม่ถูกต้อง")
         before = public_user(row)
         try:
-            conn.execute("UPDATE users SET username=?,password_hash=? WHERE id=?", (username, encoded or row["password_hash"], user["id"]))
+            conn.execute("UPDATE users SET username=?,password_hash=?,full_name=?,workplace=?,affiliation=?,phone=? WHERE id=?",
+                         (username, encoded or row["password_hash"],
+                          *(profile.get(key, row[key]) for key in ("full_name", "workplace", "affiliation", "phone")), user["id"]))
         except sqlite3.IntegrityError:
             raise HTTPException(409, "ชื่อผู้ใช้นี้ถูกใช้แล้ว") from None
         # Every old cookie and any expert step-up bound to it stop working. The
@@ -604,6 +622,8 @@ def audit(kind: str, document_id: str, request: Request, user: User, limit: int 
     if kind not in {"analysis", "review", "feedback", "report"} and user["role"] not in {"admin", "reviewer"}:
         raise HTTPException(403, "บัญชีนี้ไม่มีสิทธิ์ดูประวัติข้อมูลภายในประเภทนี้")
     document = store.get_document(kind, document_id, include_deleted=True)
+    if kind == "notification" and (document is None or document["owner_id"] != user["id"]):
+        raise HTTPException(404, "ไม่พบรายการ")
     if document is None:
         if kind != "users" or user["role"] != "admin":
             raise HTTPException(404, "ไม่พบรายการ")

@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import io
 import os
+import re
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -12,7 +13,7 @@ from typing import Annotated, Any
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -192,8 +193,8 @@ def create_app(
     app.include_router(auth_router)
     app.include_router(quality_router)
     # Domain routers use the same service, authorization and private transactional store.
-    from backend.platform import analyses, reviews, reporting, analytics, feedback, modelversions, evaluation, learning, sheets_dashboard
-    for module in (analyses, reviews, reporting, analytics, feedback, modelversions, evaluation, learning, sheets_dashboard):
+    from backend.platform import analyses, reviews, reporting, analytics, feedback, modelversions, evaluation, learning, sheets_dashboard, notifications
+    for module in (analyses, reviews, reporting, analytics, feedback, modelversions, evaluation, learning, sheets_dashboard, notifications):
         app.include_router(module.router)
 
     if serve_web:
@@ -201,6 +202,24 @@ def create_app(
         @app.api_route("/api/{path:path}", methods=["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
         async def unknown_api(path: str = ""):
             raise HTTPException(404, "Not Found")
+
+        @app.api_route("/admin", methods=["GET", "HEAD"], include_in_schema=False)
+        async def admin_redirect():
+            return RedirectResponse("/admin/", status_code=308)
+
+        @app.api_route("/admin/{path:path}", methods=["GET", "HEAD"], include_in_schema=False)
+        async def admin_site(path: str = ""):
+            # This is a separate frontend entry. Never substitute the public app
+            # for a missing admin build, asset, or a traversal-like path.
+            if path not in {"", "index.html"} and not re.fullmatch(r"[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*/?", path):
+                raise HTTPException(404, "Not Found")
+            entry = web_dir / "admin" / "index.html"
+            if not entry.is_file() or not entry.resolve().is_relative_to(web_dir.resolve()):
+                raise HTTPException(404, "Not Found")
+            return FileResponse(entry, media_type="text/html", headers={
+                "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow",
+            })
+
         app.mount("/", StaticFiles(directory=web_dir, html=True, check_dir=False), name="web")
     return app
 
