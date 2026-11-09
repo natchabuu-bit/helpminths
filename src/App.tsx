@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { BarChart3, ArrowRight, ArrowUpRight, BookOpen, Box, Camera, CircleHelp, Clock3, FileText, Focus, History, LayoutDashboard, LoaderCircle, LogIn, Menu, MessageCircle, ScanLine, Search, ShieldCheck, Settings, Upload, UserRound, X } from 'lucide-react'
+import { BarChart3, ArrowRight, ArrowUpRight, BookOpen, Box, Camera, CircleHelp, Clock3, FileText, Focus, History, LayoutDashboard, LoaderCircle, LogIn, Menu, MessageCircle, ScanLine, Search, ShieldCheck, Settings, Upload, UserRound, Users, X } from 'lucide-react'
 import Scan from './components/Scan'
 import type { AnalysisRecord } from './components/Scan'
 import EggIllustration from './components/EggIllustration'
@@ -18,10 +18,11 @@ const ExpertVerification = lazy(() => import('./components/ExpertVerification'))
 const PlatformReports = lazy(() => import('./components/PlatformReports'))
 const ModelPerformance = lazy(() => import('./components/ModelPerformance'))
 const PlatformSettings = lazy(() => import('./components/PlatformSettings'))
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'))
 const pendingPage = <div className="loading-state"><LoaderCircle className="spin"/><p>กำลังเตรียมหน้าที่เลือก…</p></div>
-type Page = 'home' | 'dashboard' | 'scan' | 'atlas' | 'history' | 'evaluation' | 'verification' | 'reports' | 'performance' | 'settings'
+type Page = 'home' | 'dashboard' | 'scan' | 'atlas' | 'history' | 'evaluation' | 'verification' | 'reports' | 'performance' | 'settings' | 'admin'
 const featuredSpecies = ['opisthorchis', 'mif', 'hymenolepis-nana'].map(getSpeciesById)
-const pageNames: Record<Page, string> = { home: 'ภาพรวม', dashboard: 'Dashboard', scan: 'ตรวจวิเคราะห์', atlas: 'Atlas 3D', history: 'ประวัติการตรวจ', evaluation: 'แบบประเมิน SUS', verification: 'ทบทวนโดยผู้เชี่ยวชาญ', reports: 'รายงาน', performance: 'ประเมินและข้อเสนอแนะ', settings: 'ตั้งค่าและบัญชี' }
+const pageNames: Record<Page, string> = { home: 'ภาพรวม', dashboard: 'Dashboard', scan: 'ตรวจวิเคราะห์', atlas: 'Atlas 3D', history: 'ประวัติการตรวจ', evaluation: 'แบบประเมิน SUS', verification: 'ทบทวนโดยผู้เชี่ยวชาญ', reports: 'รายงาน', performance: 'ประเมินและข้อเสนอแนะ', settings: 'ตั้งค่าและบัญชี', admin: 'หลังบ้าน Super Admin' }
 
 function Brand({ small = false }: { small?: boolean }) {
   return <div className={`brand ${small ? 'brand-small' : ''}`}><div className="brand-symbol"><svg viewBox="0 0 40 40" aria-hidden="true"><ellipse cx="20" cy="20" rx="9" ry="13" transform="rotate(32 20 20)"/><ellipse cx="20" cy="20" rx="3.4" ry="6" transform="rotate(32 20 20)"/><circle cx="31" cy="8" r="2.5"/></svg></div><span>Help<span className="brand-light">Minths</span><small>PARASITOLOGY AI PLATFORM</small></span></div>
@@ -36,6 +37,7 @@ export default function App() {
   const platform = usePlatformSession()
   const [platformAnalysisId, setPlatformAnalysisId] = useState<string | undefined>()
   const [accountPortal, setAccountPortal] = useState<'user' | 'expert'>('user')
+  const [loginDestination, setLoginDestination] = useState<'settings' | 'admin'>('settings')
   const [menuOpen, setMenuOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [records, setRecords] = useState<AnalysisRecord[]>([])
@@ -118,7 +120,12 @@ export default function App() {
     mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
-  const openSettings = (portal: 'user' | 'expert' = 'user') => { setAccountPortal(portal); navigate('settings') }
+  const openSettings = (portal: 'user' | 'expert' = 'user', destination: 'settings' | 'admin' = 'settings') => { setAccountPortal(portal); setLoginDestination(destination); navigate('settings') }
+  useEffect(() => {
+    if (page === 'settings' && loginDestination === 'admin' && !platform.loading && platform.session.user?.is_super_admin) {
+      setLoginDestination('settings'); navigate('admin')
+    }
+  }, [page, loginDestination, platform.loading, platform.session.user?.id, platform.session.user?.is_super_admin])
   const openScan = (showDemo = false, record: AnalysisRecord | null = null) => {
     setDemo(showDemo); setSelectedRecord(record); setScanKey(key => key + 1); navigate('scan')
   }
@@ -138,9 +145,10 @@ export default function App() {
     {menuOpen && <button className="sidebar-backdrop" aria-label="ปิดเมนู" onClick={() => setMenuOpen(false)} />}
     <aside className={`sidebar ${menuOpen ? 'is-open' : ''}`}>
       <button className="brand-button" onClick={() => navigate('home')} aria-label="HelpMinths หน้าหลัก"><Brand /></button>
-      <div className="navigation-caption" aria-hidden="true"><span>EXPLORE THE FIELD</span><span>01—09</span></div>
+      <div className="navigation-caption" aria-hidden="true"><span>EXPLORE THE FIELD</span><span>{platform.session.user?.is_super_admin ? '01—10' : '01—09'}</span></div>
       <nav id="primary-navigation" aria-label="เมนูหลัก">
         {([{ id: 'home', icon: LayoutDashboard, label: 'ภาพรวม' }, { id: 'dashboard', icon: BarChart3, label: 'Dashboard' }, { id: 'scan', icon: ScanLine, label: 'ตรวจวิเคราะห์', badge: 'AI' }, { id: 'atlas', icon: Box, label: 'Atlas 3D' }, { id: 'history', icon: History, label: 'ประวัติการตรวจ' }, { id: 'verification', icon: ShieldCheck, label: 'ทบทวนโดยผู้เชี่ยวชาญ' }, { id: 'reports', icon: FileText, label: 'รายงาน' }, { id: 'performance', icon: MessageCircle, label: 'ประเมินและข้อเสนอแนะ' }, { id: 'settings', icon: Settings, label: 'ตั้งค่าและบัญชี' }] as const).map(item => <button key={item.id} className={`nav-item ${page === item.id || (page === 'evaluation' && item.id === 'performance') ? 'active' : ''}`} onClick={() => item.id === 'scan' ? openScan() : navigate(item.id)} aria-current={page === item.id || (page === 'evaluation' && item.id === 'performance') ? 'page' : undefined}><item.icon size={19} /><span>{item.label}</span>{'badge' in item && <span className="nav-badge">{item.badge}</span>}{item.id === 'history' && visibleRecords.length > 0 && <span className="nav-count">{visibleRecords.length}</span>}</button>)}
+        {platform.session.user?.is_super_admin && <button className={`nav-item ${page === 'admin' ? 'active' : ''}`} onClick={() => navigate('admin')} aria-current={page === 'admin' ? 'page' : undefined}><Users size={19}/><span>หลังบ้าน</span></button>}
       </nav>
       <div className="sidebar-bottom"><button className="help-link" onClick={() => setHelpOpen(true)}><CircleHelp size={18}/><span>คู่มือการใช้งาน</span><ArrowUpRight size={14}/></button><div className="workspace-profile"><div className="profile-avatar">HM</div><div><strong>{platform.session.user?.username ?? 'ผู้เยี่ยมชม'}</strong><span>{platform.session.user ? (platform.session.user.is_super_admin ? 'Super Admin' : roleNames[platform.session.user.role]) : 'Atlas และการเรียนรู้เปิดให้ใช้งาน'}</span></div><span className="profile-dot"/></div></div>
     </aside>
@@ -166,7 +174,8 @@ export default function App() {
         {page === 'verification' && <Suspense fallback={pendingPage}><ExpertVerification key={authIdentity} session={platform.session} analysisId={platformAnalysisId} onChooseAnalysis={setPlatformAnalysisId} onOpenSettings={() => openSettings('expert')} onSessionChanged={platform.refresh}/></Suspense>}
         {page === 'reports' && <Suspense fallback={pendingPage}><PlatformReports key={authIdentity} session={platform.session} analysisId={platformAnalysisId}/></Suspense>}
         {page === 'performance' && <Suspense fallback={pendingPage}><ModelPerformance key={authIdentity} session={platform.session} analysisId={platformAnalysisId}><Evaluation feedback={feedback}/></ModelPerformance></Suspense>}
-        {page === 'settings' && <Suspense fallback={pendingPage}><PlatformSettings key={authIdentity} session={platform.session} onSessionChanged={platform.refresh} initialPortal={accountPortal} onExpertSignedIn={() => navigate('verification')}/></Suspense>}
+        {page === 'settings' && <Suspense fallback={pendingPage}><PlatformSettings key={authIdentity} session={platform.session} onSessionChanged={platform.refresh} initialPortal={accountPortal} onExpertSignedIn={() => navigate('verification')} onOpenAdmin={() => navigate('admin')}/></Suspense>}
+        {page === 'admin' && <Suspense fallback={pendingPage}><AdminDashboard key={authIdentity} session={platform.session} loading={platform.loading} onSessionChanged={platform.refresh} onOpenSettings={() => openSettings('user', 'admin')}/></Suspense>}
         {page === 'evaluation' && <Evaluation feedback={feedback}/>}
         {page === 'history' && <><Suspense fallback={pendingPage}><AnalysisHistory key={authIdentity} session={platform.session} onOpenAnalysis={id => { setPlatformAnalysisId(id); navigate('verification') }} onOpenReferrals={() => { setPlatformAnalysisId(undefined); navigate('verification') }}/></Suspense><section className="session-history"><div className="page-heading"><div><div className="section-kicker">YOUR DISCOVERIES</div><h2>ผลในเซสชันนี้</h2><p>ผลวิเคราะห์ในเซสชันนี้ ภาพจะหายไปเมื่อรีเฟรชหรือปิดหน้าเว็บ</p></div><button className="button-primary" onClick={() => openScan()}><ScanLine size={17}/> ตรวจภาพใหม่</button></div>{visibleRecords.length === 0 ? <div className="empty-state"><div className="empty-icon"><History size={32}/></div><h2>ยังไม่มีผลในเซสชันนี้</h2><p>เริ่มตรวจภาพแรก หรือทดลองดูผลสาธิตเพื่อเรียนรู้วิธีใช้งาน</p><button className="button-primary" onClick={() => openScan()}>เริ่มตรวจวิเคราะห์ <ArrowRight size={17}/></button></div> : <div className="history-grid">{visibleRecords.map(record => <button className="history-card" key={record.id} onClick={() => openScan(false, record)}><img src={record.imageUrl} alt={`ภาพ ${record.filename}`}/><div><span className={`record-mode ${record.mode}`}>{record.mode === 'demo' ? 'ข้อมูลสาธิต' : 'ผลจากโมเดล'}</span><h3>{record.filename}</h3><p><Clock3 size={13}/>{new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }).format(new Date(record.createdAt))}</p><div className="history-card-bottom"><strong>{record.detections.length} ตำแหน่ง</strong><span>เปิดผลตรวจ <ArrowUpRight size={15}/></span></div></div></button>)}</div>}</section></>}
         <footer className="app-footer"><span><b>HELPMINTHS</b><span className="footer-dot">/</span> PARASITOLOGY FIELD LAB</span><span>สร้างเพื่อการศึกษาและวิจัย <span className="footer-version">v0.1</span></span></footer>

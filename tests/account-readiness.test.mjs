@@ -69,7 +69,7 @@ test('Settings rechecks a stale unavailable session and enables working account 
     await passwordVisibility(page, 'รหัสผ่าน', 'รหัสผ่าน', 'login-synthetic-only')
     await page.getByRole('tab', { name: 'สมัครสมาชิก', exact: true }).click()
     assert.equal(await page.getByRole('button', { name: 'สมัครและส่งคำขออนุมัติ', exact: true }).isDisabled(), false, 'A missing first administrator must not disable approval requests')
-    assert.equal(await page.getByRole('tab', { name: /พอร์ทัลผู้เชี่ยวชาญ/ }).count(), 1)
+    assert.equal(await page.getByRole('tab', { name: /^ผู้เชี่ยวชาญ/ }).count(), 1)
     const username = page.getByLabel('ชื่อบัญชี', { exact: true })
     const password = page.getByLabel('รหัสผ่าน', { exact: true })
     const confirmation = page.getByLabel('ยืนยันรหัสผ่าน', { exact: true })

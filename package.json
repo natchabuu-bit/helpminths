@@ -13,6 +13,7 @@
     "test:uploads": "node --test tests/image-upload.test.mjs",
     "test:referrals": "node --test tests/referrals.test.mjs",
     "test:account-readiness": "node --test tests/account-readiness.test.mjs",
+    "test:admin": "node --test tests/admin-dashboard.test.mjs",
     "test:feedback": "node --test tests/feedback.test.mjs",
     "test:offline": "node --test tests/offline.test.mjs",
     "test:platform": "node --test tests/platform.test.mjs",

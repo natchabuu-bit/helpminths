@@ -149,7 +149,7 @@ test('public expert approval, private request-more images and full confirmation 
     assert.equal(await ownerPage.getByRole('button', { name: 'ออกจากระบบ', exact: true }).count(), 0)
 
     await expertPage.goto(`${baseURL}/#settings`, { waitUntil: 'networkidle' })
-    await expertPage.getByRole('tab', { name: /พอร์ทัลผู้เชี่ยวชาญ/ }).click()
+    await expertPage.getByRole('tab', { name: /^ผู้เชี่ยวชาญ/ }).click()
     await expertPage.getByRole('tab', { name: 'สมัครเป็นผู้เชี่ยวชาญ', exact: true }).click()
     await expertPage.getByLabel('ชื่อบัญชี', { exact: true }).fill(expertName)
     await passwordVisibility(expertPage, 'รหัสผ่าน', 'รหัสผ่าน', testPassword)
