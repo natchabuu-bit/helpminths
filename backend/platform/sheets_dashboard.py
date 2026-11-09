@@ -704,6 +704,14 @@ class SheetsCache:
 
 def dashboard_provider() -> str:
     """Select a server-owned source; imported statistics never impersonate live data."""
+    try:
+        restore_snapshot = _boolean('HELPMINTHS_DASHBOARD_RESTORE_SNAPSHOT', False)
+    except ValueError:
+        raise HTTPException(503, 'ตั้งค่าการกู้คืนข้อมูล Dashboard ไม่ถูกต้อง กรุณาตรวจค่าบนเซิร์ฟเวอร์') from None
+    # An explicit restoration must take precedence over stale deployment settings.
+    # Keep snapshot validation in its existing load path, including missing files.
+    if restore_snapshot:
+        return 'snapshot'
     mode = os.getenv('HELPMINTHS_DASHBOARD_SOURCE', 'auto').strip().lower() or 'auto'
     if mode not in {'auto', 'snapshot', 'google_sheets'}:
         raise HTTPException(503, 'ตั้งค่าแหล่งข้อมูล Dashboard ไม่ถูกต้อง ใช้ auto, snapshot หรือ google_sheets')

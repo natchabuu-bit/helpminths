@@ -1,12 +1,16 @@
 # Dashboard โครงการ กพด. เขตสุขภาพที่ 2
 
-**รุ่น Docker/Render ล่าสุด:** เลือก Google Sheets ใหม่ของเจ้าของโครงการเป็นแหล่งสด อัปเดตอัตโนมัติทุก 30 วินาที โดยใช้หัวตารางโรงเรียนเดิมที่เจ้าของยืนยันว่าเปลี่ยนเฉพาะค่าในเซลล์และเพิ่มข้อมูลตามแถว
+**คืนข้อมูลเดิมตามคำขอ:** รุ่น Docker/Render ใช้ไฟล์นำเข้าปี 2568–2569 และประวัติย้อนหลังในโครงการอีกครั้ง ไม่ต้องรอ Google Sheets รายชื่อโรงเรียน กราฟ ตัวกรอง และรายการติดตามกลับไปใช้ข้อมูลเดิม ตัวเชื่อมชีตใหม่ยังอยู่ในโค้ดแต่ไม่ได้เป็นแหล่งที่กำลังแสดง
 
-แหล่งข้อมูลคือ [Google Sheets ใหม่](https://docs.google.com/spreadsheets/d/1pvGSBJEykTf5NUEsd3SqVdOqpYbpibTj07p23yJ5o-8/edit) หน้า `/#dashboard` เผยแพร่เฉพาะสถิติสรุปและสถิติรายโรงเรียนตามขอบเขตที่เจ้าของอนุญาต ไม่ส่งข้อมูลกลับไปแก้ชีต และไม่เปิดเผยข้อมูลรายบุคคล
+ค่าคืนข้อมูลคือ `HELPMINTHS_DASHBOARD_RESTORE_SNAPSHOT=1` และ `HELPMINTHS_DASHBOARD_SOURCE=snapshot` โดย restore flag มีลำดับสูงกว่าค่า source/ID ของชีตเก่าที่ค้างบน Render การ deploy รุ่นแก้ไขจึงคืนข้อมูลได้แม้เคยตั้ง source เป็น google_sheets ไว้
 
-การเชื่อมครั้งแรกต้อง deploy โค้ดรุ่นนี้ หลังจากนั้นการแก้ค่า/เพิ่มแถวในชีตไม่ต้อง deploy ซ้ำ เลือกแท็บแรกเมื่อไม่กำหนด GID หรือชื่อแท็บ หาก Render เคยตั้ง environment ทับค่า Docker ให้ปรับค่าชีตและโหมดตามตารางด้านล่างด้วย
+การคืนครั้งนี้ใช้ไฟล์เดิมที่อยู่ใน repository และตรวจว่าไม่เปลี่ยนจากรุ่นก่อนเปิดชีตสด ไม่ได้อ้างว่าอ่านโฟลเดอร์ Drive `1a5wiQ9_0W-yzDBiq35Act6-s1_dYn1vq` สำเร็จ เครือข่ายเซสชันนี้บล็อก Google ก่อนถึงต้นทาง
 
-ชุดข้อมูลนำเข้าปีเก่ายังอยู่ใน repository และเลือกกลับได้ด้วย `HELPMINTHS_DASHBOARD_SOURCE=snapshot` แต่จะไม่ถูกนำมาแสดงเป็นข้อมูลสดเมื่อ Google อ่านไม่ได้ การรันนอก Docker โดยไม่ตั้ง environment ยังคงเลือกชุดนำเข้าแบบเดิม
+## ตัวเชื่อม Google Sheets ที่เก็บไว้เป็นตัวเลือก
+
+ชีตที่เคยเลือกคือ [Google Sheets ใหม่](https://docs.google.com/spreadsheets/d/1pvGSBJEykTf5NUEsd3SqVdOqpYbpibTj07p23yJ5o-8/edit) หากจะกลับมาใช้ ต้องตรวจการอ่านข้อมูลและยอดจริงก่อน แล้วตั้ง `HELPMINTHS_DASHBOARD_RESTORE_SNAPSHOT=0` และ `HELPMINTHS_DASHBOARD_SOURCE=google_sheets` อย่างชัดเจน
+
+เอกสารรายละเอียดการ polling ด้านล่างใช้เฉพาะโหมด Google ไม่ใช่สถานะการทำงานของ Dashboard ที่คืนเป็นไฟล์นำเข้า
 
 ## สถานะที่ยืนยันได้
 
@@ -73,7 +77,8 @@ Preset ที่เปิดใช้เผยแพร่สถิติสร�
 | Variable | ค่าเริ่มต้น / หน้าที่ |
 | --- | --- |
 | `HELPMINTHS_SHEETS_ENABLED` | `1` เปิดตัวเชื่อม; ตั้ง0เพื่อหยุด |
-| `HELPMINTHS_DASHBOARD_SOURCE` | `google_sheets` บน Docker/Render รุ่นนี้; `snapshot` เลือกไฟล์นำเข้าเดิม |
+| `HELPMINTHS_DASHBOARD_RESTORE_SNAPSHOT` | `1` คืนไฟล์เดิมโดยไม่สนค่า source/ชีตที่ค้าง; `0` เปิดการเลือกแหล่งตามปกติ |
+| `HELPMINTHS_DASHBOARD_SOURCE` | `snapshot` บน Docker/Render รุ่นคืนข้อมูล; `google_sheets` ใช้ตัวเชื่อมเมื่อ restore=0 |
 | `HELPMINTHS_SHEETS_ID` | `1pvGSBJEykTf5NUEsd3SqVdOqpYbpibTj07p23yJ5o-8` |
 | `HELPMINTHS_SHEETS_GID` | ว่างเพื่อเลือกแท็บแรก; ระบุเลข gid หากต้องการแท็บอื่น |
 | `HELPMINTHS_SHEETS_FORMAT` | `auto` ลอง CSV ก่อนแล้วอ่านไฟล์ Excel IDเดิมเมื่อ export ไม่รองรับ; เลือก `csv` หรือ `xlsx` โดยตรงได้ |

@@ -12,8 +12,10 @@ services:
         value: "1"
       - key: HELPMINTHS_AUTO_STORAGE
         value: "1"
+      - key: HELPMINTHS_DASHBOARD_RESTORE_SNAPSHOT
+        value: "1"
       - key: HELPMINTHS_DASHBOARD_SOURCE
-        value: "google_sheets"
+        value: "snapshot"
       - key: HELPMINTHS_SHEETS_ENABLED
         value: "1"
       - key: HELPMINTHS_SHEETS_ID

@@ -22,7 +22,9 @@ from backend.platform.store import PlatformStore
 def clean_configuration(monkeypatch):
     import os
     for name in list(os.environ):
-        if name.startswith('HELPMINTHS_SHEETS_') or name == 'HELPMINTHS_GOOGLE_SERVICE_ACCOUNT_JSON':
+        if name.startswith('HELPMINTHS_SHEETS_') or name in {
+            'HELPMINTHS_GOOGLE_SERVICE_ACCOUNT_JSON', 'HELPMINTHS_DASHBOARD_RESTORE_SNAPSHOT',
+        }:
             monkeypatch.delenv(name)
     # Live-connector fixtures must stay independent of the real imported artifact.
     monkeypatch.setenv('HELPMINTHS_DASHBOARD_SOURCE', 'google_sheets')
@@ -93,6 +95,127 @@ def test_auto_provider_serves_audited_public_snapshot_without_google_or_accounts
         assert len(data['followup_schools']) == 8 and data['followup_min_tested'] == 30
         assert all(row['tested_count'] >= 30 for row in data['followup_schools'])
         assert 'schools' not in data and 'cubes' not in data
+    upstream.assert_not_called()
+
+
+@pytest.mark.parametrize('stale_source', ['google_sheets', 'invalid-stale-source'])
+def test_explicit_restore_recovers_published_dashboard_despite_stale_live_settings(monkeypatch, stale_source):
+    import csv
+    import io
+
+    monkeypatch.setenv('HELPMINTHS_DASHBOARD_RESTORE_SNAPSHOT', '1')
+    monkeypatch.setenv('HELPMINTHS_DASHBOARD_SOURCE', stale_source)
+    monkeypatch.setenv('HELPMINTHS_SHEETS_ID', 'NEW_CUSTOM_GOOGLE_SOURCE')
+    monkeypatch.setenv('HELPMINTHS_SHEETS_PUBLIC_AGGREGATES', '0')
+    monkeypatch.setenv('HELPMINTHS_SHEETS_ENABLED', '0')
+    monkeypatch.setenv('HELPMINTHS_SHEETS_COLUMN_MAPPING', 'invalid-json')
+    monkeypatch.setenv('HELPMINTHS_SHEETS_REFRESH_SECONDS', 'invalid-refresh')
+    upstream = Mock(side_effect=AssertionError('Restoration must not fetch Google data'))
+    monkeypatch.setattr(sheets, 'fetch_table', upstream)
+    with TestClient(application()) as client:
+        response = client.get('/api/platform/operations/status')
+        assert response.status_code == 200
+        metadata = response.json()
+        assert metadata['source']['provider'] == 'uploaded_workbook'
+        assert metadata['source']['data_status'] == 'imported_snapshot'
+        assert metadata['source']['url'] is None
+        assert metadata['refresh_seconds'] == 0 and metadata['access'] == 'public_aggregates'
+        assert metadata['capabilities']['available_years'] == [2568, 2569]
+        assert metadata['capabilities']['published_school_count'] == 170
+        assert metadata['capabilities']['person_records_exposed'] is False
+        assert metadata['capabilities']['raw_rows_exposed'] is False
+        assert metadata['capabilities']['clinical_validation_claimed'] is False
+
+        response = client.get('/api/platform/operations/dashboard')
+        assert response.status_code == 200
+        result = response.json()
+        assert result['status'] == 'ready' and result['error'] is None
+        assert result['source'] == metadata['source']
+        assert result['fetched_at'] == result['source']['imported_at']
+        assert result['last_attempt_at'] is None and result['refresh_seconds'] == 0
+        data = result['data']
+        assert data['summary']['school_count'] == 174
+        assert data['summary']['tested_count'] == 15888
+        assert data['summary']['infected_count'] == 698
+        assert len(data['by_school']) == 170
+        assert 'schools' not in data and 'cubes' not in data
+        assert data['comparison']['available'] and data['comparison']['matched_count'] == 167
+        assert data['history']['available']
+        assert data['history']['years'] == list(range(2557, 2570))
+        assert data['history']['source']['recent_years_recomputed'] == [2568, 2569]
+
+        previous = client.get('/api/platform/operations/dashboard', params={'year': 2568}).json()
+        assert previous['status'] == 'ready' and previous['source']['year'] == 2568
+        assert previous['data']['summary']['tested_count'] == 15106
+        assert previous['data']['summary']['infected_count'] == 974
+        assert len(previous['data']['by_school']) == 169
+        previous_metadata = client.get('/api/platform/operations/status', params={'year': 2568}).json()
+        assert previous_metadata['source'] == previous['source']
+
+        params = {'year': 2569, 'province': 'พิษณุโลก'}
+        selected = client.get('/api/platform/operations/dashboard', params=params).json()['data']
+        assert selected['summary']['tested_count'] == 441
+        assert selected['summary']['infected_count'] == 1
+        assert all(row['province'] == 'พิษณุโลก' for row in selected['by_school'])
+        exported = client.get('/api/platform/operations/export.csv', params=params)
+        assert exported.status_code == 200
+        rows = list(csv.DictReader(io.StringIO(exported.content.decode('utf-8-sig'))))
+        provinces = [row for row in rows if row['dimension'] == 'province']
+        assert len(provinces) == 1 and provinces[0]['province'] == 'พิษณุโลก'
+        assert provinces[0]['dataset_year'] == '2569'
+        assert provinces[0]['tested_people'] == '441'
+        assert provinces[0]['reported_positive_people'] == '1'
+        assert all(key not in rows[0] for key in ('school', 'school_name', 'person_name', 'tambon'))
+        assert client.get('/api/platform/operations/dashboard', params={'year': 2567}).status_code == 422
+    upstream.assert_not_called()
+
+
+def test_explicit_restore_missing_artifact_reports_unavailable_without_google(monkeypatch, tmp_path):
+    monkeypatch.setenv('HELPMINTHS_DASHBOARD_RESTORE_SNAPSHOT', '1')
+    monkeypatch.setenv('HELPMINTHS_SHEETS_ID', 'NEW_CUSTOM_GOOGLE_SOURCE')
+    private_path = tmp_path / 'private-location' / 'missing-data.json'
+    monkeypatch.setattr(survey_snapshot, 'DATASET_PATH', private_path)
+    upstream = Mock(side_effect=AssertionError('Missing restoration artifact must not trigger Google'))
+    monkeypatch.setattr(sheets, 'fetch_table', upstream)
+    with TestClient(application()) as client:
+        for endpoint in ('status', 'dashboard', 'export.csv'):
+            response = client.get('/api/platform/operations/' + endpoint)
+            assert response.status_code == 503
+            assert str(private_path) not in response.text
+    upstream.assert_not_called()
+
+
+def test_restore_disabled_keeps_explicit_live_source_and_access_rules(monkeypatch, tmp_path):
+    monkeypatch.setenv('HELPMINTHS_DASHBOARD_RESTORE_SNAPSHOT', '0')
+    monkeypatch.setenv('HELPMINTHS_SHEETS_ID', 'NEW_CUSTOM_GOOGLE_SOURCE')
+    monkeypatch.setenv('HELPMINTHS_SHEETS_PUBLIC_AGGREGATES', '1')
+    monkeypatch.setenv('HELPMINTHS_SHEETS_COLUMN_MAPPING', json.dumps(mapping(), ensure_ascii=False))
+    upstream = Mock(return_value=table())
+    monkeypatch.setattr(sheets, 'fetch_table', upstream)
+    with TestClient(application(tmp_path)) as client:
+        metadata = client.get('/api/platform/operations/status').json()
+        assert metadata['source']['provider'] == 'google_sheets'
+        assert metadata['source']['spreadsheet_id'] == 'NEW_CUSTOM_GOOGLE_SOURCE'
+        result = client.get('/api/platform/operations/dashboard').json()
+        assert result['status'] == 'ready' and result['source']['provider'] == 'google_sheets'
+        assert result['data']['tested_count'] == 200 and result['data']['infected_count'] == 16
+        upstream.assert_called_once()
+        monkeypatch.setenv('HELPMINTHS_SHEETS_PUBLIC_AGGREGATES', '0')
+        assert client.get('/api/platform/operations/dashboard').status_code == 401
+        assert client.get('/api/platform/operations/export.csv').status_code == 401
+        upstream.assert_called_once()
+
+
+def test_invalid_restore_flag_reports_configuration_error_before_source_selection(monkeypatch):
+    monkeypatch.setenv('HELPMINTHS_DASHBOARD_RESTORE_SNAPSHOT', 'maybe')
+    monkeypatch.setenv('HELPMINTHS_DASHBOARD_SOURCE', 'snapshot')
+    upstream = Mock(side_effect=AssertionError('Invalid restoration settings must not fetch Google'))
+    monkeypatch.setattr(sheets, 'fetch_table', upstream)
+    with TestClient(application()) as client:
+        for endpoint in ('status', 'dashboard', 'export.csv'):
+            response = client.get('/api/platform/operations/' + endpoint)
+            assert response.status_code == 503
+            assert 'Dashboard' in response.json()['detail']
     upstream.assert_not_called()
 
 
