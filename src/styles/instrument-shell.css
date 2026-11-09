@@ -53,10 +53,6 @@
 .instrument-shell .button-primary:hover { background: #0c5c54; border-color: #0c5c54; box-shadow: 0 5px 14px #1f62591c; }
 .instrument-shell .button-quiet, .instrument-shell .text-button { color: #116d62; }
 .instrument-shell .button-quiet:hover, .instrument-shell .text-button:hover { color: #094d46; }
-.instrument-shell .offline-panel { background: #f9fdfbc9; color: #305e5b; border-color: #cde0d8; border-radius: 7px; box-shadow: none; }
-.instrument-shell .offline-panel.is-offline { background: var(--warning-soft); border-color: #dcc28e; color: #70470b; }
-.instrument-shell .offline-details-toggle, .instrument-shell .offline-install { border-radius: 5px; }
-.instrument-shell .offline-details-toggle { color: #285e57; background: #edf7f2; border-color: #c5ddd3; }
 .instrument-shell .capability-strip { margin-top: 24px; padding-top: 0; margin-bottom: 36px; gap: 14px; }
 .instrument-shell .capability-strip > div { position: relative; padding: 20px 16px; border: 1px solid var(--border); border-radius: 10px; background: #ffffffa3; }
 .instrument-shell .capability-icon { width: 40px; height: 40px; background: #e7f5ef; color: #1a7163; border-color: #cee4da; border-radius: 7px; }

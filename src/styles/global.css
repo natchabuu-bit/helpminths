@@ -41,13 +41,8 @@ input::placeholder, textarea::placeholder { color: #5b6e81; opacity: 1; }
 .nav-item > span:first-of-type { flex: 1; min-width: 0; }
 .nav-badge { border: 1px solid #afd7d0; background: #eef8f6; padding: 0 6px; border-radius: 6px; font-size: .875rem; color: #176d62; }
 .nav-count { border-radius: 6px; font-size: .875rem; background: #e4eef9; color: #2f608e; padding: 0 7px; }
-.sidebar-learning { border: 1px solid #dfdef2; background: radial-gradient(ellipse at 100% 100%, #ddedf5aa, transparent 65%), linear-gradient(140deg, #f4f0fd, #f5f9fe); border-radius: 20px; margin: 30px 2px 22px; padding: 22px 18px; position: relative; overflow: hidden; flex-shrink: 0; }
-.sidebar-learning::after { content: ''; position: absolute; bottom: -35px; right: -45px; width: 145px; height: 145px; border: 1px solid #c9c8e5; border-radius: 50%; pointer-events: none; }
 .learning-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; color: var(--purple); background: #e8e2f8; margin-bottom: 16px; }
 .eyebrow { font-size: .8125rem; color: #62568a; letter-spacing: .9px; }
-.sidebar-learning h3 { font-size: 1.375rem; line-height: 1.6; margin: 8px 0 10px; color: #25374d; }
-.sidebar-learning p { font-size: .9375rem; line-height: 1.8; color: var(--muted); margin-bottom: 12px; }
-.sidebar-learning button { display: flex; gap: 16px; align-items: center; background: transparent; padding: 8px 0; min-height: 44px; font-size: 1rem; font-weight: 600; color: #625294; }
 .sidebar-bottom { margin-top: auto; }
 .help-link { display: flex; width: 100%; min-height: 48px; align-items: center; gap: 10px; background: transparent; padding: 14px 10px; border-radius: 12px; color: var(--muted); font-size: .9375rem; }
 .help-link > span { flex: 1; text-align: left; }
@@ -222,8 +217,6 @@ input::placeholder, textarea::placeholder { color: #5b6e81; opacity: 1; }
 .history-card:hover { box-shadow: 0 12px 30px #2d4b6818; transform: translateY(-3px); }
 @media (max-height: 820px) {
   .sidebar .brand-button { margin-bottom: 24px; }
-  .sidebar-learning { margin-top: 22px; padding: 18px 16px; }
-  .sidebar-learning .learning-icon, .sidebar-learning p { display: none; }
   .sidebar-bottom { margin-top: 14px; }
 }
 @media (min-width: 1600px) {
