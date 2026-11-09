@@ -8,6 +8,8 @@ services:
     autoDeploy: false
     healthCheckPath: /api/health
     envVars:
+      # Set HELPMINTHS_SUPER_ADMIN_PASSWORD privately in Render Environment.
+      # Its value is intentionally absent from this public Blueprint.
       - key: HELPMINTHS_SERVE_WEB
         value: "1"
       - key: HELPMINTHS_AUTO_STORAGE

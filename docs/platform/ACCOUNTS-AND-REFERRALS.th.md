@@ -37,6 +37,7 @@ Render Free ไม่มี Persistent Disk สำหรับบริการ
 | `HELPMINTHS_DATA_DIR` | พาธบน volume จริง เช่น `/var/data/helpminths` เมื่อ mount ที่ `/var/data` |
 | `HELPMINTHS_STORAGE_DURABLE` | `1` หลังเชื่อม volume จริงแล้ว เป็นคำประกาศ ไม่ใช่การสร้าง disk |
 | `HELPMINTHS_COOKIE_SECURE` | `1` สำหรับเว็บ HTTPS |
+| `HELPMINTHS_SUPER_ADMIN_PASSWORD` | รหัสผ่านจริงที่เจ้าของเลือกเองอย่างน้อย 4 ตัวอักษร ตั้งเฉพาะบนโฮสต์เพื่อสร้าง/กู้เจ้าของ แล้วล็อกอินใน `/#admin` |
 | `HELPMINTHS_ADMIN_SETUP_TOKEN` | รหัสสุ่มลับ 32–256 ตัวอักษร สำหรับตั้งผู้ดูแลครั้งแรกทางเว็บ ใช้เป็น secret บนโฮสต์ |
 
 บริการฐานข้อมูล/ที่เก็บภาพภายนอกแบบฟรีต้องเพิ่ม adapter และตั้งค่าบริการนั้น ระบบปัจจุบันยังไม่ได้เชื่อม Supabase, Google Drive หรือ object storage เป็นฐานข้อมูลบัญชี ไม่สามารถตั้ง URL ของบริการเหล่านั้นลงในตัวแปรพาธแล้วใช้งานได้ทันที

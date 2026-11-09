@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
+from .owner_bootstrap import BOOTSTRAP_DOCUMENT_KIND, configured_owner_username, owner_login_username
 from .store import ROLES, SCHEMA_VERSION, USERNAME, USERNAME_MESSAGE, PlatformStore, hash_password, is_reserved_owner_username, json_text, owner_username, public_user, utc_now, verify_password
 
 router = APIRouter(prefix="/api/platform", tags=["Platform accounts and settings"])
@@ -93,11 +94,25 @@ def _expert_verified_until(store: PlatformStore, user: dict[str, Any] | None, ra
         return None
 
 
-def _session_payload(store: PlatformStore, user: dict[str, Any], raw: str) -> dict[str, Any]:
+def _owner_metadata(request: Request, store: PlatformStore | None) -> dict[str, Any]:
+    bootstrap = getattr(request.app.state, "owner_bootstrap", None)
+    # Lightweight/unconfigured router hosts predate owner bootstrap and retain
+    # their minimal session contract. The real application always sets status.
+    if not isinstance(bootstrap, dict) and (not isinstance(store, PlatformStore) or not store.configured):
+        return {}
+    result: dict[str, Any] = {"owner_login_username": owner_login_username(store)}
+    if isinstance(bootstrap, dict):
+        result["owner_bootstrap"] = {key: bootstrap[key] for key in ("configured", "ready", "message")}
+        if not bootstrap["configured"] and isinstance(store, PlatformStore) and store.has_users():
+            result["owner_bootstrap"].update(ready=True, message="บัญชีเจ้าของระบบพร้อมเข้าสู่ระบบ")
+    return result
+
+
+def _session_payload(store: PlatformStore, user: dict[str, Any], raw: str, request: Request) -> dict[str, Any]:
     return {"configured": True, "user": public_user(user), "csrf_token": csrf_token(raw),
             "bootstrap_required": not store.has_users(), "registration_enabled": True,
             "admin_setup_available": _admin_setup_available(store),
-            "owner_username": owner_username(),
+            "owner_username": configured_owner_username(), **_owner_metadata(request, store),
             "expert_verified_until": _expert_verified_until(store, user, raw)}
 
 
@@ -267,13 +282,14 @@ def session(request: Request, response: Response) -> dict[str, Any]:
     response.headers["Cache-Control"] = "no-store"
     store = getattr(request.app.state, "platform_store", None)
     if not isinstance(store, PlatformStore) or not store.configured:
-        return {"configured": False, "user": None, "csrf_token": None, "bootstrap_required": False}
+        return {"configured": False, "user": None, "csrf_token": None, "bootstrap_required": False,
+                **_owner_metadata(request, store)}
     user, raw = _current_session(request, store)
     if user and raw:
-        return _session_payload(store, user, raw)
+        return _session_payload(store, user, raw, request)
     return {"configured": True, "user": None, "csrf_token": None, "bootstrap_required": not store.has_users(),
             "registration_enabled": True, "admin_setup_available": _admin_setup_available(store), "expert_verified_until": None,
-            "owner_username": owner_username()}
+            "owner_username": configured_owner_username(), **_owner_metadata(request, store)}
 
 
 @router.get("/status")
@@ -293,7 +309,7 @@ def status(request: Request) -> dict[str, Any]:
         "admin_setup_available": bool(configured and _admin_setup_available(store)),
         "schema_version": SCHEMA_VERSION if configured else None,
         "roles": list(ROLES),
-        "owner_username": owner_username(),
+        "owner_username": configured_owner_username(), **_owner_metadata(request, store),
         "storage": {"configured": configured, "durable": durable, "automatic": automatic,
                     "mode": "durable" if durable else "temporary" if configured else "not_configured",
                     "notice": "เชื่อมพื้นที่เก็บข้อมูลถาวรตามการตั้งค่าของผู้ดูแลแล้ว ควรสำรองข้อมูลแยกต่างหาก" if durable else
@@ -316,7 +332,29 @@ def login(body: LoginRequest, request: Request, response: Response) -> dict[str,
         raw, expires = _create_session(store, user, conn)
         store.append_audit("users", user["id"], user["id"], "login", after={"expires_at": expires}, conn=conn)
     _set_session_cookie(response, store, raw)
-    return _session_payload(store, user, raw)
+    return _session_payload(store, user, raw, request)
+
+
+@router.post("/owner-signin")
+def owner_signin(body: LoginRequest, request: Request, response: Response) -> dict[str, Any]:
+    _check_origin(request)
+    store = get_store(request)
+    _limiter(request).check(request.client.host if request.client else "unknown", body.username)
+    # Check the current password and the owner flag within the same serialized
+    # transaction that issues the cookie, before any login audit or session.
+    with store.transaction() as conn:
+        row = conn.execute("SELECT * FROM users WHERE username=? COLLATE NOCASE", (body.username,)).fetchone()
+        valid = verify_password(body.password, row["password_hash"] if row else None)
+        if row is None or not valid or not row["active"]:
+            raise HTTPException(401, "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง")
+        user = public_user(row)
+        _require_approved(user)
+        if user["role"] != "admin" or not user["is_super_admin"]:
+            raise HTTPException(403, "เฉพาะบัญชีเจ้าของระบบ (Super Admin) จึงเข้าสู่หลังบ้านได้")
+        raw, expires = _create_session(store, user, conn)
+        store.append_audit("users", user["id"], user["id"], "owner_signin", after={"expires_at": expires}, conn=conn)
+    _set_session_cookie(response, store, raw)
+    return _session_payload(store, user, raw, request)
 
 
 @router.post("/register", status_code=201)
@@ -338,7 +376,7 @@ def register(body: RegisterRequest, request: Request, response: Response) -> dic
             "message": "สมัครบัญชีแล้ว กรุณารอเจ้าของระบบอนุมัติก่อนเข้าสู่ระบบ",
             "bootstrap_required": not store.has_users(), "registration_enabled": True,
             "admin_setup_available": _admin_setup_available(store), "expert_verified_until": None,
-            "owner_username": owner_username()}
+            "owner_username": configured_owner_username(), **_owner_metadata(request, store)}
 
 
 @router.post("/admin-setup", status_code=201)
@@ -364,7 +402,7 @@ def admin_setup(body: AdminSetupRequest, request: Request, response: Response) -
         store.append_audit("users", user["id"], user["id"], "admin_web_bootstrapped",
                            after={"role": "admin", "expires_at": expires}, conn=conn)
     _set_session_cookie(response, store, raw)
-    return _session_payload(store, user, raw)
+    return _session_payload(store, user, raw, request)
 
 
 @router.post("/logout")
@@ -416,7 +454,7 @@ def update_account(body: AccountRequest, request: Request, response: Response, u
         store.append_audit("users", user["id"], user["id"], "self_updated", before=before,
                            after={**updated, "password_changed": encoded is not None}, conn=conn)
     _set_session_cookie(response, store, raw)
-    return _session_payload(store, updated, raw)
+    return _session_payload(store, updated, raw, request)
 
 
 @router.get("/expert-session")
@@ -478,7 +516,7 @@ def expert_signin(body: LoginRequest, request: Request, response: Response) -> d
         _verify_expert_session(store, user, raw, expires, conn)
         store.append_audit("users", user["id"], user["id"], "expert_signin", after={"expires_at": expires}, conn=conn)
     _set_session_cookie(response, store, raw)
-    return _session_payload(store, user, raw)
+    return _session_payload(store, user, raw, request)
 
 
 @router.delete("/expert-session")
@@ -559,6 +597,8 @@ def update_user(user_id: str, body: UpdateUserRequest, request: Request, admin: 
 @router.get("/audit/{kind}/{document_id}")
 def audit(kind: str, document_id: str, request: Request, user: User, limit: int = Query(100, ge=1, le=500), offset: int = Query(0, ge=0)) -> dict[str, Any]:
     store = get_store(request)
+    if kind == BOOTSTRAP_DOCUMENT_KIND:
+        raise HTTPException(404, "ไม่พบรายการ")
     if kind == "users" and not user["is_super_admin"]:
         raise HTTPException(403, "เฉพาะเจ้าของระบบจึงดูประวัติบัญชีผู้ใช้ได้")
     if kind not in {"analysis", "review", "feedback", "report"} and user["role"] not in {"admin", "reviewer"}:

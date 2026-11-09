@@ -20,6 +20,7 @@ from backend.images import MAX_IMAGE_PIXELS, MAX_UPLOAD_BYTES, decode_image, dec
 from backend.model import ModelNotReadyError, YOLOModelService
 from backend.request_limits import RequestBodyLimitMiddleware
 from backend.platform.auth import require_user, router as auth_router
+from backend.platform.owner_bootstrap import bootstrap_owner
 from backend.platform.quality import QualityThresholds, assess_quality, enforce_quality, image_work_slot, quality_router
 from backend.platform.store import PlatformStore
 
@@ -79,6 +80,7 @@ def create_app(
 
     app = FastAPI(title="HelpMinths AI API", version="2.0.0", lifespan=lifespan)
     app.state.platform_store = store
+    app.state.owner_bootstrap = bootstrap_owner(store)
     app.state.model_service = model_service
     app.add_middleware(RequestBodyLimitMiddleware)
 

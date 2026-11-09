@@ -17,7 +17,7 @@ function fixtureHeader(response) {
 }
 async function verifyFixture(request) {
   assert.ok(['127.0.0.1', 'localhost', '[::1]'].includes(new URL(fixtureURL).hostname), 'Approval fixtures must use localhost')
-  const response = await request.get(`${fixtureURL}/api/platform/status`)
+  const response = await request.get(`${fixtureURL}/api/platform/status`, { maxRedirects: 0 })
   fixtureHeader(response)
   assert.equal(response.status(), 200)
   assert.equal((await response.json()).configured, true)
@@ -60,15 +60,15 @@ async function session(context) {
 async function mutate(context, path, data, method = 'post') {
   await verifyFixture(context.request)
   const identity = await session(context)
-  const response = await context.request[method](`${fixtureURL}/api/platform${path}`, { data, headers: { 'X-CSRF-Token': identity.csrf_token || '' } })
+  const response = await context.request[method](`${fixtureURL}/api/platform${path}`, { data, maxRedirects: 0, headers: { 'X-CSRF-Token': identity.csrf_token || '' } })
   fixtureHeader(response)
   return response
 }
 async function signIn(page, username, password = staffPassword) {
   await page.getByLabel('ชื่อบัญชี', { exact: true }).fill(username)
   await page.getByLabel('รหัสผ่าน', { exact: true }).fill(password)
-  const completed = page.waitForResponse(response => response.url().endsWith('/api/platform/login') && response.request().method() === 'POST')
-  await page.getByRole('button', { name: 'เข้าสู่ระบบ', exact: true }).click()
+  const completed = page.waitForResponse(response => response.url().endsWith('/api/platform/owner-signin') && response.request().method() === 'POST')
+  await page.getByRole('button', { name: 'เข้าสู่หลังบ้าน', exact: true }).click()
   const response = await completed
   fixtureHeader(response)
   assert.equal(response.status(), 200, await response.text())
@@ -96,7 +96,7 @@ function assertNoMemberControls(page) {
   ])
 }
 
-test('public backoffice link preserves its destination through a real owner login and appears in owner navigation', { timeout: 90_000 }, async () => {
+test('public backoffice signs the actual owner in directly and appears in owner navigation', { timeout: 90_000 }, async () => {
   const { context, finish } = await fixtureContext()
   try {
     const page = await context.newPage(), reads = ownerRequests(page)
@@ -106,9 +106,9 @@ test('public backoffice link preserves its destination through a real owner logi
     assert.deepEqual(reads, [], 'The logged-out gate must not request the owner inventory')
     await assertFitsPhone(page, 'Logged-out backoffice')
     await page.getByRole('heading', { name: 'เข้าสู่ระบบ Super Admin', exact: true }).waitFor()
-    await page.getByRole('button', { name: 'เข้าสู่ระบบ Super Admin', exact: true }).click()
-    await page.waitForFunction(() => location.hash === '#settings')
-    assert.deepEqual(reads, [], 'Opening the login form must not read the owner inventory')
+    assert.equal(new URL(page.url()).hash, '#admin', 'The owner form opens directly in the backoffice')
+    assert.equal(await page.getByLabel('รหัสผ่าน', { exact: true }).getAttribute('type'), 'password')
+    assert.deepEqual(reads, [], 'The direct owner form must not read the owner inventory')
     const identity = await signIn(page, 'fixture-admin')
     assert.equal(identity.user.is_super_admin, true)
     await page.waitForFunction(() => location.hash === '#admin')
@@ -290,16 +290,16 @@ test('first-owner backoffice guidance explains host setup before an administrato
     await context.route('**/api/platform/**', async route => {
       if (!safeMethods.has(route.request().method())) { writes.push(route.request().url()); await route.abort('blockedbyclient'); return }
       if (new URL(route.request().url()).pathname === '/api/platform/session') {
-        await route.fulfill({ json: { configured: true, user: null, csrf_token: null, bootstrap_required: true, registration_enabled: true, admin_setup_available: false }, headers: { 'Cache-Control': 'no-store', 'X-HelpMinths-Test-Fixture': 'synthetic-only' } })
+        await route.fulfill({ json: { configured: true, user: null, csrf_token: null, bootstrap_required: true, registration_enabled: true, admin_setup_available: false, owner_login_username: 'Super Admin', owner_bootstrap: { configured: false, ready: false, message: '' } }, headers: { 'Cache-Control': 'no-store', 'X-HelpMinths-Test-Fixture': 'synthetic-only' } })
         return
       }
       await route.fallback()
     })
     const page = await context.newPage(), reads = ownerRequests(page)
     await page.goto(`${fixtureURL}/#admin`, { waitUntil: 'networkidle' })
-    await page.getByRole('heading', { name: 'ยังไม่ได้สร้างบัญชี Super Admin?', exact: true }).waitFor()
-    await page.getByText('HELPMINTHS_ADMIN_SETUP_TOKEN', { exact: true }).waitFor()
-    assert.match(await page.locator('.admin-first-setup').innerText(), /32–256.*Render.*deploy/s)
+    await page.getByRole('heading', { name: 'ตั้งรหัสผ่าน Super Admin ครั้งแรก', exact: true }).waitFor()
+    await page.getByText('HELPMINTHS_SUPER_ADMIN_PASSWORD', { exact: true }).waitFor()
+    assert.match(await page.locator('.admin-first-setup').innerText(), /Render.*Environment.*Manual Deploy/s)
     await assertNoMemberControls(page)
     await assertFitsPhone(page, 'First-owner setup guidance')
     assert.deepEqual(reads, [])

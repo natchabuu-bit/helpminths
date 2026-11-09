@@ -42,6 +42,9 @@
 .account-member-metadata > div { min-width: 0; }
 .account-member-metadata dt { margin-bottom: 4px; color: var(--muted); font-size: .875rem; }
 .account-member-metadata dd { margin: 0; overflow-wrap: anywhere; }
+.account-member-details { margin-top: 18px; padding-top: 14px; border-top: 1px solid #dbe6ef; }
+.account-member-details > summary { color: #245d50; cursor: pointer; overflow-wrap: anywhere; }
+.account-member-details .account-member-metadata { margin-bottom: 0; }
 .account-member-empty { padding: 20px 0; color: var(--muted); }
 .account-member-pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
 .account-create-member { margin-top: 26px; padding-top: 22px; border-top: 1px solid #d6e5de; }

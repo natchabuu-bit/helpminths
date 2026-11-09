@@ -135,3 +135,5 @@ SQLite schema version2 สร้างเมื่อเปิด private direct
 ดู [คู่มือบัญชีและส่งต่อ](../docs/platform/ACCOUNTS-AND-REFERRALS.th.md) สำหรับการสมัคร แก้บัญชี โทเคนตั้งผู้ดูแล พื้นที่ถาวร และข้อจำกัด Render Free APIs เพิ่ม `/register`, `/account`, `/admin-setup`, `/expert-login`, `/expert-session`, `/history/days`, `/referrals` และ `/analyses/{id}/referrals` ภายใต้ `/api/platform`; การแปลงภาพไม่บันทึกใช้ `/api/images/normalize` และตรวจรูปแบบที่ติดตั้งจริงด้วย `/api/images/formats`
 
 รุ่น schema 2 ย้ายฐานข้อมูลรุ่น 1 แบบ transaction รักษาบัญชีผู้ดูแลที่ใช้งานและสร้างก่อนเป็นเจ้าของ บัญชีอื่นรออนุมัติและ session เดิมถูกยกเลิก ไม่ลบผลตรวจหรือภาพเดิม ดู [การเปิด Super Admin และงานตรวจยืนยัน](../docs/platform/SUPER-ADMIN-AND-EXPERTS.th.md)
+
+เปิดเจ้าของโดยตั้ง secret `HELPMINTHS_SUPER_ADMIN_PASSWORD` บนโฮสต์ก่อนเริ่มแอป ระบบสร้าง/กู้เจ้าของเดิมแบบ transaction และเก็บ salted scrypt marker ส่วนตัวเพื่อไม่ย้อนรหัสผ่านที่แก้ในเว็บเมื่อค่า env เดิมและฐานข้อมูลเดิมยังอยู่ ล็อกอินผ่าน `POST /api/platform/owner-signin` หรือหน้า `/#admin` ไม่มีรหัสผ่านเริ่มต้น ดู [คู่มือเจ้าของ](../docs/platform/SUPER-ADMIN-AND-EXPERTS.th.md)

@@ -1,6 +1,8 @@
 import { ArrowLeft, ClipboardCheck, Database, LogIn, RefreshCw, Settings, ShieldCheck } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { apiRequest } from '../platform/api'
 import type { PlatformSession } from '../platform/api'
+import PasswordInput from './PasswordInput'
 import { ErrorNotice, LoadingNotice, PlatformHeading } from './PlatformShared'
 import { UserManagement } from './PlatformSettings'
 import '../styles/account.css'
@@ -13,11 +15,30 @@ interface AdminDashboardProps {
   onSessionChanged?: () => Promise<void>
 }
 
+function OwnerPasswordSteps({ username }: { username: string }) {
+  return <ol>
+    <li>เปิด Render → Environment เพิ่ม <code>HELPMINTHS_SUPER_ADMIN_PASSWORD</code> และตั้งรหัสผ่านที่คุณเลือกเองอย่างน้อย 4 ตัวอักษร</li>
+    <li>บันทึก แล้วเลือก Manual Deploy เพื่อเริ่มระบบด้วยค่าที่ตั้งไว้</li>
+    <li>กลับมาหน้านี้ ใช้ชื่อบัญชี <strong>{username}</strong> และรหัสผ่านที่คุณตั้งไว้เพื่อเข้าสู่หลังบ้าน</li>
+  </ol>
+}
+
 export default function AdminDashboard({ session, loading = false, onOpenSettings, onSessionChanged }: AdminDashboardProps) {
   const [rechecking, setRechecking] = useState(false)
   const [error, setError] = useState('')
-  const accountReady = session.configured && !session.connection_error
-  const isOwner = accountReady && session.user?.is_super_admin === true
+  const [signingIn, setSigningIn] = useState(false)
+  const [loginError, setLoginError] = useState('')
+  const [localSession, setLocalSession] = useState<{ source: PlatformSession; value: PlatformSession } | null>(null)
+  const currentSession = localSession?.source === session ? localSession.value : session
+  const suggestedUsername = currentSession.owner_login_username ?? currentSession.owner_username ?? 'Super Admin'
+  const [username, setUsername] = useState(suggestedUsername)
+  const [usernameEdited, setUsernameEdited] = useState(false)
+  const [password, setPassword] = useState('')
+  useEffect(() => { if (!usernameEdited) setUsername(suggestedUsername) }, [suggestedUsername, usernameEdited])
+
+  const accountReady = currentSession.configured && !currentSession.connection_error
+  const isOwner = accountReady && currentSession.user?.is_super_admin === true && currentSession.user.active && currentSession.user.approval_status === 'approved'
+  const bootstrap = currentSession.owner_bootstrap
   const recheck = async () => {
     if (!onSessionChanged) return
     setRechecking(true); setError('')
@@ -25,11 +46,21 @@ export default function AdminDashboard({ session, loading = false, onOpenSetting
     catch (failure) { setError(failure instanceof Error ? failure.message : 'ตรวจสอบระบบบัญชีไม่ได้') }
     finally { setRechecking(false) }
   }
+  const signIn = async () => {
+    if (signingIn) return
+    setSigningIn(true); setLoginError('')
+    try {
+      const value = await apiRequest<PlatformSession>('/owner-signin', { json: { username: username.trim(), password } })
+      if (!value.configured || value.user?.is_super_admin !== true || !value.user.active || value.user.approval_status !== 'approved') throw new Error('บริการยังไม่ได้ยืนยันสิทธิ์ Super Admin กรุณาลองเข้าสู่ระบบอีกครั้ง')
+      if (onSessionChanged) await onSessionChanged()
+      else setLocalSession({ source: session, value })
+      setPassword('')
+    } catch (failure) { setLoginError(failure instanceof Error ? failure.message : 'เข้าสู่หลังบ้านไม่ได้ กรุณาลองอีกครั้ง') }
+    finally { setSigningIn(false) }
+  }
 
   return <div className="platform-page account-page admin-dashboard">
-    <PlatformHeading kicker="SUPER ADMIN" title="หลังบ้าน Super Admin" description="พิจารณาคำขอสมัครสมาชิก อนุมัติสิทธิ์ผู้เชี่ยวชาญ และจัดการบัญชีผู้ใช้">
-      {isOwner && <button className="platform-button" onClick={onOpenSettings}><Settings size={17}/>บัญชีและการตั้งค่า</button>}
-    </PlatformHeading>
+    <PlatformHeading kicker="SUPER ADMIN" title="หลังบ้าน Super Admin" description="พิจารณาคำขอสมัครสมาชิก อนุมัติสิทธิ์ผู้เชี่ยวชาญ และจัดการบัญชีผู้ใช้"/>
     {error && <ErrorNotice message={error}/>}
     {loading ? <LoadingNotice/> : !accountReady ? <section className="platform-card admin-access-gate" aria-labelledby="admin-gate-title">
       <Database size={34}/>
@@ -39,21 +70,23 @@ export default function AdminDashboard({ session, loading = false, onOpenSetting
         {onSessionChanged && <button className="platform-button primary" disabled={rechecking} onClick={() => void recheck()}><RefreshCw size={17} className={rechecking ? 'spin' : ''}/>{rechecking ? 'กำลังตรวจสอบ…' : 'ตรวจสอบระบบอีกครั้ง'}</button>}
         <button className="platform-button" onClick={onOpenSettings}><Settings size={17}/>ไปหน้าบัญชีและการตั้งค่า</button>
       </div>
-    </section> : !session.user ? <section className="platform-card admin-access-gate" aria-labelledby="admin-gate-title">
-      <ShieldCheck size={34}/>
-      <h2 id="admin-gate-title">เข้าสู่ระบบ Super Admin</h2>
-      <p>เข้าสู่ระบบด้วยบัญชีเจ้าของระบบเพื่อดูคำขอที่รออนุมัติและจัดการสิทธิ์สมาชิก หลังเข้าสู่ระบบสำเร็จจะกลับมาที่หลังบ้านนี้</p>
-      <button className="platform-button primary" onClick={onOpenSettings}><LogIn size={17}/>เข้าสู่ระบบ Super Admin</button>
-      {session.bootstrap_required && <div className="admin-first-setup"><h3>ยังไม่ได้สร้างบัญชี Super Admin?</h3>{session.admin_setup_available ? <p>ไปหน้าบัญชีและการตั้งค่า แล้วเลือก “ตั้งค่า Super admin ครั้งแรก” ใช้รหัสตั้งค่าจากโฮสต์และกำหนดรหัสผ่านของคุณเอง</p> : <p>เจ้าของโฮสต์ต้องเพิ่ม <code>HELPMINTHS_ADMIN_SETUP_TOKEN</code> เป็นค่าสุ่มส่วนตัว 32–256 ตัวอักษรอังกฤษหรือตัวเลขใน Environment ของ Render แล้ว deploy จากนั้นไปหน้าบัญชีและการตั้งค่า เลือก “ตั้งค่า Super admin ครั้งแรก” เพื่อเปิดบัญชีเจ้าของระบบ ชื่อบัญชีเพียงอย่างเดียวไม่เปิดสิทธิ์ผู้ดูแล</p>}</div>}
     </section> : !isOwner ? <section className="platform-card admin-access-gate" aria-labelledby="admin-gate-title">
       <ShieldCheck size={34}/>
-      <h2 id="admin-gate-title">บัญชีนี้ไม่มีสิทธิ์เข้าหลังบ้าน</h2>
-      <p>คุณเข้าสู่ระบบด้วยบัญชี <strong>{session.user.username}</strong> หน้านี้เปิดให้เฉพาะ Super Admin เจ้าของระบบเท่านั้น</p>
-      <button className="platform-button" onClick={onOpenSettings}><ArrowLeft size={17}/>กลับไปบัญชีของฉัน</button>
+      <h2 id="admin-gate-title">{currentSession.user ? 'บัญชีนี้ไม่มีสิทธิ์เข้าหลังบ้าน' : 'เข้าสู่ระบบ Super Admin'}</h2>
+      {currentSession.user ? <><p>คุณเข้าสู่ระบบด้วยบัญชี <strong>{currentSession.user.username}</strong> หน้านี้เปิดให้เฉพาะ Super Admin เจ้าของระบบเท่านั้น</p><h3 className="admin-switch-title">สลับไปบัญชี Super Admin</h3><p>กรอกบัญชีเจ้าของระบบด้านล่าง บัญชีปัจจุบันจะเปลี่ยนเมื่อยืนยันรหัสผ่านสำเร็จ</p></> : <p>กรอกบัญชีเจ้าของระบบเพื่อดูคำขอที่รออนุมัติและจัดการสมาชิกได้ที่หน้านี้</p>}
+      <form className="admin-login-form" onSubmit={event => { event.preventDefault(); void signIn() }} aria-label="เข้าสู่ระบบ Super Admin" aria-busy={signingIn}>
+        <label>ชื่อบัญชี<input required name="username" value={username} onChange={event => { setUsername(event.target.value); setUsernameEdited(true) }} maxLength={100} autoComplete="username" autoCapitalize="none" spellCheck={false} disabled={signingIn}/></label>
+        <label>รหัสผ่าน<PasswordInput aria-label="รหัสผ่าน" name="password" required value={password} onChange={event => setPassword(event.target.value)} minLength={4} maxLength={256} autoComplete="current-password" disabled={signingIn}/></label>
+        {loginError && <div className="admin-login-error"><ErrorNotice message={loginError}/></div>}
+        <button className="platform-button primary" type="submit" disabled={signingIn}><LogIn size={17}/>{signingIn ? 'กำลังเข้าสู่หลังบ้าน…' : 'เข้าสู่หลังบ้าน'}</button>
+      </form>
+      {bootstrap?.configured && bootstrap.ready ? <p className="admin-password-help">ใช้รหัสผ่านที่คุณกำหนดใน <code>HELPMINTHS_SUPER_ADMIN_PASSWORD</code> บนโฮสต์ หากเคยเปลี่ยนรหัสผ่านในหน้าบัญชี ให้ใช้รหัสผ่านล่าสุด</p> : currentSession.bootstrap_required ? <div className="admin-first-setup"><h3>ตั้งรหัสผ่าน Super Admin ครั้งแรก</h3><p>ยังไม่มีรหัสผ่านเริ่มต้นสำหรับ Super Admin ให้เจ้าของโฮสต์ตั้งรหัสผ่านก่อนเข้าสู่หลังบ้าน</p>{bootstrap?.configured && !bootstrap.ready && <p role="status">{bootstrap.message}</p>}<OwnerPasswordSteps username={suggestedUsername}/></div> : <details className="admin-first-setup"><summary>ตั้งหรือกู้คืนรหัสผ่านผ่าน Render</summary>{bootstrap?.configured && !bootstrap.ready && <p role="status">{bootstrap.message}</p>}<p>หากจำรหัสผ่านไม่ได้ ให้เจ้าของโฮสต์กำหนดรหัสผ่านใหม่ ไม่มีรหัสผ่านเริ่มต้นตายตัว</p><OwnerPasswordSteps username={suggestedUsername}/></details>}
+      {currentSession.bootstrap_required && currentSession.admin_setup_available && <div className="admin-legacy-setup"><p>หากมีรหัสตั้งค่า Super admin จากโฮสต์อยู่แล้ว คุณยังใช้วิธีตั้งค่าบัญชีเดิมได้</p><button className="platform-button" type="button" onClick={onOpenSettings}><Settings size={17}/>ตั้งค่า Super admin ด้วยรหัสตั้งค่า</button></div>}
+      {currentSession.user && <button className="platform-button admin-return-account" type="button" onClick={onOpenSettings}><ArrowLeft size={17}/>กลับไปบัญชีของฉัน</button>}
     </section> : <>
-      <section className="admin-owner-banner" aria-label="บัญชีผู้ดูแลปัจจุบัน"><div className="admin-owner-identity"><ShieldCheck size={27}/><div><span>กำลังจัดการระบบในนาม</span><strong>{session.user?.username}</strong></div></div><span className="platform-badge success">Super Admin · เจ้าของระบบ</span></section>
-      <section className="platform-card admin-approval-guide" aria-labelledby="admin-approval-title"><div className="platform-card-heading"><div><h2 id="admin-approval-title">พิจารณาคำขอสมัครสมาชิก</h2><p>คำขอที่รออนุมัติจะแสดงด้านล่าง สมาชิกจะเข้าสู่ระบบได้เมื่อคุณอนุมัติบัญชี</p></div><ClipboardCheck size={26}/></div><ol><li>ตรวจสอบชื่อบัญชีและประเภทสิทธิ์ที่สมาชิกขอ</li><li>เลือกสิทธิ์ที่จะอนุมัติ แล้วกด “อนุมัติบัญชี” หรือ “ไม่อนุมัติบัญชี”</li><li>ตรวจสอบรายละเอียดในหน้าต่างยืนยันก่อนดำเนินการ</li></ol></section>
-      <UserManagement session={session} onSessionChanged={onSessionChanged} title="อนุมัติคำขอและจัดการสมาชิก"/>
+      <section className="admin-owner-banner" aria-label="บัญชีผู้ดูแลปัจจุบัน"><div className="admin-owner-identity"><ShieldCheck size={23}/><div><span>กำลังจัดการระบบในนาม</span><strong>{currentSession.user?.username}</strong></div></div><span className="platform-badge success">Super Admin · เจ้าของระบบ</span></section>
+      <UserManagement session={currentSession} onSessionChanged={onSessionChanged} title="อนุมัติคำขอและจัดการสมาชิก"/>
+      <details className="platform-card admin-approval-guide"><summary><ClipboardCheck size={20}/>วิธีพิจารณาคำขอสมัครสมาชิก</summary><ol><li>ตรวจสอบชื่อบัญชีและประเภทสิทธิ์ที่สมาชิกขอ</li><li>เลือกสิทธิ์ที่จะอนุมัติ แล้วกด “อนุมัติบัญชี” หรือ “ไม่อนุมัติบัญชี”</li><li>ตรวจสอบรายละเอียดในหน้าต่างยืนยันก่อนดำเนินการ</li></ol></details>
     </>}
   </div>
 }
