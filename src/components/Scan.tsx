@@ -405,18 +405,17 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
   const uncertainDetections = record?.detections.filter(item => item.confidence < reviewConfidence) ?? [];
   const hasImage = Boolean(imageUrl);
   const demo = record?.mode === 'demo';
+  const connectionStatus = health === 'ready' ? 'โมเดล AI พร้อมใช้งาน' : health === 'checking' ? 'กำลังเชื่อมต่อบริการ' : health === 'offline' ? 'ออฟไลน์ · เชื่อมบริการวิเคราะห์ไม่ได้' : 'ยังไม่เชื่อมต่อโมเดล AI';
 
   return (
     <section className="scan-workspace" aria-label="ตรวจหาไข่พยาธิ">
       <div className="scan-section-heading">
         <div><h1>ตรวจหาไข่พยาธิ<span className="scan-heading-dot">.</span></h1><p>เปลี่ยนภาพจากกล้องจุลทรรศน์ ให้เป็นข้อมูลที่มองเห็นได้ชัดเจน</p></div>
-        <div className={`scan-health scan-health--${health}`} title={healthMessage}><span className="scan-status-dot" />{health === 'ready' ? 'โมเดล AI พร้อมใช้งาน' : health === 'checking' ? 'กำลังเชื่อมต่อบริการ' : 'ยังไม่เชื่อมต่อโมเดล AI'}{health !== 'ready' && <button type="button" onClick={() => void checkHealth()} disabled={health === 'checking'} aria-label="ตรวจสอบการเชื่อมต่ออีกครั้ง"><RefreshCw size={13} className={health === 'checking' ? 'scan-spin' : ''} /></button>}</div>
       </div>
 
       <input ref={fileInput} type="file" accept="*/*" className="scan-sr-only" onChange={(event) => void acceptFile(event.target.files?.[0])} aria-label="เลือกภาพจากอุปกรณ์" />
       <input ref={cameraInput} type="file" accept="image/*" capture="environment" className="scan-sr-only" onChange={(event) => void acceptFile(event.target.files?.[0])} aria-label="ถ่ายภาพด้วยกล้อง" />
 
-      {demo && <div className="scan-demo-banner" role="status"><Sparkles size={16} /><div><strong>ข้อมูลสาธิต ไม่ใช่ผลตรวจจาก AI</strong><span>ภาพวาดจำลองและกรอบตัวอย่าง ใช้เพื่อสำรวจการทำงานของแอปเท่านั้น</span></div><button type="button" onClick={() => fileInput.current?.click()}><Upload size={14} /> ใช้ภาพของคุณ <ArrowRight size={14} /></button></div>}
       {error && <div className="scan-error" role="alert"><CircleHelp size={18} /><span>{error}</span><button type="button" onClick={() => setError('')} aria-label="ปิดข้อความ"><X size={16} /></button></div>}
       {normalizationNotice && hasImage && !demo && <p className="platform-notice" role="status">{normalizationNotice}</p>}
 
@@ -424,6 +423,14 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
         <div className="scan-main-column">
           <div className={`scan-viewer-card ${dragging ? 'scan-viewer-card--drag' : ''}`} onDragOver={(event) => { event.preventDefault(); if (!working) setDragging(true); }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragging(false); }} onDrop={(event) => { event.preventDefault(); setDragging(false); void acceptFile(event.dataTransfer.files[0]); }}>
             <div className="scan-card-header"><div className="scan-card-title"><span className="scan-icon-tile"><ScanLine size={17} /></span><span>{hasImage ? 'ภาพตัวอย่าง' : 'อัปโหลดภาพเพื่อตรวจวิเคราะห์'}</span></div>{hasImage && <span className="scan-card-caption">{dimensions.width} × {dimensions.height} px</span>}</div>
+            <div className={`scan-status-line scan-status-line--${health}${demo ? ' scan-demo-banner' : ''}`} role="status" aria-live="polite" aria-atomic="true">
+              {demo ? <Sparkles size={16} aria-hidden="true"/> : health === 'checking' ? <LoaderCircle size={16} className="scan-spin" aria-hidden="true"/> : <Info size={16} aria-hidden="true"/>}
+              <span className="scan-status-copy" title={healthMessage}>{demo && <><strong>ข้อมูลสาธิต ไม่ใช่ผลตรวจจาก AI</strong><span aria-hidden="true">·</span></>}<span>{connectionStatus}</span></span>
+              <span className="scan-status-actions">
+                {health !== 'ready' && <button type="button" onClick={() => void checkHealth()} disabled={health === 'checking'} aria-label="ตรวจสอบการเชื่อมต่ออีกครั้ง" title="ตรวจสอบการเชื่อมต่ออีกครั้ง"><RefreshCw size={16} className={health === 'checking' ? 'scan-spin' : ''} aria-hidden="true"/></button>}
+                {demo && <button type="button" onClick={() => fileInput.current?.click()}><Upload size={15} aria-hidden="true"/>ใช้ภาพของคุณ</button>}
+              </span>
+            </div>
 
             {!hasImage ? (
               <div className="scan-upload-zone">
@@ -478,7 +485,7 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
         <aside className="scan-results-card" aria-label="ผลการวิเคราะห์">
           <div className="scan-card-header"><div className="scan-card-title"><span className="scan-icon-tile"><Crosshair size={17} /></span><span>ผลการวิเคราะห์</span></div>{record ? <span className={`scan-result-badge ${demo ? 'scan-result-badge--demo' : ''}`}>{demo ? 'ตัวอย่างสาธิต' : 'ผล AI · รอการทบทวน'}</span> : null}</div>
           {!record ? (
-            <div className="scan-results-empty"><div className="scan-results-empty-icon"><ScanLine size={34} strokeWidth={1.2} /></div><h3>รายละเอียดจะปรากฏที่นี่</h3><p>เมื่อวิเคราะห์ภาพแล้ว คุณจะเห็นตำแหน่ง<br />ชนิด และความเชื่อมั่นของแต่ละผลตรวจ</p><div className="scan-how-it-works"><span className="scan-small-label">เพียง 3 ขั้นตอน</span><div><span className={hasImage ? 'scan-step-number scan-step-number--done' : 'scan-step-number'}>{hasImage ? <Check size={12} /> : '01'}</span><p><strong>เพิ่มภาพกล้องจุลทรรศน์</strong><span>อัปโหลดหรือถ่ายภาพจากมือถือ</span></p></div><div><span className="scan-step-number">02</span><p><strong>ให้ AI ช่วยตรวจจับ</strong><span>ค้นหาตำแหน่งและจำแนกชนิด</span></p></div><div><span className="scan-step-number">03</span><p><strong>สำรวจผลอย่างละเอียด</strong><span>ดูกรอบบนภาพและเรียนรู้ใน Atlas</span></p></div></div>{health !== 'ready' && health !== 'checking' && <div className="scan-model-note"><Info size={15} /><p><strong>ยังไม่เชื่อมต่อโมเดล AI</strong><span>{healthMessage}</span><button type="button" onClick={loadDemo}>สำรวจตัวอย่างสาธิต <ArrowRight size={13} /></button></p></div>}</div>
+            <div className="scan-results-empty"><div className="scan-results-empty-icon"><ScanLine size={34} strokeWidth={1.2} /></div><h3>รายละเอียดจะปรากฏที่นี่</h3><p>เมื่อวิเคราะห์ภาพแล้ว คุณจะเห็นตำแหน่ง<br />ชนิด และความเชื่อมั่นของแต่ละผลตรวจ</p><div className="scan-how-it-works"><span className="scan-small-label">เพียง 3 ขั้นตอน</span><div><span className={hasImage ? 'scan-step-number scan-step-number--done' : 'scan-step-number'}>{hasImage ? <Check size={12} /> : '01'}</span><p><strong>เพิ่มภาพกล้องจุลทรรศน์</strong><span>อัปโหลดหรือถ่ายภาพจากมือถือ</span></p></div><div><span className="scan-step-number">02</span><p><strong>ให้ AI ช่วยตรวจจับ</strong><span>ค้นหาตำแหน่งและจำแนกชนิด</span></p></div><div><span className="scan-step-number">03</span><p><strong>สำรวจผลอย่างละเอียด</strong><span>ดูกรอบบนภาพและเรียนรู้ใน Atlas</span></p></div></div></div>
           ) : (
             <>
               <div className="scan-results-summary"><div><span className="scan-small-label">{demo ? 'ไข่พยาธิในตัวอย่าง' : 'ตรวจพบตามเกณฑ์ที่เลือก'}</span><p><strong>{detections.length.toString().padStart(2, '0')}</strong><span>{hasLarvalDetections ? 'ตำแหน่ง' : 'ฟอง'}</span></p></div><span className="scan-summary-divider" /><div><span className="scan-small-label">จำแนกชนิด</span><p><strong>{species.length.toString().padStart(2, '0')}</strong><span>ชนิด</span></p></div><span className="scan-summary-icon"><CheckCheck size={22} /></span></div>

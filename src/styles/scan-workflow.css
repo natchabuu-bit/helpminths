@@ -11,4 +11,13 @@
 .scan-expert-action .scan-button { width:100%;white-space:normal; }
 .scan-expert-action .scan-referral-error { color:#9d3636; }
 .scan-file-formats { white-space:normal;max-width:100%;padding:0 10px;line-height:1.9; }
+.scan-status-line { display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;min-width:0;padding:8px 16px;border-bottom:1px solid var(--scan-border);background:#f5faf8;color:#3e665a;font-size:.9375rem;line-height:1.7; }
+.scan-status-line > svg { flex-shrink:0; }
+.scan-status-copy { display:inline-flex;align-items:baseline;flex-wrap:wrap;flex:1 1 210px;min-width:0;gap:0 7px;overflow-wrap:anywhere; }
+.scan-status-copy strong { font-weight:600; }
+.scan-status-line--offline, .scan-status-line--unavailable { color:#78501f;background:#fffaf0; }
+.scan-status-actions { display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-left:auto; }
+.scan-status-actions button { display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;min-width:44px;max-width:100%;padding:7px 9px;border:0;border-radius:6px;background:transparent;color:inherit;font-size:.875rem;line-height:1.6;white-space:normal; }
+.scan-status-actions button:hover:not(:disabled) { background:#174e3f0c; }
+.scan-status-actions button:focus-visible { outline:3px solid var(--scan-accent);outline-offset:2px; }
 @media(max-width:680px){.scan-saved-history{flex-wrap:wrap;padding:18px}.scan-saved-history .platform-button{width:100%}.scan-format-note{font-size:.9375rem!important}}

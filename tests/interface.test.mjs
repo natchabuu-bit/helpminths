@@ -388,3 +388,170 @@ test('management deep links show an access message without reading private manag
     } finally { await page.close() }
   }
 })
+
+async function assertScanStatusBeforeImage(page) {
+  const status = page.locator('.scan-status-line')
+  assert.equal(await status.count(), 1, 'Connectivity, model readiness and demo mode share one status region')
+  assert.equal(await status.getAttribute('role'), 'status')
+  assert.equal(await status.getAttribute('aria-live'), 'polite')
+  const header = await page.locator('.scan-viewer-card > .scan-card-header').boundingBox()
+  const line = await status.boundingBox()
+  const image = await page.locator('.scan-upload-zone, .scan-image-scroll').first().boundingBox()
+  assert.ok(header && line && image)
+  assert.ok(line.y >= header.y + header.height - 1 && line.y + line.height <= image.y + 1, 'The single status must sit between the viewer heading and the image/upload surface')
+  assert.equal(await page.locator('.scan-health').count(), 0, 'The former separate model badge must not remain')
+  assert.equal(await page.locator('.scan-results-empty .scan-model-note').count(), 0, 'The empty results card must not repeat the model availability message')
+}
+
+test('Scan combines model, offline and honest demo states above the image without resubmitting on reconnect', { timeout: 60_000 }, async () => {
+  const context = await browser.newContext({ viewport: { width: 375, height: 900 }, reducedMotion: 'reduce', serviceWorkers: 'block' })
+  const page = await context.newPage()
+  const errors = [], analysisRequests = [], healthRequests = []
+  let modelReady = false, connected = true
+  page.on('pageerror', error => errors.push(error.message))
+  await noWebGL(page)
+  const fixture = await mockAccount(page, account(null))
+  await page.route('**/api/health', async route => {
+    healthRequests.push(route.request().url())
+    if (!connected) { await route.abort('internetdisconnected'); return }
+    await route.fulfill({ json: { status: 'ok', model_ready: modelReady, model_name: modelReady ? 'SYNTHETIC-UI-ONLY.pt' : null } })
+  })
+  // A regression must not submit a real microscope image to the server.
+  await page.route('**/api/analyze', async route => { analysisRequests.push(route.request().url()); await route.abort('blockedbyclient') })
+  try {
+    await page.goto(`${baseURL}/#scan`, { waitUntil: 'networkidle' })
+    const status = page.locator('.scan-status-line')
+    await status.getByText('ยังไม่เชื่อมต่อโมเดล AI', { exact: true }).waitFor()
+    await assertScanStatusBeforeImage(page)
+    assert.equal(await page.getByLabel('เลือกภาพจากอุปกรณ์').isDisabled(), false)
+    const retry = status.getByRole('button', { name: 'ตรวจสอบการเชื่อมต่ออีกครั้ง', exact: true })
+    modelReady = true
+    const healthBefore = healthRequests.length
+    await retry.click()
+    await status.getByText('โมเดล AI พร้อมใช้งาน', { exact: true }).waitFor()
+    assert.ok(healthRequests.length > healthBefore, 'The combined status must retain the real health retry action')
+    assert.equal(await retry.count(), 0)
+    await assertScanStatusBeforeImage(page)
+    await page.getByRole('button', { name: 'ดูตัวอย่างสาธิต', exact: true }).click()
+    await page.locator('.scan-image-svg').waitFor()
+    assert.equal(await page.locator('.scan-status-line.scan-demo-banner').count(), 1, 'The demo marker must be on the same status line')
+    assert.equal(await page.locator('.scan-demo-banner').count(), 1)
+    assert.match(await status.innerText(), /ข้อมูลสาธิต ไม่ใช่ผลตรวจจาก AI/)
+    const sourceBefore = await page.locator('.scan-image-svg image').getAttribute('href')
+    await assertScanStatusBeforeImage(page)
+
+    connected = false
+    await context.setOffline(true)
+    await page.waitForFunction(() => navigator.onLine === false)
+    await status.getByText('ออฟไลน์ · เชื่อมบริการวิเคราะห์ไม่ได้', { exact: true }).waitFor()
+    assert.match(await status.innerText(), /ข้อมูลสาธิต ไม่ใช่ผลตรวจจาก AI/)
+    assert.equal(await status.getByRole('button', { name: 'ใช้ภาพของคุณ', exact: true }).count(), 1)
+    assert.equal(await page.locator('.scan-detection-box').count(), 3)
+    await assertScanStatusBeforeImage(page)
+    await retry.click()
+    await status.getByText('ออฟไลน์ · เชื่อมบริการวิเคราะห์ไม่ได้', { exact: true }).waitFor()
+    connected = true
+    await context.setOffline(false)
+    await page.waitForFunction(() => navigator.onLine === true)
+    await status.getByText('โมเดล AI พร้อมใช้งาน', { exact: true }).waitFor()
+    assert.match(await status.innerText(), /ไม่ใช่ผลตรวจจาก AI/)
+    assert.equal(await page.locator('.scan-image-svg image').getAttribute('href'), sourceBefore, 'Connectivity changes must preserve the current image')
+    assert.equal(await page.locator('.scan-detection-box').count(), 3)
+
+    await page.setViewportSize({ width: 320, height: 900 })
+    await assertScanStatusBeforeImage(page)
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'The combined status must fit a320px phone')
+    await page.setViewportSize({ width: 375, height: 900 })
+    await page.evaluate(() => { document.documentElement.style.fontSize = '200%' })
+    const textFit = await status.evaluate(element => ({ own: element.scrollWidth <= element.clientWidth + 1, page: document.documentElement.scrollWidth <= innerWidth + 1 }))
+    assert.equal(textFit.own, true, 'Status text and controls must wrap when text is enlarged')
+    assert.equal(textFit.page, true, 'Enlarged status content must not create horizontal page scrolling')
+    await assertScanStatusBeforeImage(page)
+    assert.deepEqual(analysisRequests, [], 'Retrying or reconnecting must not automatically analyze a demo or local image')
+    assert.deepEqual(fixture.mutations, [])
+    assert.deepEqual(errors, [])
+  } finally { await context.close() }
+})
+
+async function assertAtlasFirstMatchStartsBelowFilter(page) {
+  const list = page.locator('.atlas-species-list')
+  const first = list.locator('.atlas-species-item').first()
+  await first.waitFor()
+  await page.waitForFunction(() => document.querySelector('.atlas-species-list')?.scrollTop === 0)
+  const filter = await page.locator('.atlas-filter').boundingBox()
+  const viewport = await list.boundingBox()
+  const item = await first.boundingBox()
+  assert.ok(filter && viewport && item)
+  assert.ok(viewport.y >= filter.y + filter.height - 1, 'The species viewport must begin below the filter')
+  assert.ok(item.y >= viewport.y - 1, 'The first match must not retain a clipped scroll offset after filtering')
+  assert.ok(item.y + item.height > viewport.y, 'The first matching row must be visible in the species viewport')
+}
+
+async function assertAtlasItemCanBeReached(item, scenario) {
+  const geometry = await item.evaluate(element => {
+    const box = element.getBoundingClientRect(), viewport = element.closest('.atlas-species-list').getBoundingClientRect()
+    const left = Math.max(box.left, viewport.left, 0), right = Math.min(box.right, viewport.right, innerWidth)
+    const top = Math.max(box.top, viewport.top, 0), bottom = Math.min(box.bottom, viewport.bottom, innerHeight)
+    const hit = right > left && bottom > top ? document.elementFromPoint((left + right) / 2, (top + bottom) / 2) : null
+    return { visible: right > left && bottom > top, reachable: !!hit && (hit === element || element.contains(hit)), coveredBy: hit && !element.contains(hit) ? `${hit.tagName}.${hit.className}` : null }
+  })
+  assert.equal(geometry.visible, true, `${scenario}: the requested species must be visible inside the actual scroll viewport`)
+  assert.equal(geometry.reachable, true, `${scenario}: the requested species must not be covered by the filter or navigation (${geometry.coveredBy})`)
+}
+
+test('Atlas resets clipped catalogue scroll when search or group changes and keeps every species keyboard reachable', { timeout: 90_000 }, async () => {
+  for (const [width, fontSize] of [[1440, '100%'], [375, '100%'], [1440, '200%'], [375, '200%']]) {
+    const page = await browser.newPage({ viewport: { width, height: 1000 }, reducedMotion: 'reduce', serviceWorkers: 'block' })
+    const errors = []
+    page.on('pageerror', error => errors.push(error.message))
+    await noWebGL(page)
+    const fixture = await mockAccount(page, account(null))
+    try {
+      await page.goto(`${baseURL}/#atlas`, { waitUntil: 'networkidle' })
+      await page.evaluate(value => { document.documentElement.style.fontSize = value }, fontSize)
+      await page.evaluate(() => document.fonts.ready)
+      const list = page.locator('.atlas-species-list'), items = list.locator('.atlas-species-item')
+      const filter = page.getByRole('combobox', { name: 'กรองกลุ่มพยาธิ', exact: true })
+      const search = page.getByRole('textbox', { name: 'ค้นหาชื่อพยาธิ', exact: true })
+      assert.equal(await items.count(), 12)
+      await assertAtlasFirstMatchStartsBelowFilter(page)
+      await list.evaluate(element => { element.scrollTop = element.scrollHeight })
+      assert.ok(await list.evaluate(element => element.scrollTop > 0), 'The fixture must reproduce a genuinely scrolled catalogue')
+      await filter.selectOption('trematode')
+      await page.waitForFunction(() => document.querySelectorAll('.atlas-species-item').length === 4)
+      assert.deepEqual(await items.locator('.atlas-species-name strong').allTextContents(), ['Opisthorchis viverrini', 'Minute intestinal flukes (MIF)', 'Echinostoma spp.', 'Fasciolopsis buski'])
+      await assertAtlasFirstMatchStartsBelowFilter(page)
+      // Enlarged headings can put the whole catalogue below the fold. Scroll
+      // the document to the requested match after checking the list reset.
+      await items.first().evaluate(element => element.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' }))
+      assert.equal(await list.evaluate(element => element.scrollTop), 0, 'Bringing the first row into view must preserve the verified list reset')
+      await assertAtlasItemCanBeReached(items.first(), `First filtered match at ${width}px/${fontSize}`)
+
+      await filter.selectOption('all')
+      await page.waitForFunction(() => document.querySelectorAll('.atlas-species-item').length === 12)
+      await assertAtlasFirstMatchStartsBelowFilter(page)
+      await list.evaluate(element => { element.scrollTop = element.scrollHeight })
+      await search.fill('พยาธิ')
+      await assertAtlasFirstMatchStartsBelowFilter(page)
+      assert.equal(await items.count(), 12)
+      await list.evaluate(element => { element.scrollTop = element.scrollHeight })
+      await search.fill('')
+      await assertAtlasFirstMatchStartsBelowFilter(page)
+
+      await filter.focus()
+      await page.keyboard.press('Tab')
+      for (let index = 0; index < 12; index++) {
+        if (index) await page.keyboard.press('Tab')
+        assert.equal(await items.nth(index).evaluate(element => element === document.activeElement), true, `Keyboard focus must reach species${index + 1} at ${width}px/${fontSize}`)
+      }
+      const last = items.last()
+      await assertAtlasItemCanBeReached(last, `Last keyboard-focused match at ${width}px/${fontSize}`)
+      const beforeSelection = await list.evaluate(element => element.scrollTop)
+      await page.keyboard.press('Enter')
+      await page.locator('.atlas-specimen-caption').getByRole('heading', { name: 'Strongyloides stercoralis', exact: true }).waitFor()
+      assert.ok(Math.abs(await list.evaluate(element => element.scrollTop) - beforeSelection) <= 1, 'Selecting a species must preserve the current list position')
+      assert.deepEqual(fixture.mutations, [])
+      assert.deepEqual(errors, [])
+    } finally { await page.close() }
+  }
+})

@@ -154,7 +154,7 @@
 .atlas-search:focus-within { border-color: var(--atlas-mint); box-shadow: 0 0 0 3px #0f9d8a12; }
 .atlas-search input, .atlas-filter { color: var(--atlas-text); }
 .atlas-search input::placeholder { color: #567779; }
-.atlas-species-list { gap: 7px; scrollbar-color: #aacbc8 transparent; }
+.atlas-species-list { min-height: 0; padding: 6px; scroll-padding-block: 6px; overflow-anchor: none; align-content: start; gap: 7px; scrollbar-color: #aacbc8 transparent; }
 .atlas-species-item { border-radius: 8px; transition: background .16s, border-color .16s; }
 .atlas-species-item:hover { background: #ffffffb8; border-color: #c7ddda; }
 .atlas-species-item.atlas-selected { background: #ffffffed; border-color: #acd3cb; box-shadow: inset 3px 0 0 #ff5a3c; }

@@ -81,7 +81,9 @@ test('upload stays available without a model, and unsupported files are rejected
     await input.setInputFiles({ name: 'slide.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==', 'base64') })
     await page.locator('.scan-image-svg').waitFor()
     assert.equal(await page.getByRole('button', { name: 'เริ่มวิเคราะห์ภาพ' }).isDisabled(), true)
-    assert.match(await page.locator('.scan-model-note').innerText(), /ยังไม่เชื่อมต่อโมเดล AI/)
+    assert.equal(await page.locator('.scan-status-line').count(), 1)
+    assert.match(await page.locator('.scan-status-line').innerText(), /ยังไม่เชื่อมต่อโมเดล AI/)
+    assert.equal(await page.locator('.scan-section-heading .scan-health').count(), 0)
     assert.equal(await page.locator('.scan-detection-box').count(), 0)
   } finally { await page.close() }
 })

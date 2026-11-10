@@ -35,6 +35,7 @@ export default function Atlas({ initialSpecies }: { initialSpecies?: string }) {
   const [resetKey, setResetKey] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const viewerRef = useRef<HTMLDivElement>(null);
+  const catalogListRef = useRef<HTMLDivElement>(null);
   const item = getSpeciesById(selectedId);
   const isAscaris = item.id === 'ascaris';
   const isLarva = item.specimenType === 'larva';
@@ -66,6 +67,11 @@ export default function Atlas({ initialSpecies }: { initialSpecies?: string }) {
   }
   useEffect(() => { if (initialSpecies) chooseSpecies(getSpeciesById(initialSpecies).id); }, [initialSpecies]);
   useEffect(() => {
+    // A new search or group starts at its first result, independent of the
+    // scroll position in the previous catalogue. Selecting a species keeps it.
+    catalogListRef.current?.scrollTo({ top: 0, left: 0 });
+  }, [query, group]);
+  useEffect(() => {
     if (!expanded) return;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const onKey = (event: KeyboardEvent) => {
@@ -93,7 +99,7 @@ export default function Atlas({ initialSpecies }: { initialSpecies?: string }) {
         <div className="atlas-catalog-heading"><h2>คลังไข่และตัวอ่อน</h2><span>{species.length}</span></div>
         <label className="atlas-search"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ค้นหาชื่อพยาธิ..." aria-label="ค้นหาชื่อพยาธิ" /></label>
         <label className="atlas-filter"><SlidersHorizontal size={14} /><select value={group} onChange={(event) => setGroup(event.target.value as SpeciesGroup | 'all')} aria-label="กรองกลุ่มพยาธิ"><option value="all">ทุกกลุ่มพยาธิ</option>{Object.entries(groupLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-        <div className="atlas-species-list">
+        <div className="atlas-species-list" ref={catalogListRef}>
           {matches.map((entry) => <button className={`atlas-species-item ${entry.id === selectedId ? 'atlas-selected' : ''}`} key={entry.id} onClick={() => chooseSpecies(entry.id)} aria-pressed={entry.id === selectedId}>
             <div className="atlas-species-thumb"><EggIllustration speciesId={entry.id} /></div><div className="atlas-species-name"><strong>{entry.name}</strong><span>{entry.thaiName}</span><small>{getAtlasPhotos(entry.id).length ? entry.specimenType === 'larva' ? 'มีภาพตัวอ่อนจริง' : 'มีภาพไข่จริง' : '3D · รอภาพจริง'}</small></div><ChevronRight size={15} />
           </button>)}
