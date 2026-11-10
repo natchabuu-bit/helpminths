@@ -37,7 +37,7 @@ try {
       await page.getByRole('navigation', { name: 'เมนูหลัก', exact: true }).getByRole('button', { name: label, exact: true }).click()
     }
     await page.goto(baseURL, { waitUntil: 'networkidle' })
-    await page.locator('.field-model-stage canvas').waitFor()
+    await page.getByRole('heading', { name: 'ตรวจภาพไข่พยาธิ', exact: true }).waitFor()
     await page.waitForTimeout(500)
     await capture('home')
     await nav('ตรวจวิเคราะห์')

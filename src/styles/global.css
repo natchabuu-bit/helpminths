@@ -108,12 +108,6 @@ input::placeholder, textarea::placeholder { color: #5b6e81; opacity: 1; }
 .specimen-label > svg { color: #63739e; }
 .visual-scale { position: absolute; bottom: 20px; right: 24px; font-size: .6875rem; letter-spacing: .8px; color: #59698b; display: flex; align-items: center; gap: 8px; }
 .visual-scale > span { width: 38px; height: 5px; border: 1px solid #7b8cae; border-top: 0; }
-.capability-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; padding: 20px 0 0; margin-bottom: 34px; }
-.capability-strip > div { display: flex; align-items: center; gap: 12px; min-width: 0; border: 1px solid #e0e7f0; border-radius: 18px; background: #ffffffd9; padding: 18px 16px; }
-.capability-strip > div:last-child { border: 1px solid #e0e7f0; }
-.capability-icon { color: var(--teal); display: grid; place-items: center; background: #e6f5f0; border: 1px solid #d1e9e1; width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0; }
-.capability-strip strong { display: block; font-size: 1rem; font-weight: 600; color: var(--text); }
-.capability-strip small { display: block; font-size: .875rem; color: var(--muted); margin-top: 5px; line-height: 1.8; }
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 22px; }
 .section-heading > div { min-width: 0; }
 .section-heading h2 { font-size: 1.625rem; font-weight: 600; letter-spacing: -.3px; margin-bottom: 6px; }
@@ -139,7 +133,6 @@ input::placeholder, textarea::placeholder { color: #5b6e81; opacity: 1; }
 .specimen-art-1 { background: radial-gradient(ellipse at 50% 55%, #fff7ed, #f6eadb); }
 .specimen-art-1 > svg { transform: rotate(30deg); }
 .specimen-art-2 { background: radial-gradient(ellipse at 50% 55%, #f1fbfb, #deedf4); }
-.specimen-number { position: absolute; top: 12px; left: 12px; font-size: .75rem; letter-spacing: .7px; color: #59627d; }
 .view-3d { position: absolute; bottom: 12px; right: 12px; display: flex; align-items: center; gap: 4px; font-size: .875rem; color: #5e548c; background: #fffffff0; border: 1px solid #d8d4e9; border-radius: 999px; padding: 3px 8px; box-shadow: 0 3px 8px #3d456709; }
 .specimen-info { padding: 20px; }
 .specimen-info > span { font-size: .875rem; color: var(--teal); text-transform: uppercase; letter-spacing: .7px; }
@@ -147,23 +140,6 @@ input::placeholder, textarea::placeholder { color: #5b6e81; opacity: 1; }
 .specimen-info > div { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .specimen-info p { font-size: 1rem; color: var(--muted); margin: 0; }
 .specimen-info svg { color: var(--teal); }
-.research-note { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 30px; border: 1px solid #d9e5ed; background: linear-gradient(120deg, #fff, #f0f8fa); border-radius: 20px; padding: 22px; }
-.research-note > div { display: flex; align-items: flex-start; gap: 12px; }
-.research-note svg { color: var(--teal); }
-.research-note p { margin: 0; }
-.research-note strong { display: block; font-size: 1rem; font-weight: 600; color: var(--text); }
-.research-note p > span { display: block; font-size: .9375rem; color: var(--muted); margin-top: 5px; line-height: 1.85; }
-.research-note button { display: flex; gap: 6px; align-items: center; background: transparent; font-size: .9375rem; color: var(--teal); white-space: nowrap; padding: 8px 0; min-height: 44px; }
-.feedback-invite { display: flex; align-items: center; justify-content: space-between; gap: 28px; position: relative; overflow: hidden; padding: 28px; margin: 28px 0; background: radial-gradient(ellipse at 100% 0, #e4e5fb, transparent 65%), linear-gradient(120deg, #f7f4ff, #f2f7fc); border: 1px solid #dcdef1; border-radius: 24px; }
-.feedback-invite > div { min-width: 0; }
-.feedback-invite h2 { margin: 0 0 8px; font-size: 1.5rem; line-height: 1.65; color: #354468; }
-.feedback-invite p { margin: 0; color: #52627c; font-size: 1.0625rem; line-height: 1.85; }
-.feedback-invite > svg, .feedback-invite > div > svg { width: 44px; height: 44px; padding: 10px; margin-bottom: 14px; color: #6655a4; background: #e8e3f7; border-radius: 14px; }
-.feedback-invite .button-primary, .feedback-invite .button-quiet { flex-shrink: 0; }
-.feedback-invite .button-primary { background: #6655a4; border-color: #6655a4; box-shadow: 0 6px 14px #6655a41a; }
-.feedback-invite .button-primary:hover { background: #56458e; }
-@media (max-width: 1180px) { .feedback-invite { flex-direction: column; align-items: flex-start; gap: 20px; } }
-@media (max-width: 680px) { .feedback-invite { padding: 24px 20px; } .feedback-invite .button-primary, .feedback-invite .button-quiet { width: 100%; } }
 .app-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: .875rem; color: var(--muted); padding: 30px 0 24px; margin-top: 20px; }
 .footer-dot { padding: 0 6px; }
 .footer-version { margin-left: 10px; font-size: .8125rem; border: 1px solid var(--border); border-radius: 4px; padding: 2px 5px; color: var(--muted); }
@@ -207,8 +183,6 @@ input::placeholder, textarea::placeholder { color: #5b6e81; opacity: 1; }
 .sidebar-backdrop { display: none; }
 .nav-item.active .nav-badge, .nav-item.active .nav-count { color: #fff; background: #ffffff1a; border-color: #ffffff70; }
 .help-link:hover { color: var(--teal); background: #eff7f6; }
-.capability-strip > div:nth-child(2) .capability-icon { color: #6655a4; background: #f0edfb; border-color: #e3dcf6; }
-.capability-strip > div:nth-child(3) .capability-icon { color: #376eab; background: #eaf2fc; border-color: #d9e6f7; }
 .workflow-top > svg { width: 44px; height: 44px; padding: 10px; border-radius: 14px; background: #e5f5ef; }
 .workflow-card:nth-child(2) .workflow-top > svg { color: #6655a4; background: #f0edfb; }
 .workflow-card:nth-child(3) .workflow-top > svg { color: #376eab; background: #eaf2fc; }
@@ -238,11 +212,7 @@ input::placeholder, textarea::placeholder { color: #5b6e81; opacity: 1; }
   .egg-tertiary { right: -15%; }
   .specimen-label { bottom: 55px; padding: 10px; }
   .specimen-label > svg, .small-caption { display: none; }
-  .capability-strip { gap: 12px; }
-  .capability-strip > div { align-items: flex-start; gap: 8px; padding: 16px 12px; }
-  .capability-icon { width: 36px; height: 36px; }
   .workflow-card, .specimen-info { padding: 18px; }
-  .research-note { align-items: flex-start; flex-direction: column; }
   .history-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 1020px) {
@@ -271,10 +241,6 @@ input::placeholder, textarea::placeholder { color: #5b6e81; opacity: 1; }
   .orbital { top: 63%; }
   .hero-badge { font-size: .8125rem; max-width: 100%; }
   .hero-copy h2 { font-size: clamp(1.75rem, 5.4vw, 2.5rem); }
-  .capability-strip { grid-template-columns: 1fr; gap: 12px; padding: 18px 0 0; }
-  .capability-strip > div { border: 1px solid #e0e7f0; align-items: center; gap: 14px; padding: 16px; }
-  .capability-icon { width: 44px; height: 44px; }
-  .capability-strip small { margin-top: 2px; }
   .workflow-grid { grid-template-columns: 1fr; gap: 16px; }
   .workflow-card { padding: 24px; }
   .workflow-card h3 { font-size: 1.25rem; }
@@ -289,9 +255,6 @@ input::placeholder, textarea::placeholder { color: #5b6e81; opacity: 1; }
   .specimen-info h3 { font-size: 1.125rem; }
   .specimen-info > div { align-items: flex-start; }
   .specimen-info p { font-size: .9375rem; }
-  .specimen-number { font-size: .75rem; letter-spacing: .3px; left: 8px; }
-  .research-note { padding: 20px; gap: 10px; }
-  .research-note > div { gap: 10px; }
   .history-grid { grid-template-columns: 1fr; }
   .app-footer { align-items: flex-start; flex-direction: column; font-size: .875rem; }
   .help-modal { padding: 28px 22px; }
@@ -318,7 +281,6 @@ input::placeholder, textarea::placeholder { color: #5b6e81; opacity: 1; }
   .specimen-card { grid-template-columns: minmax(0, 33%) minmax(0, 1fr); }
   .specimen-info { padding: 18px 13px; }
   .specimen-info > span { font-size: .875rem; letter-spacing: 0; }
-  .specimen-number { font-size: .6875rem; letter-spacing: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }

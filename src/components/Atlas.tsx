@@ -85,8 +85,8 @@ export default function Atlas({ initialSpecies }: { initialSpecies?: string }) {
 
   return <section className="atlas-page" aria-label="คลังเรียนรู้ไข่และตัวอ่อนพยาธิสามมิติ">
     <div className="atlas-heading">
-      <div><div className="atlas-eyebrow"><span /> THE MORPHOLOGY COLLECTION</div><h1>จากภาพจริง <span>สู่ความเข้าใจโครงสร้าง</span></h1><p>เทียบภาพกล้องจุลทรรศน์กับโมเดล 3D แล้วเลือกสำรวจทีละส่วน</p></div>
-      <div className="atlas-collection-tag"><Box size={23} /><div><strong>Microscopy × 3D Atlas</strong><span>{species.length} กลุ่มอ้างอิง · ภาพจริง {photoCoverage} กลุ่ม · โครงสร้าง {structureCount} จุด</span></div></div>
+      <div><h1>จากภาพจริง <span>สู่ความเข้าใจโครงสร้าง</span></h1><p>เทียบภาพกล้องจุลทรรศน์กับโมเดล 3D แล้วเลือกสำรวจทีละส่วน</p></div>
+      <div className="atlas-collection-tag"><Box size={23} /><div><strong>ภาพจริงและโมเดล 3D</strong><span>{species.length} กลุ่มอ้างอิง · ภาพจริง {photoCoverage} กลุ่ม · โครงสร้าง {structureCount} จุด</span></div></div>
     </div>
     <div className="atlas-workspace">
       <aside className="atlas-catalog" aria-label="เลือกชนิดพยาธิ">
@@ -95,7 +95,7 @@ export default function Atlas({ initialSpecies }: { initialSpecies?: string }) {
         <label className="atlas-filter"><SlidersHorizontal size={14} /><select value={group} onChange={(event) => setGroup(event.target.value as SpeciesGroup | 'all')} aria-label="กรองกลุ่มพยาธิ"><option value="all">ทุกกลุ่มพยาธิ</option>{Object.entries(groupLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <div className="atlas-species-list">
           {matches.map((entry) => <button className={`atlas-species-item ${entry.id === selectedId ? 'atlas-selected' : ''}`} key={entry.id} onClick={() => chooseSpecies(entry.id)} aria-pressed={entry.id === selectedId}>
-            <div className="atlas-species-thumb"><EggIllustration speciesId={entry.id} /></div><div className="atlas-species-name"><span className="atlas-item-index">SPECIMEN {String(species.indexOf(entry) + 1).padStart(2, '0')}</span><strong>{entry.name}</strong><span>{entry.thaiName}</span><small>{getAtlasPhotos(entry.id).length ? entry.specimenType === 'larva' ? 'มีภาพตัวอ่อนจริง' : 'มีภาพไข่จริง' : '3D · รอภาพจริง'}</small></div><ChevronRight size={15} />
+            <div className="atlas-species-thumb"><EggIllustration speciesId={entry.id} /></div><div className="atlas-species-name"><strong>{entry.name}</strong><span>{entry.thaiName}</span><small>{getAtlasPhotos(entry.id).length ? entry.specimenType === 'larva' ? 'มีภาพตัวอ่อนจริง' : 'มีภาพไข่จริง' : '3D · รอภาพจริง'}</small></div><ChevronRight size={15} />
           </button>)}
           {matches.length === 0 && <p className="atlas-empty">ไม่พบชนิดที่ตรงกับคำค้น<br /><button onClick={() => { setQuery(''); setGroup('all'); }}>ดูทั้งหมด</button></p>}
         </div>
@@ -114,9 +114,9 @@ export default function Atlas({ initialSpecies }: { initialSpecies?: string }) {
           if (next !== null) { event.preventDefault(); setMode(viewModes[next].id); document.getElementById(`atlas-tab-${viewModes[next].id}`)?.focus(); }
         }}>{view.label}</button>)}</div>
         <div id="atlas-learning-panels" role="tabpanel" aria-labelledby={`atlas-tab-${mode}`} className={`atlas-comparison atlas-comparison-${mode}`}>
-          <section className="atlas-photo-panel" aria-label={isLarva ? 'ตัวอย่างภาพตัวอ่อนจริง' : 'ตัวอย่างภาพไข่จริง'} hidden={mode === 'model'}><div className="atlas-pane-title"><span className="atlas-pane-index">01</span><div><h3>{isLarva ? 'ภาพตัวอ่อนจริง' : 'ภาพไข่จริง'}</h3><p>LIGHT MICROSCOPY</p></div></div><AtlasPhotoViewer key={isAscaris ? `${item.id}-${ascarisStage}-${ascarisDecorticated}` : item.id} item={item} photos={photos} selectedStructure={selectedStructure} emptyTitle={isAscaris ? 'ยังไม่มีภาพจริงที่ตรงกับตัวเลือกนี้' : undefined} emptyDescription={isAscaris ? `ยังไม่มีภาพไข่ ${currentStage.englishTitle}${ascarisDecorticated ? ' แบบ decorticated' : ''} ที่ยืนยันระยะ ลักษณะเปลือก และสิทธิ์นำมาใช้ได้ ดูภาพวาดอธิบายด้านบนและโมเดลที่เปลี่ยนตามตัวเลือก พร้อมแหล่งอ้างอิงประกอบ` : undefined} /></section>
+          <section className="atlas-photo-panel" aria-label={isLarva ? 'ตัวอย่างภาพตัวอ่อนจริง' : 'ตัวอย่างภาพไข่จริง'} hidden={mode === 'model'}><div className="atlas-pane-title"><span className="atlas-pane-index">01</span><div><h3>{isLarva ? 'ภาพตัวอ่อนจริง' : 'ภาพไข่จริง'}</h3></div></div><AtlasPhotoViewer key={isAscaris ? `${item.id}-${ascarisStage}-${ascarisDecorticated}` : item.id} item={item} photos={photos} selectedStructure={selectedStructure} emptyTitle={isAscaris ? 'ยังไม่มีภาพจริงที่ตรงกับตัวเลือกนี้' : undefined} emptyDescription={isAscaris ? `ยังไม่มีภาพไข่ ${currentStage.englishTitle}${ascarisDecorticated ? ' แบบ decorticated' : ''} ที่ยืนยันระยะ ลักษณะเปลือก และสิทธิ์นำมาใช้ได้ ดูภาพวาดอธิบายด้านบนและโมเดลที่เปลี่ยนตามตัวเลือก พร้อมแหล่งอ้างอิงประกอบ` : undefined} /></section>
           <section className="atlas-model-panel" aria-label="แบบจำลองโครงสร้าง" hidden={mode === 'photo'}>
-            <div className="atlas-pane-title"><span className="atlas-pane-index">02</span><div><h3>โมเดลอธิบายโครงสร้าง</h3><p>INTERACTIVE 3D · ไม่ใช่สเกลจริง</p></div><button className="atlas-icon-button" aria-label="เริ่มมุมมองใหม่" title="เริ่มมุมมองใหม่" onClick={resetModel}><RotateCcw size={16} /></button></div>
+            <div className="atlas-pane-title"><span className="atlas-pane-index">02</span><div><h3>โมเดลอธิบายโครงสร้าง</h3><p>3D · ไม่ใช่สเกลจริง</p></div><button className="atlas-icon-button" aria-label="เริ่มมุมมองใหม่" title="เริ่มมุมมองใหม่" onClick={resetModel}><RotateCcw size={16} /></button></div>
             <div className="atlas-model-stage"><AtlasModel item={item} cutaway={cutaway} autoRotate={autoRotate} resetKey={resetKey} selectedStructureId={selectedStructureId} onSelectStructure={selectStructure} zoom={zoom} labels={labels} ascarisStage={ascarisStage} ascarisDecorticated={ascarisDecorticated} />
               {labels && <div className="atlas-annotations" aria-label="จุดสังเกตของแบบจำลอง"><span className="atlas-model-label">{selectedStructure ? selectedStructure.shortLabel : 'กดจุดสีเขียวหรือส่วนของโมเดล'}</span><small>{cutaway ? 'ภาพตัดภายใน' : isLarva ? 'ผิวลำตัวโปร่งเพื่อเรียนรู้ภายใน' : 'เปลือกโปร่งเพื่อเรียนรู้ภายใน'}</small></div>}
             </div>
@@ -133,7 +133,7 @@ export default function Atlas({ initialSpecies }: { initialSpecies?: string }) {
         </section>
       </div>
       <aside className="atlas-details" aria-label={isLarva ? 'รายละเอียดลักษณะตัวอ่อนพยาธิ' : 'รายละเอียดลักษณะไข่พยาธิ'}>
-        <div><div className="atlas-detail-eyebrow">MORPHOLOGY GUIDE</div><h2>ลักษณะอ้างอิง{isAscaris ? ` · ${currentStage.title}` : ''}</h2><p className="atlas-description">{isAscaris ? currentStage.description : item.description}</p><dl className="atlas-dimensions"><div><dt>ขนาดโดยทั่วไป</dt><dd>{isAscaris ? currentStage.size : item.size}</dd></div><div><dt>รูปร่าง</dt><dd>{isAscaris ? `${currentStage.shape}${ascarisDecorticated ? ' · ชั้นผิวนอกหลุด ผิวเรียบ' : ''}` : item.shape}</dd></div></dl></div>
+        <div><h2>ลักษณะอ้างอิง{isAscaris ? ` · ${currentStage.title}` : ''}</h2><p className="atlas-description">{isAscaris ? currentStage.description : item.description}</p><dl className="atlas-dimensions"><div><dt>ขนาดโดยทั่วไป</dt><dd>{isAscaris ? currentStage.size : item.size}</dd></div><div><dt>รูปร่าง</dt><dd>{isAscaris ? `${currentStage.shape}${ascarisDecorticated ? ' · ชั้นผิวนอกหลุด ผิวเรียบ' : ''}` : item.shape}</dd></div></dl></div>
         <div><div className="atlas-feature-section"><h3>จุดสังเกตสำคัญ</h3>{displayFeatures.map((feature, index) => <div className="atlas-feature" key={feature}><span>{String(index + 1).padStart(2, '0')}</span><p>{feature}</p><Check size={13} /></div>)}</div>{item.clinicalNote && <div className="atlas-clinical-note"><Info size={16} /><p>{item.clinicalNote}</p></div>}</div>
       </aside>
     </div>

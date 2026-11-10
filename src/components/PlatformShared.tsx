@@ -5,8 +5,8 @@ import { apiRequest, labelStatus } from '../platform/api'
 import type { PlatformAnalysis, PlatformRole, PlatformSession, QualityAssessment } from '../platform/api'
 import '../styles/platform.css'
 
-export function PlatformHeading({ kicker, title, description, children }: { kicker: string; title: string; description: string; children?: ReactNode }) {
-  return <div className="platform-heading"><div><span>{kicker}</span><h1>{title}</h1><p>{description}</p></div>{children && <div className="platform-heading-actions">{children}</div>}</div>
+export function PlatformHeading({ title, description, children }: { kicker: string; title: string; description: string; children?: ReactNode }) {
+  return <div className="platform-heading"><div><h1>{title}</h1><p>{description}</p></div>{children && <div className="platform-heading-actions">{children}</div>}</div>
 }
 export function AccessState({ session, roles, children }: { session: PlatformSession; roles?: PlatformRole[]; children: ReactNode }) {
   if (session.connection_error) return <div className="platform-empty"><AlertCircle/><h2>เชื่อมต่อระบบข้อมูลไม่ได้</h2><p>{session.connection_error}</p><p>Atlas และเนื้อหาเรียนรู้ที่บันทึกไว้อาจยังใช้งานออฟไลน์ได้</p></div>

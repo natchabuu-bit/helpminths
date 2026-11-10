@@ -16,7 +16,7 @@ export default function AscarisStageGuide({ stage, decorticated, onStageChange, 
   const headingId = useId();
   const selected = getAscarisStage(stage);
   return <section className="ascaris-stages" aria-labelledby={headingId}>
-    <div className="ascaris-stage-heading"><div><span>ASCARIS EGG DEVELOPMENT</span><h3 id={headingId}>ระยะไข่พยาธิไส้เดือน</h3></div><span className="ascaris-stage-guide-tag"><Layers3 size={13} /> เลือกเพื่อเปลี่ยนภาพและโมเดล</span></div>
+    <div className="ascaris-stage-heading"><div><h3 id={headingId}>ระยะไข่พยาธิไส้เดือน</h3></div><span className="ascaris-stage-guide-tag"><Layers3 size={13} /> เลือกเพื่อเปลี่ยนภาพและโมเดล</span></div>
     <div className="ascaris-stage-options" role="group" aria-label="เลือกระยะพัฒนาไข่ Ascaris">
       {ascarisStages.map((entry) => <button type="button" key={entry.id} className={`ascaris-stage-option${stage === entry.id ? ' ascaris-stage-selected' : ''}`} data-stage={entry.id} aria-pressed={stage === entry.id} onClick={() => onStageChange(entry.id)}>
         <AscarisStageIllustration stage={entry.id} decorticated={decorticated} className="ascaris-stage-thumbnail" />

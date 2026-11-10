@@ -53,13 +53,6 @@
 .instrument-shell .button-primary:hover { background: #0c5c54; border-color: #0c5c54; box-shadow: 0 5px 14px #1f62591c; }
 .instrument-shell .button-quiet, .instrument-shell .text-button { color: #116d62; }
 .instrument-shell .button-quiet:hover, .instrument-shell .text-button:hover { color: #094d46; }
-.instrument-shell .capability-strip { margin-top: 24px; padding-top: 0; margin-bottom: 36px; gap: 14px; }
-.instrument-shell .capability-strip > div { position: relative; padding: 20px 16px; border: 1px solid var(--border); border-radius: 10px; background: #ffffffa3; }
-.instrument-shell .capability-icon { width: 40px; height: 40px; background: #e7f5ef; color: #1a7163; border-color: #cee4da; border-radius: 7px; }
-.instrument-shell .capability-strip > div:nth-child(2) .capability-icon { background: #fff0e9; color: #b83f2b; border-color: #f1d1c5; }
-.instrument-shell .capability-strip > div:nth-child(3) .capability-icon { background: #e7f3f1; color: #366f76; border-color: #cee1df; }
-.instrument-shell .capability-strip strong { color: #204c49; }
-.instrument-shell .capability-strip small { color: #4d706c; }
 .instrument-shell .section-heading { margin-bottom: 22px; }
 .instrument-shell .section-heading h2 { color: var(--text); font-size: 1.6rem; font-weight: 600; }
 .instrument-shell .small-caption { font: 500 .625rem/1.8 var(--mono); letter-spacing: 1px; color: #557c77; }
@@ -78,18 +71,11 @@
 .instrument-shell .specimen-art { background: radial-gradient(ellipse, #fbfdf5, #e2f0e5); }
 .instrument-shell .specimen-art-1 { background: radial-gradient(ellipse, #fffaf0, #f1e8d6); }
 .instrument-shell .specimen-art-2 { background: radial-gradient(ellipse, #f8fffb, #dfefe8); }
-.instrument-shell .specimen-number { color: #4e7161; font: 500 .625rem var(--mono); letter-spacing: .9px; }
 .instrument-shell .view-3d { color: #265b4c; border-color: #c5ded0; background: #fffffff0; border-radius: 4px; font-size: .8125rem; box-shadow: none; }
 .instrument-shell .specimen-info { background: #ffffffc9; }
 .instrument-shell .specimen-info > span { color: #376f5f; font-size: .8125rem; }
 .instrument-shell .specimen-info h3 { color: #173e36; }
 .instrument-shell .specimen-info p { color: #4b6b5d; }
-.instrument-shell .research-note { border-color: var(--border); border-radius: 10px; background: #ffffff9e; padding: 22px 24px; }
-.instrument-shell .research-note p > span { color: #4b6c65; }
-.instrument-shell .feedback-invite { border: 1px solid #c8e0d5; border-radius: 10px; background: radial-gradient(ellipse at 100% 0, #dbeee2, transparent 65%), #edf7ef; padding: 28px; }
-.instrument-shell .feedback-invite h2 { color: #1a4b3e; }
-.instrument-shell .feedback-invite p { color: #4e7164; }
-.instrument-shell .feedback-invite .button-primary { background: #0e7166; border-color: #0d6e63; }
 .instrument-shell .atlas-learning-entry { border-color: var(--border); background: #ffffffb8; border-radius: 8px; }
 .instrument-shell .session-history { border-color: var(--border); }
 .instrument-shell .history-card { border-color: var(--border); border-radius: 10px; box-shadow: none; }
@@ -143,15 +129,9 @@
   .instrument-shell .topbar-account { font-size: .875rem; gap: 6px; padding: 8px 10px; }
   .instrument-shell .breadcrumb strong { font-size: .9375rem; }
   .instrument-shell .main-content { padding: 18px 16px 0; }
-  .instrument-shell .capability-strip { margin-top: 22px; gap: 10px; }
-  .instrument-shell .capability-strip > div { padding: 16px; }
-  .instrument-shell .capability-strip strong { font-size: 1rem; }
-  .instrument-shell .capability-strip small { font-size: .9375rem; }
   .instrument-shell .section-heading h2 { font-size: 1.5rem; }
   .instrument-shell .workflow-card { padding: 22px; }
   .instrument-shell .specimen-info { padding: 20px; }
-  .instrument-shell .research-note { padding: 20px; }
-  .instrument-shell .feedback-invite { padding: 24px 20px; }
   .instrument-shell .app-footer { gap: 10px; margin-top: 28px; }
   .instrument-shell .app-footer > span:first-child { font-size: .625rem; }
 }

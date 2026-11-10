@@ -1,0 +1,10 @@
+.home-sections > section { min-width: 0; }
+.reports-system-overview { margin-top: 28px; border: 1px solid #cce2da; border-radius: 12px; background: #fff; color: #24584b; }
+.reports-system-overview > summary { min-height: 50px; padding: 18px 22px; font-size: 1.125rem; font-weight: 600; cursor: pointer; }
+.reports-system-overview > summary:focus-visible { outline: 3px solid #0d786e; outline-offset: 3px; border-radius: 10px; }
+.reports-system-overview > .platform-page { padding: 8px 22px 22px; }
+.reports-system-overview .platform-heading h2 { margin: 0 0 8px; font-size: 1.5rem; line-height: 1.6; }
+@media (max-width: 680px) {
+  .reports-system-overview > summary { padding: 16px; }
+  .reports-system-overview > .platform-page { padding: 4px 16px 16px; }
+}

@@ -14,68 +14,108 @@ before(async () => {
 })
 after(async () => browser?.close())
 
-test('the field overview explores real Atlas anatomy, respects reduced motion and opens the selected reference', { timeout: 90_000 }, async () => {
-  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', serviceWorkers: 'block' })
+const removedDecorativeCopy = /PARASITOLOGY AI PLATFORM|PARASITOLOGY \/ A CLOSER LOOK|EXPLORE EVERY DETAIL|DESIGNED FOR A CLEARER VIEW|SPECIMEN\s+\d+|MORPHOLOGY(?: \/| STUDIO| GUIDE)|INTELLIGENT MICROSCOPY|THE MORPHOLOGY COLLECTION|YOUR DISCOVERIES/
+async function assertNoDecorativeCopy(page) {
+  assert.doesNotMatch(await page.locator('body').textContent(), removedDecorativeCopy, 'Decorative English must be removed rather than hidden')
+}
+
+test('the home page keeps three clear sections and two hero actions across screen sizes', { timeout: 60_000 }, async () => {
+  for (const width of [320, 375, 768, 1024, 1440]) {
+    const page = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: 'reduce', serviceWorkers: 'block' })
+    const errors = []
+    page.on('pageerror', error => errors.push(error.message))
+    await noWebGL(page)
+    const fixture = await mockAccount(page, account(null))
+    try {
+      await page.goto(baseURL, { waitUntil: 'networkidle' })
+      await page.evaluate(() => document.fonts.ready)
+      const sections = page.locator('.home-sections > section')
+      assert.equal(await sections.count(), 3)
+      assert.equal(await sections.nth(0).evaluate(element => element.classList.contains('field-overview')), true)
+      assert.equal(await sections.nth(1).evaluate(element => element.classList.contains('workflow-section')), true)
+      assert.equal(await sections.nth(2).evaluate(element => element.classList.contains('atlas-preview')), true)
+      const hero = page.locator('.field-overview')
+      const heading = hero.getByRole('heading', { level: 1, name: 'ตรวจภาพไข่พยาธิ', exact: true })
+      await heading.waitFor()
+      assert.equal(await page.locator('main h1').count(), 1)
+      const lines = await heading.evaluate(element => {
+        const range = document.createRange(); range.selectNodeContents(element)
+        return new Set([...range.getClientRects()].map(rect => Math.round(rect.top))).size
+      })
+      assert.equal(lines, 1, `The introductory heading must stay on one line at ${width}px`)
+      assert.equal(await hero.locator('.field-intro').count(), 1)
+      assert.equal(await hero.locator('.field-intro br').count(), 0)
+      assert.ok((await hero.locator('.field-intro').innerText()).trim().length > 0)
+      assert.equal(await hero.getByRole('button').count(), 2)
+      const start = hero.getByRole('button', { name: 'เริ่มตรวจวิเคราะห์', exact: true })
+      const demo = hero.getByRole('button', { name: 'ดูตัวอย่าง', exact: true })
+      assert.equal(await start.isVisible(), true)
+      assert.equal(await demo.isVisible(), true)
+      const bounds = await start.boundingBox()
+      assert.ok(bounds && bounds.y + bounds.height < 800, `The primary action must stay above the mobile tabs at ${width}px`)
+      const note = hero.locator('.research-note')
+      assert.match(await note.innerText(), /ผล AI ต้องได้รับการทบทวนโดยผู้เชี่ยวชาญ/)
+      assert.ok((await note.boundingBox()).y >= bounds.y + bounds.height, 'The short research note must follow the actions')
+      assert.equal(await page.locator('.workflow-card').count(), 3)
+      assert.equal(await page.locator('.specimen-card').count(), 3)
+      assert.equal(await page.locator('.capability-strip, .feedback-invite, .field-mobile-upload, .field-model-stage').count(), 0)
+      assert.equal(await page.getByRole('heading', { name: 'ภาพรวมระบบวิเคราะห์', exact: true }).count(), 0)
+      assert.equal(await page.locator('main').getByRole('button', { name: 'วิเคราะห์ภาพ', exact: true }).count(), 0)
+      await assertNoDecorativeCopy(page)
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Home must not overflow at ${width}px`)
+      assert.deepEqual(fixture.mutations, [])
+      assert.deepEqual(errors, [])
+    } finally { await page.close() }
+  }
+})
+
+test('hero and workflow actions open upload, honest demo and the selected Atlas references without submitting an image', { timeout: 60_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 375, height: 900 }, reducedMotion: 'reduce', serviceWorkers: 'block' })
   const errors = [], analysisRequests = []
   page.on('pageerror', error => errors.push(error.message))
   page.on('request', request => { if (request.method() === 'POST' && /\/api\/(analyze|platform\/analyses)$/.test(new URL(request.url()).pathname)) analysisRequests.push(request.url()) })
+  await noWebGL(page)
+  const fixture = await mockAccount(page, account(null))
+  const home = async () => {
+    await page.getByRole('button', { name: 'HelpMinths หน้าหลัก', exact: true }).click()
+    await page.getByRole('heading', { name: 'ตรวจภาพไข่พยาธิ', exact: true }).waitFor()
+  }
   try {
     await page.goto(baseURL, { waitUntil: 'networkidle' })
-    await page.locator('.field-model-stage canvas').waitFor()
-    assert.equal(await page.locator('.atlas-model-stage').count(), 0)
-    const rotate = page.locator('.field-model-controls').getByRole('button', { name: 'หมุน', exact: true })
-    assert.equal(await rotate.getAttribute('aria-pressed'), 'false', 'Reduced motion must start with rotation paused')
-    await rotate.click()
-    assert.equal(await rotate.getAttribute('aria-pressed'), 'true')
-    await rotate.click()
-    await page.getByRole('button', { name: 'ASCARIS ไส้เดือน' }).click()
-    await page.locator('.field-specimen-caption').getByRole('heading', { name: 'Ascaris lumbricoides' }).waitFor()
-    const section = page.getByRole('button', { name: 'ภาพตัด', exact: true })
-    await section.click()
-    assert.equal(await section.getAttribute('aria-pressed'), 'false')
-    await page.locator('.field-structure-list').getByRole('button', { name: /เซลล์ไข่/ }).focus()
-    await page.keyboard.press('Enter')
-    assert.equal(await section.getAttribute('aria-pressed'), 'true', 'Selecting an internal structure must reveal it')
-    assert.match(await page.locator('.field-structure-description').innerText(), /ปฏิสนธิ|ตัวอ่อน/)
-    const zoom = page.getByRole('slider', { name: 'ขยายโมเดลหน้าหลัก', exact: true })
-    await zoom.focus(); await zoom.press('End')
-    assert.equal(await zoom.inputValue(), '1.7')
-    await page.getByRole('button', { name: 'คืนมุมมองโมเดลหน้าหลัก', exact: true }).click()
-    assert.equal(await zoom.inputValue(), '1')
-    await page.getByRole('button', { name: 'TAENIA พยาธิตืด' }).click()
-    await page.locator('.field-structure-list').getByRole('button', { name: /ตะขอ/ }).click()
-    assert.match(await page.locator('.field-structure-description').innerText(), /6|สาม|3/)
-    await page.getByRole('button', { name: 'ดู Taenia spp. ใน Atlas', exact: true }).click()
-    await page.locator('.atlas-specimen-caption').getByRole('heading', { name: 'Taenia spp.', exact: true }).waitFor()
-    await page.getByRole('link', { name: 'ข้ามไปเนื้อหาหลัก', exact: true }).focus()
-    await page.keyboard.press('Enter')
-    assert.equal(await page.evaluate(() => location.hash), '#atlas', 'Skipping navigation must preserve the current page URL')
-    assert.equal(await page.evaluate(() => document.activeElement?.id), 'main-content')
-    assert.deepEqual(analysisRequests, [], 'Exploring a teaching model must never submit an image for analysis')
-    assert.deepEqual(errors, [])
-  } finally { await page.close() }
-})
-
-test('the overview has an honest 2D fallback and keeps camera/upload one action away on phones', { timeout: 60_000 }, async () => {
-  const page = await browser.newPage({ viewport: { width: 375, height: 900 }, reducedMotion: 'reduce', serviceWorkers: 'block' })
-  await page.addInitScript(() => {
-    const original = HTMLCanvasElement.prototype.getContext
-    HTMLCanvasElement.prototype.getContext = function (type, ...args) {
-      return ['webgl', 'webgl2', 'experimental-webgl'].includes(type) ? null : original.call(this, type, ...args)
-    }
-  })
-  try {
-    await page.goto(baseURL, { waitUntil: 'networkidle' })
-    await page.locator('.field-model-stage .atlas-svg-fallback').waitFor()
-    assert.match(await page.locator('.field-model-stage').innerText(), /2 มิติ.*WebGL/)
-    assert.equal(await page.locator('.field-model-stage canvas').count(), 0)
-    const quickUpload = page.getByRole('button', { name: 'อัปโหลดหรือถ่ายภาพ', exact: true })
-    const box = await quickUpload.boundingBox()
-    assert.ok(box && box.y + box.height <= 900, 'Primary upload action should be visible without scrolling')
-    await quickUpload.click()
+    const start = page.locator('.field-overview').getByRole('button', { name: 'เริ่มตรวจวิเคราะห์', exact: true })
+    await start.focus(); await page.keyboard.press('Enter')
     await page.getByLabel('เลือกภาพจากอุปกรณ์').waitFor({ state: 'attached' })
-    const camera = page.getByLabel('ถ่ายภาพด้วยกล้อง')
-    assert.equal(await camera.getAttribute('capture'), 'environment')
+    assert.equal(new URL(page.url()).hash, '#scan')
+    assert.equal(await page.getByLabel('ถ่ายภาพด้วยกล้อง').getAttribute('capture'), 'environment')
+    await assertNoDecorativeCopy(page)
+    await home()
+    await page.locator('.field-overview').getByRole('button', { name: 'ดูตัวอย่าง', exact: true }).click()
+    await page.locator('.scan-demo-banner').waitFor()
+    assert.match(await page.locator('.scan-demo-banner').innerText(), /ไม่ใช่ผลตรวจจาก AI/)
+    assert.equal(await page.locator('.scan-detection-box').count(), 3)
+    await home()
+    await page.locator('.workflow-section').getByRole('button', { name: 'อัปโหลดภาพ', exact: true }).click()
+    await page.getByLabel('เลือกภาพจากอุปกรณ์').waitFor({ state: 'attached' })
+    await home()
+    await page.locator('.workflow-section').getByRole('button', { name: 'ลองดูตัวอย่าง', exact: true }).click()
+    await page.locator('.scan-demo-banner').waitFor()
+    await home()
+    await page.locator('.workflow-section').getByRole('button', { name: 'เปิด Atlas 3D', exact: true }).click()
+    await page.locator('.atlas-svg-fallback').waitFor()
+    await assertNoDecorativeCopy(page)
+    await home()
+    for (const name of ['Opisthorchis viverrini', 'Minute intestinal flukes (MIF)', 'Hymenolepis nana']) {
+      await page.locator('.specimen-card').filter({ hasText: name }).click()
+      await page.locator('.atlas-specimen-caption').getByRole('heading', { name, exact: true }).waitFor()
+      await page.getByRole('link', { name: 'ข้ามไปเนื้อหาหลัก', exact: true }).focus()
+      await page.keyboard.press('Enter')
+      assert.equal(new URL(page.url()).hash, '#atlas', 'Skipping navigation must preserve the selected reference URL')
+      assert.equal(await page.evaluate(() => document.activeElement?.id), 'main-content')
+      await home()
+    }
+    assert.deepEqual(analysisRequests, [], 'Exploring upload, a demo or teaching references must not submit a clinical image')
+    assert.deepEqual(fixture.mutations, [])
+    assert.deepEqual(errors, [])
   } finally { await page.close() }
 })
 
@@ -84,7 +124,7 @@ test('four primary menus stay at the top on desktop and at the bottom on phones,
     const page = await browser.newPage({ viewport: { width, height: 1000 }, reducedMotion: 'reduce', serviceWorkers: 'block' })
     try {
       await page.goto(baseURL, { waitUntil: 'networkidle' })
-      await page.locator('.field-model-stage canvas').waitFor()
+      await page.getByRole('heading', { name: 'ตรวจภาพไข่พยาธิ', exact: true }).waitFor()
       const navigation = page.getByRole('navigation', { name: 'เมนูหลัก', exact: true })
       const dimensions = await page.evaluate(() => ({ viewport: innerWidth, content: document.documentElement.scrollWidth }))
       assert.ok(dimensions.content <= dimensions.viewport + 1, `Home overflows ${width}px: ${dimensions.content}`)
@@ -118,10 +158,11 @@ test('four primary menus stay at the top on desktop and at the bottom on phones,
 // Session responses are isolated UI fixtures, not proof of backend permissions.
 // Every non-read request is blocked before it could reach a real database.
 async function mockAccount(page, currentSession, analyses = []) {
-  const mutations = [], privateReads = []
+  const mutations = [], privateReads = [], reads = []
   await page.route('**/api/platform/**', async route => {
     const request = route.request(), url = new URL(request.url())
     if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method())) { mutations.push(url.pathname); await route.abort('blockedbyclient'); return }
+    reads.push(url.href)
     const source = typeof currentSession === 'function' ? currentSession() : currentSession
     let json
     if (url.pathname === '/api/platform/session') json = source
@@ -131,11 +172,16 @@ async function mockAccount(page, currentSession, analyses = []) {
     } else if (url.pathname === '/api/platform/history/days') {
       privateReads.push(url.href)
       json = { items: [], total_days: 0, total_analyses: analyses.length, timezone: 'Asia/Bangkok' }
-    } else if (url.pathname === '/api/platform/quality/config') json = { inference_confidence: .15, review_confidence_threshold: .5 }
+    } else if (url.pathname === '/api/platform/dashboard') json = {
+      sample_size: 0, scope: 'mine',
+      summary: { total_analyses: 0, successful_analyses: 0, failed_analyses: 0, total_detected_objects: 0, confirmed_objects: 0, uncertain_objects: 0, pending_expert_reviews: 0, completed_expert_reviews: 0, images_failing_quality: 0, average_inference_ms: null },
+      charts: { analyses_by_date: [], predicted_classes: [], confirmed_classes: [], review_statuses: [], quality_statuses: [], latency_by_date: [], review_errors: [] },
+    }
+    else if (url.pathname === '/api/platform/quality/config') json = { inference_confidence: .15, review_confidence_threshold: .5 }
     else json = { items: [], total: 0, limit: 20, offset: 0, verified: false, verified_until: null }
     await route.fulfill({ json, headers: { 'Cache-Control': 'no-store', 'X-HelpMinths-Test-Fixture': 'synthetic-ui-only' } })
   })
-  return { mutations, privateReads }
+  return { mutations, privateReads, reads }
 }
 function account(role, overrides = {}) {
   return { configured: true, csrf_token: role ? 'SYNTHETIC-UI-CSRF' : null, bootstrap_required: false, registration_enabled: true,
@@ -147,6 +193,52 @@ async function noWebGL(page) {
     HTMLCanvasElement.prototype.getContext = function(type, ...args) { return ['webgl', 'webgl2', 'experimental-webgl'].includes(type) ? null : original.call(this, type, ...args) }
   })
 }
+
+test('the home page does not load operational dashboards or clinical records for any account role', { timeout: 60_000 }, async () => {
+  for (const role of [null, 'student', 'lab', 'reviewer', 'admin']) {
+    const page = await browser.newPage({ viewport: { width: 375, height: 1000 }, reducedMotion: 'reduce', serviceWorkers: 'block' })
+    const errors = []
+    page.on('pageerror', error => errors.push(error.message))
+    await noWebGL(page)
+    const fixture = await mockAccount(page, account(role))
+    try {
+      await page.goto(`${baseURL}/#home`, { waitUntil: 'networkidle' })
+      await page.getByRole('heading', { name: 'ตรวจภาพไข่พยาธิ', exact: true }).waitFor()
+      const operational = fixture.reads.filter(value => /^\/api\/platform\/(?:dashboard|analyses|history|referrals|reports|evaluation|models|performance|quality\/audits)(?:\/|$)/.test(new URL(value).pathname))
+      assert.deepEqual(operational, [], `${role || 'guest'} home must not fetch operational or clinical datasets`)
+      assert.equal(await page.locator('.home-sections > section').count(), 3)
+      assert.equal(await page.locator('.platform-stat-grid, .platform-chart-grid').count(), 0)
+      assert.equal(await page.getByRole('heading', { name: 'ภาพรวมระบบวิเคราะห์', exact: true }).count(), 0)
+      await assertNoDecorativeCopy(page)
+      assert.deepEqual(fixture.mutations, [])
+      assert.deepEqual(errors, [])
+    } finally { await page.close() }
+  }
+})
+
+test('an authorized member can open the operational overview from Reports without loading it on arrival', { timeout: 60_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', serviceWorkers: 'block' })
+  const errors = []
+  page.on('pageerror', error => errors.push(error.message))
+  await noWebGL(page)
+  const fixture = await mockAccount(page, account('lab'))
+  const dashboardReads = () => fixture.reads.filter(value => new URL(value).pathname === '/api/platform/dashboard')
+  try {
+    await page.goto(`${baseURL}/#reports`, { waitUntil: 'networkidle' })
+    await page.getByRole('heading', { name: 'รายงานและส่งออกข้อมูล', exact: true }).waitFor()
+    const disclosure = page.locator('summary').filter({ hasText: 'ภาพรวมการดำเนินงาน' })
+    await disclosure.waitFor()
+    assert.deepEqual(dashboardReads(), [], 'Arriving at Reports must not mount the collapsed operational overview')
+    assert.equal(await page.getByRole('heading', { name: 'ภาพรวมระบบวิเคราะห์', exact: true }).count(), 0)
+    await disclosure.click()
+    await page.getByRole('heading', { name: 'ยังไม่มีข้อมูลการวิเคราะห์จริง', exact: true }).waitFor()
+    assert.equal(dashboardReads().length, 1)
+    assert.equal(await page.getByRole('heading', { name: 'ภาพรวมระบบวิเคราะห์', level: 2, exact: true }).count(), 1)
+    assert.equal(await page.locator('main h1').count(), 1, 'The embedded overview must not add a second page-level heading')
+    assert.deepEqual(fixture.mutations, [])
+    assert.deepEqual(errors, [])
+  } finally { await page.close() }
+})
 
 test('management is shown only for approved active admin, reviewer and lab sessions', { timeout: 90_000 }, async () => {
   for (const [role, overrides, permitted] of [[null, {}, false], ['student', {}, false], ['lab', {}, true], ['reviewer', {}, true], ['admin', {}, true], ['lab', { approval_status: 'pending' }, false], ['admin', { active: false }, false]]) {

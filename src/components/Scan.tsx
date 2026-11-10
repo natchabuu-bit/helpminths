@@ -409,7 +409,7 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
   return (
     <section className="scan-workspace" aria-label="ตรวจหาไข่พยาธิ">
       <div className="scan-section-heading">
-        <div><span className="scan-eyebrow"><span /> INTELLIGENT MICROSCOPY</span><h1>ตรวจหาไข่พยาธิ<span className="scan-heading-dot">.</span></h1><p>เปลี่ยนภาพจากกล้องจุลทรรศน์ ให้เป็นข้อมูลที่มองเห็นได้ชัดเจน</p></div>
+        <div><h1>ตรวจหาไข่พยาธิ<span className="scan-heading-dot">.</span></h1><p>เปลี่ยนภาพจากกล้องจุลทรรศน์ ให้เป็นข้อมูลที่มองเห็นได้ชัดเจน</p></div>
         <div className={`scan-health scan-health--${health}`} title={healthMessage}><span className="scan-status-dot" />{health === 'ready' ? 'โมเดล AI พร้อมใช้งาน' : health === 'checking' ? 'กำลังเชื่อมต่อบริการ' : 'ยังไม่เชื่อมต่อโมเดล AI'}{health !== 'ready' && <button type="button" onClick={() => void checkHealth()} disabled={health === 'checking'} aria-label="ตรวจสอบการเชื่อมต่ออีกครั้ง"><RefreshCw size={13} className={health === 'checking' ? 'scan-spin' : ''} /></button>}</div>
       </div>
 
@@ -423,7 +423,7 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
       <div className="scan-grid">
         <div className="scan-main-column">
           <div className={`scan-viewer-card ${dragging ? 'scan-viewer-card--drag' : ''}`} onDragOver={(event) => { event.preventDefault(); if (!working) setDragging(true); }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragging(false); }} onDrop={(event) => { event.preventDefault(); setDragging(false); void acceptFile(event.dataTransfer.files[0]); }}>
-            <div className="scan-card-header"><div className="scan-card-title"><span className="scan-icon-tile"><ScanLine size={17} /></span><span>{hasImage ? 'ภาพตัวอย่าง' : 'อัปโหลดภาพเพื่อตรวจวิเคราะห์'}</span></div><span className="scan-card-caption">{hasImage ? `${dimensions.width} × ${dimensions.height} px` : '01 / IMAGE INPUT'}</span></div>
+            <div className="scan-card-header"><div className="scan-card-title"><span className="scan-icon-tile"><ScanLine size={17} /></span><span>{hasImage ? 'ภาพตัวอย่าง' : 'อัปโหลดภาพเพื่อตรวจวิเคราะห์'}</span></div>{hasImage && <span className="scan-card-caption">{dimensions.width} × {dimensions.height} px</span>}</div>
 
             {!hasImage ? (
               <div className="scan-upload-zone">
@@ -476,7 +476,7 @@ export default function Scan({ onResult, initialRecord = null, openAtlas, startD
         </div>
 
         <aside className="scan-results-card" aria-label="ผลการวิเคราะห์">
-          <div className="scan-card-header"><div className="scan-card-title"><span className="scan-icon-tile"><Crosshair size={17} /></span><span>ผลการวิเคราะห์</span></div>{record ? <span className={`scan-result-badge ${demo ? 'scan-result-badge--demo' : ''}`}>{demo ? 'ตัวอย่างสาธิต' : 'ผล AI · รอการทบทวน'}</span> : <span className="scan-card-caption">02 / RESULTS</span>}</div>
+          <div className="scan-card-header"><div className="scan-card-title"><span className="scan-icon-tile"><Crosshair size={17} /></span><span>ผลการวิเคราะห์</span></div>{record ? <span className={`scan-result-badge ${demo ? 'scan-result-badge--demo' : ''}`}>{demo ? 'ตัวอย่างสาธิต' : 'ผล AI · รอการทบทวน'}</span> : null}</div>
           {!record ? (
             <div className="scan-results-empty"><div className="scan-results-empty-icon"><ScanLine size={34} strokeWidth={1.2} /></div><h3>รายละเอียดจะปรากฏที่นี่</h3><p>เมื่อวิเคราะห์ภาพแล้ว คุณจะเห็นตำแหน่ง<br />ชนิด และความเชื่อมั่นของแต่ละผลตรวจ</p><div className="scan-how-it-works"><span className="scan-small-label">เพียง 3 ขั้นตอน</span><div><span className={hasImage ? 'scan-step-number scan-step-number--done' : 'scan-step-number'}>{hasImage ? <Check size={12} /> : '01'}</span><p><strong>เพิ่มภาพกล้องจุลทรรศน์</strong><span>อัปโหลดหรือถ่ายภาพจากมือถือ</span></p></div><div><span className="scan-step-number">02</span><p><strong>ให้ AI ช่วยตรวจจับ</strong><span>ค้นหาตำแหน่งและจำแนกชนิด</span></p></div><div><span className="scan-step-number">03</span><p><strong>สำรวจผลอย่างละเอียด</strong><span>ดูกรอบบนภาพและเรียนรู้ใน Atlas</span></p></div></div>{health !== 'ready' && health !== 'checking' && <div className="scan-model-note"><Info size={15} /><p><strong>ยังไม่เชื่อมต่อโมเดล AI</strong><span>{healthMessage}</span><button type="button" onClick={loadDemo}>สำรวจตัวอย่างสาธิต <ArrowRight size={13} /></button></p></div>}</div>
           ) : (

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { ArrowRight, ArrowUpRight, BookOpen, Box, Camera, Focus, History, LoaderCircle, ScanLine, Search, ShieldCheck, Upload, X } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, BookOpen, Box, Camera, History, LoaderCircle, ScanLine, Search, ShieldCheck, Upload, X } from 'lucide-react'
 import Scan from './components/Scan'
 import AppNavigation from './components/AppNavigation'
 import AccountMenu from './components/AccountMenu'
@@ -12,6 +12,7 @@ import FieldOverview from './components/FieldOverview'
 import { useFeedback } from './hooks/useFeedback'
 import { usePlatformSession } from './platform/api'
 import './styles/platform-shell.css'
+import './styles/home-page.css'
 import { getSpeciesById, groupLabels, matchSpeciesLabel, species } from './data/species'
 
 const Atlas = lazy(() => import('./components/Atlas'))
@@ -28,7 +29,7 @@ const featuredSpecies = ['opisthorchis', 'mif', 'hymenolepis-nana'].map(getSpeci
 const pageNames: Record<Page, string> = { home: 'ภาพรวม', dashboard: 'สถิติโรค', scan: 'ตรวจวิเคราะห์', atlas: 'Atlas 3D', work: 'งานของฉัน', evaluation: 'แบบประเมิน SUS', verification: 'ทบทวนโดยผู้เชี่ยวชาญ', reports: 'รายงาน', performance: 'ประเมินโมเดล', settings: 'ตั้งค่าและบัญชี' }
 
 function Brand({ small = false }: { small?: boolean }) {
-  return <div className={`brand ${small ? 'brand-small' : ''}`}><div className="brand-symbol"><svg viewBox="0 0 40 40" aria-hidden="true"><ellipse cx="20" cy="20" rx="9" ry="13" transform="rotate(32 20 20)"/><ellipse cx="20" cy="20" rx="3.4" ry="6" transform="rotate(32 20 20)"/><circle cx="31" cy="8" r="2.5"/></svg></div><span>Help<span className="brand-light">Minths</span><small>PARASITOLOGY AI PLATFORM</small></span></div>
+  return <div className={`brand ${small ? 'brand-small' : ''}`}><div className="brand-symbol"><svg viewBox="0 0 40 40" aria-hidden="true"><ellipse cx="20" cy="20" rx="9" ry="13" transform="rotate(32 20 20)"/><ellipse cx="20" cy="20" rx="3.4" ry="6" transform="rotate(32 20 20)"/><circle cx="31" cy="8" r="2.5"/></svg></div><span>Help<span className="brand-light">Minths</span></span></div>
 }
 
 export default function App() {
@@ -49,9 +50,7 @@ export default function App() {
   const [initialSpecies, setInitialSpecies] = useState<string | undefined>()
   const [demo, setDemo] = useState(false)
   const [scanKey, setScanKey] = useState(0)
-  const [modelReady, setModelReady] = useState(false)
-  const [backendReady, setBackendReady] = useState(false)
-  const [backendChecked, setBackendChecked] = useState(false)
+  const [systemOverviewOpen, setSystemOverviewOpen] = useState(false)
   const canManage = platform.session.configured && !platform.session.connection_error && platform.session.user?.active === true && platform.session.user.approval_status === 'approved' && ['admin', 'reviewer', 'lab'].includes(platform.session.user.role)
   const managingPage = page === 'verification' || page === 'reports' || page === 'performance'
   const authIdentity = platform.session.user ? `${platform.session.user.id}:${platform.session.user.role}` : 'public'
@@ -65,7 +64,7 @@ export default function App() {
     if (platform.loading || lastIdentity.current === authIdentity) return
     lastIdentity.current = authIdentity
     setRecords(previous => previous.filter(record => record.mode === 'demo'))
-    setSelectedRecord(null); setPlatformAnalysisId(undefined); setNotificationTarget(undefined); setWorkTab(undefined); setDemo(false); setScanKey(previous => previous + 1)
+    setSelectedRecord(null); setPlatformAnalysisId(undefined); setNotificationTarget(undefined); setWorkTab(undefined); setSystemOverviewOpen(false); setDemo(false); setScanKey(previous => previous + 1)
   }, [authIdentity, platform.loading])
 
   useEffect(() => {
@@ -96,30 +95,6 @@ export default function App() {
       previousFocus?.focus()
     }
   }, [helpOpen])
-
-  useEffect(() => {
-    let active = true
-    let requestId = 0
-    const health = async () => {
-      const currentRequest = ++requestId
-      try {
-        const response = await fetch('/api/health', { cache: 'no-store', signal: AbortSignal.timeout(10_000) })
-        if (!response.ok) throw new Error('health')
-        const body = await response.json()
-        if (active && currentRequest === requestId) { setBackendReady(true); setModelReady(body.model_ready === true) }
-      } catch { if (active && currentRequest === requestId) { setBackendReady(false); setModelReady(false) } }
-      finally { if (active && currentRequest === requestId) setBackendChecked(true) }
-    }
-    void health()
-    const networkChanged = () => {
-      setBackendReady(false); setModelReady(false)
-      void health()
-    }
-    window.addEventListener('online', networkChanged)
-    window.addEventListener('offline', networkChanged)
-    const timer = window.setInterval(health, 30_000)
-    return () => { active = false; clearInterval(timer); window.removeEventListener('online', networkChanged); window.removeEventListener('offline', networkChanged) }
-  }, [])
 
   const navigate = (next: Page) => {
     setPage(next)
@@ -155,8 +130,6 @@ export default function App() {
     setRecords(old => [record, ...old.filter(item => item.id !== record.id)])
   }
 
-  const dashboard = <Suspense fallback={pendingPage}><PlatformDashboard key={authIdentity} session={platform.session} onNavigate={target => target === 'history' ? openWork('saved') : navigate(target)} onOpenAnalysis={openAnalysis}/></Suspense>
-
   return <div className="app-shell platform-shell instrument-shell minimal-navigation-shell">
     <a className="skip-navigation" href="#main-content" onClick={event => { event.preventDefault(); mainRef.current?.focus(); mainRef.current?.scrollIntoView({ block: 'start' }) }}>ข้ามไปเนื้อหาหลัก</a>
     <AppNavigation page={page} session={platform.session} brand={<Brand/>} onHome={() => navigate('home')} onNavigate={target => target === 'scan' ? openScan() : target === 'work' ? openWork() : navigate(target)} onHelp={() => setHelpOpen(true)}>
@@ -165,21 +138,19 @@ export default function App() {
     </AppNavigation>
     <div className="main-layout">
       <main ref={mainRef} id="main-content" tabIndex={-1} className={`main-content page-${page}`}>
-        {page === 'home' && <>
-          <FieldOverview modelReady={modelReady} backendReady={backendReady} backendChecked={backendChecked} onScan={() => openScan()} onDemo={() => openScan(true)} onAtlas={openAtlas}/>
-          {canManage && dashboard}
-          <div className="capability-strip"><div><div className="capability-icon"><Focus size={21}/></div><span><strong>ตรวจจับเป็นรายฟอง</strong><small>ดูกรอบตำแหน่งและชนิดของไข่</small></span></div><div><div className="capability-icon"><Box size={21}/></div><span><strong>เรียนรู้ในมุมมอง 3D</strong><small>หมุน ซูม และสำรวจโครงสร้าง</small></span></div><div><div className="capability-icon"><ShieldCheck size={21}/></div><span><strong>{platform.session.configured ? 'เก็บภาพตามสิทธิ์บัญชี' : 'ภาพอยู่ในเซสชันนี้'}</strong><small>{platform.session.configured ? 'เฉพาะผู้มีสิทธิ์เข้าถึงรายการได้' : 'โหมดนี้ไม่เก็บภาพถาวร'}</small></span></div></div>
+        {page === 'home' && <div className="home-sections">
+          <FieldOverview onScan={() => openScan()} onDemo={() => openScan(true)}/>
 
-          <section className="workflow-section"><div className="section-heading"><div><h2>จากภาพ สู่การค้นพบ</h2><p>เริ่มต้นได้ง่าย ๆ ใน 3 ขั้นตอน</p></div><span className="small-caption">DESIGNED FOR A CLEARER VIEW</span></div><div className="workflow-grid">{[{ n: '01', icon: Upload, title: 'เพิ่มภาพที่ต้องการตรวจ', detail: 'เลือกภาพจากคลัง หรือถ่ายภาพผ่านกล้องมือถือ', link: 'อัปโหลดภาพ', action: () => openScan() }, { n: '02', icon: ScanLine, title: 'สำรวจผลวิเคราะห์', detail: 'ดูกรอบตำแหน่ง ชนิด และค่าความมั่นใจของโมเดล', link: 'ลองดูตัวอย่าง', action: () => openScan(true) }, { n: '03', icon: BookOpen, title: 'ต่อยอดความเข้าใจ', detail: 'เปรียบเทียบลักษณะสำคัญกับไข่พยาธิใน Atlas 3D', link: 'เปิด Atlas 3D', action: () => openAtlas() }].map(step => <article className="workflow-card" key={step.n}><div className="workflow-top"><step.icon size={22}/><span>{step.n}</span></div><h3>{step.title}</h3><p>{step.detail}</p><button onClick={step.action}>{step.link}<ArrowUpRight size={15}/></button></article>)}</div></section>
+          <section className="workflow-section" aria-labelledby="workflow-title"><div className="section-heading"><div><h2 id="workflow-title">เริ่มใช้งานใน 3 ขั้นตอน</h2></div></div><div className="workflow-grid">{[{ n: '01', icon: Upload, title: 'เพิ่มภาพที่ต้องการตรวจ', detail: 'เลือกภาพจากคลัง หรือถ่ายภาพผ่านกล้องมือถือ', link: 'อัปโหลดภาพ', action: () => openScan() }, { n: '02', icon: ScanLine, title: 'สำรวจผลวิเคราะห์', detail: 'ดูกรอบตำแหน่ง ชนิด และค่าความมั่นใจของโมเดล', link: 'ลองดูตัวอย่าง', action: () => openScan(true) }, { n: '03', icon: BookOpen, title: 'ต่อยอดความเข้าใจ', detail: 'เปรียบเทียบลักษณะสำคัญกับไข่พยาธิใน Atlas 3D', link: 'เปิด Atlas 3D', action: () => openAtlas() }].map(step => <article className="workflow-card" key={step.n}><div className="workflow-top"><step.icon size={22}/><span>{step.n}</span></div><h3>{step.title}</h3><p>{step.detail}</p><button onClick={step.action}>{step.link}<ArrowUpRight size={15}/></button></article>)}</div></section>
 
-          <section className="atlas-preview"><div className="section-heading"><div><div className="section-kicker">คลังความรู้ไข่และตัวอ่อนพยาธิ</div><h2>รู้จักให้ลึก มองเห็นให้ชัด</h2><p>สำรวจชนิดที่เกี่ยวข้องกับการเรียนรู้ในไทย</p></div><button className="text-button" onClick={() => openAtlas()}>สำรวจทั้ง {species.length} กลุ่ม <ArrowRight size={16}/></button></div><div className="specimen-grid">{featuredSpecies.map((item, i) => <button className="specimen-card" key={item.id} onClick={() => openAtlas(item.id)}><div className={`specimen-art specimen-art-${i}`}><EggIllustration speciesId={item.id}/><span className="specimen-number">SPECIMEN 0{i + 1}</span><span className="view-3d"><Box size={12}/> 3D</span></div><div className="specimen-info"><span>{groupLabels[item.group]}</span><h3>{item.name}</h3><div><p>{item.thaiName}</p><ArrowUpRight size={17}/></div></div></button>)}</div></section>
+          <section className="atlas-preview" aria-labelledby="atlas-preview-title"><div className="section-heading"><div><h2 id="atlas-preview-title">ตัวอย่างจาก Atlas 3D</h2><p>เปรียบเทียบลักษณะไข่และตัวอ่อนพยาธิ</p></div><button className="text-button" onClick={() => openAtlas()}>สำรวจทั้ง {species.length} กลุ่ม <ArrowRight size={16}/></button></div><div className="specimen-grid">{featuredSpecies.map((item, i) => <button className="specimen-card" key={item.id} onClick={() => openAtlas(item.id)}><div className={`specimen-art specimen-art-${i}`}><EggIllustration speciesId={item.id}/><span className="view-3d"><Box size={12}/> 3D</span></div><div className="specimen-info"><span>{groupLabels[item.group]}</span><h3>{item.name}</h3><div><p>{item.thaiName}</p><ArrowUpRight size={17}/></div></div></button>)}</div></section>
 
-        </>}
+        </div>}
         {page === 'dashboard' && <Suspense fallback={pendingPage}><HealthSurveyDashboard key={authIdentity} session={platform.session}/></Suspense>}
         {page === 'scan' && <Scan key={`${scanKey}:${authIdentity}`} startDemo={demo} initialRecord={safeSelectedRecord} onResult={saveRecord} openAtlas={openAtlas} platformSession={platform.session} onOpenSettings={() => openSettings()} onOpenHistory={() => openWork(demo || safeSelectedRecord?.mode === 'demo' || !platform.session.user ? 'session' : 'saved')} onOpenReview={openAnalysis}/>}
         {page === 'atlas' && <Suspense fallback={<div className="loading-state"><LoaderCircle className="spin"/><p>กำลังเตรียม Atlas 3D…</p></div>}><Atlas initialSpecies={initialSpecies}/></Suspense>}
         {page === 'verification' && canManage && <Suspense fallback={pendingPage}><ExpertVerification key={authIdentity} session={platform.session} analysisId={platformAnalysisId} referralId={notificationTarget?.referral_id} messageId={notificationTarget?.message_id} onChooseAnalysis={(id, referralId) => { setPlatformAnalysisId(id); setNotificationTarget(referralId ? { analysis_id: id, referral_id: referralId, message_id: '' } : undefined) }} onOpenSettings={() => openSettings('expert')} onSessionChanged={platform.refresh}/></Suspense>}
-        {page === 'reports' && canManage && <Suspense fallback={pendingPage}><PlatformReports key={authIdentity} session={platform.session} analysisId={platformAnalysisId}/></Suspense>}
+        {page === 'reports' && canManage && <Suspense fallback={pendingPage}><PlatformReports key={authIdentity} session={platform.session} analysisId={platformAnalysisId}/><details className="reports-system-overview" open={systemOverviewOpen} onToggle={event => setSystemOverviewOpen(event.currentTarget.open)}><summary>ภาพรวมการดำเนินงาน</summary>{systemOverviewOpen && <Suspense fallback={pendingPage}><PlatformDashboard key={authIdentity} embedded session={platform.session} onNavigate={target => target === 'history' ? openWork('saved') : navigate(target)}/></Suspense>}</details></Suspense>}
         {page === 'performance' && canManage && <Suspense fallback={pendingPage}><ModelPerformance key={authIdentity} session={platform.session} analysisId={platformAnalysisId}/></Suspense>}
         {page === 'settings' && <Suspense fallback={pendingPage}><PlatformSettings key={authIdentity} session={platform.session} onSessionChanged={platform.refresh} initialPortal={accountPortal} onExpertSignedIn={() => navigate('verification')} onOpenAdmin={openAdmin}/></Suspense>}
         {page === 'evaluation' && <Evaluation feedback={feedback}/>}

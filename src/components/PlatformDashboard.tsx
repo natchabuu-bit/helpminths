@@ -1,8 +1,8 @@
-import { Activity, ArrowRight, BarChart3, RefreshCw, ScanLine } from 'lucide-react'
+import { Activity, ArrowRight, BarChart3, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { buildQuery, formatDate } from '../platform/api'
 import type { PlatformSession } from '../platform/api'
-import { AccessState, AnalysisFilterForm, emptyFilters, ErrorNotice, LoadingNotice, PlatformHeading, usePlatformResource } from './PlatformShared'
+import { AccessState, AnalysisFilterForm, emptyFilters, ErrorNotice, LoadingNotice, usePlatformResource } from './PlatformShared'
 import type { AnalysisFilters } from './PlatformShared'
 
 interface DashboardData { sample_size: number; scope: string; summary: { total_analyses: number; successful_analyses: number; failed_analyses: number; total_detected_objects: number; confirmed_objects: number; uncertain_objects: number; pending_expert_reviews: number; completed_expert_reviews: number; images_failing_quality: number; average_inference_ms: number | null }; charts: { analyses_by_date: { date: string; count: number; successful: number; failed: number }[]; predicted_classes: { label: string; count: number }[]; confirmed_classes: { label: string; count: number }[]; review_statuses: { status: string; count: number }[]; quality_statuses: { status: string; count: number }[]; latency_by_date: { date: string; mean_ms: number; sample_size: number }[]; review_errors: { action: string; count: number; label?: string }[] }; disclaimer?: string }
@@ -11,12 +11,12 @@ function Bars({ title, rows, unit = 'รายการ' }: { title: string; row
   const maximum = Math.max(1, ...rows.map(item => item.value))
   return <section className="platform-card platform-chart"><h2>{title}</h2>{!rows.length ? <p className="platform-muted">ยังไม่มีข้อมูลในช่วงที่เลือก</p> : <ul>{rows.slice(0, 30).map((row, index) => <li key={row.label + index}><div><span>{row.label}</span><strong>{number(row.value)} {unit}</strong></div><span className="platform-chart-track"><span style={{ width: `${Math.max(0, row.value) / maximum * 100}%` }}/></span></li>)}</ul>}</section>
 }
-export default function PlatformDashboard({ session, onNavigate }: { session: PlatformSession; onOpenAnalysis?: (id: string) => void; onNavigate?: (page: 'scan' | 'history' | 'settings') => void }) {
+export default function PlatformDashboard({ session, onNavigate, embedded = false }: { session: PlatformSession; onOpenAnalysis?: (id: string) => void; onNavigate?: (page: 'scan' | 'history' | 'settings') => void; embedded?: boolean }) {
   const [filters, setFilters] = useState<AnalysisFilters>(emptyFilters)
   const { status, analysis_id: _analysisId, ...remaining } = filters
   const resource = usePlatformResource<DashboardData>(`/dashboard${buildQuery({ ...remaining, analysis_status: status })}`, session, session.configured && !!session.user && session.user.role !== 'student')
   const data = resource.value
-  return <div className="platform-page"><PlatformHeading kicker="HELPMINTHS AI · DASHBOARD" title="ภาพรวมระบบวิเคราะห์" description="ติดตามรายการจริง คุณภาพภาพ และสถานะการตรวจทาน แยกผลคาดการณ์ของ AI ออกจากผลของผู้เชี่ยวชาญ"><button className="platform-button primary" onClick={() => onNavigate?.('scan')}><ScanLine size={18}/>วิเคราะห์ภาพ</button></PlatformHeading>
+  return <div className="platform-page"><div className="platform-heading"><div>{embedded ? <h2>ภาพรวมระบบวิเคราะห์</h2> : <h1>ภาพรวมระบบวิเคราะห์</h1>}<p>ติดตามรายการจริง คุณภาพภาพ และสถานะการตรวจทาน แยกผลคาดการณ์ของ AI ออกจากผลของผู้เชี่ยวชาญ</p></div></div>
     <AccessState session={session} roles={['admin', 'reviewer', 'lab']}><AnalysisFilterForm includeId={false} onApply={setFilters}/>{resource.loading ? <LoadingNotice/> : resource.error ? <ErrorNotice message={resource.error} onRetry={resource.reload}/> : data && <>
       <div className="platform-dashboard-context"><span><Activity size={17}/> ข้อมูลจริง {number(data.sample_size)} รายการ · {data.scope === 'all' ? 'ตามสิทธิ์ผู้ตรวจสอบ' : 'เฉพาะบัญชีของคุณ'}</span><button className="platform-button" onClick={resource.reload}><RefreshCw size={16}/>รีเฟรช</button></div>
       <div className="platform-stat-grid">{[

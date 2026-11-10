@@ -11,7 +11,7 @@ interface StrongyloidesGuideProps {
 export default function StrongyloidesGuide({ onSelectGenitalPrimordium }: StrongyloidesGuideProps) {
   const headingId = useId();
   return <section className="strongyloides-guide" aria-labelledby={headingId}>
-    <div className="strongyloides-guide-heading"><div><span>LARVAL MORPHOLOGY</span><h3 id={headingId}>ตัวอ่อนระยะ rhabditiform</h3></div><span className="strongyloides-stage-tag"><Microscope size={14} /> Strongyloides stercoralis</span></div>
+    <div className="strongyloides-guide-heading"><div><h3 id={headingId}>ตัวอ่อนระยะ rhabditiform</h3></div><span className="strongyloides-stage-tag"><Microscope size={14} /> Strongyloides stercoralis</span></div>
     <div className="strongyloides-guide-overview">
       <figure className="strongyloides-guide-figure"><StrongyloidesIllustration showInternal selectedStructureId="genital-primordium" /><figcaption>ภาพวาดอธิบายตัวอ่อน · หัวอยู่ซ้าย หางอยู่ขวา<br />เน้น Genital primordium ด้วยสีและขนาดเพื่อการเรียนรู้ ไม่ใช้วัดสัดส่วนจริง</figcaption></figure>
       <div className="strongyloides-guide-description">
