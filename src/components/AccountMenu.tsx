@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { ChevronDown, LogIn, LogOut, Settings, UserRound } from 'lucide-react'
 import { roleNames } from '../platform/api'
 import type { PlatformSession } from '../platform/api'
-import '../styles/account-menu.css'
+import '../styles/account.css'
 
 export default function AccountMenu({ session, onSettings, onLogout }: { session: PlatformSession; onSettings: () => void; onLogout: () => Promise<void> }) {
   const [open, setOpen] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState('')

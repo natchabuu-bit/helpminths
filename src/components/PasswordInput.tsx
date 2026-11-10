@@ -1,7 +1,7 @@
 import { Eye, EyeOff } from 'lucide-react'
 import { forwardRef, useId, useState } from 'react'
 import type { InputHTMLAttributes } from 'react'
-import '../styles/password-input.css'
+import '../styles/account.css'
 
 export interface PasswordInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
   /** The field name appended to the Thai show/hide action. */

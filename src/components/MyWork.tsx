@@ -5,7 +5,7 @@ import type { PlatformSession } from '../platform/api'
 import { formatDate } from '../platform/api'
 import type { AnalysisRecord } from './Scan'
 import AnalysisHistory from './AnalysisHistory'
-import '../styles/my-work.css'
+import '../styles/platform.css'
 
 export type MyWorkTab = 'saved' | 'session'
 

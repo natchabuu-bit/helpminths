@@ -6,7 +6,6 @@ import PasswordInput from './PasswordInput'
 import { ErrorNotice, LoadingNotice, PlatformHeading } from './PlatformShared'
 import { UserManagement } from './PlatformSettings'
 import '../styles/account.css'
-import '../styles/admin.css'
 
 interface AdminDashboardProps {
   session: PlatformSession

@@ -3,7 +3,7 @@ import { ArrowUpRight, Check, Info, Layers3 } from 'lucide-react';
 import { ascarisDecorticatedNote, ascarisDevelopmentNote, ascarisStages, getAscarisStage, type AscarisStageId } from '../data/ascarisStages';
 import { atlasSources } from '../data/atlasStructures';
 import AscarisStageIllustration from './AscarisStageIllustration';
-import '../styles/ascaris-stages.css';
+import '../styles/atlas.css';
 
 interface AscarisStageGuideProps {
   stage: AscarisStageId;

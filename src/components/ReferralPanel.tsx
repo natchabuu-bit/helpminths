@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { apiPath, apiRequest, buildQuery, formatDate } from '../platform/api'
 import type { ExpertReview, Paged, PlatformAnalysis, PlatformSession } from '../platform/api'
 import { ErrorNotice, LoadingNotice, usePlatformResource } from './PlatformShared'
-import '../styles/referrals.css'
+import '../styles/platform.css'
 import DiagnosisComparison from './DiagnosisComparison'
 
 export type ReferralStatus = 'pending' | 'in_review' | 'needs_more' | 'confirmed'

@@ -5,7 +5,7 @@ import { buildQuery, formatDate } from '../platform/api'
 import { ErrorNotice, LoadingNotice, PlatformHeading, usePlatformResource } from '../components/PlatformShared'
 import { PrivateReferralImage } from '../components/ReferralPanel'
 import DiagnosisComparison from '../components/DiagnosisComparison'
-import './archive.css'
+import '../styles/backoffice.css'
 
 interface ArchiveAccount { id: string; username: string; full_name: string | null; image_count?: number }
 interface ArchiveImage {

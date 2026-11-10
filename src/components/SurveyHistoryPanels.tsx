@@ -1,7 +1,7 @@
 import { ArrowDownRight, ArrowUpRight, Check, ChevronDown, Info, Layers3, TrendingUp } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { RefObject } from 'react'
-import '../styles/survey-history.css'
+import '../styles/dashboard.css'
 
 type Value = number | null
 export interface ComparisonSchool {
@@ -122,12 +122,13 @@ interface PairedRow {
   previousTested?: Value
   currentTested?: Value
 }
-const palette = ['#14867f', '#d77f2a', '#6d4c8f', '#a8322a', '#4f86a8', '#8a8f3a', '#c26b8f', '#bd8c16', '#5d6f6b']
+const palette = ['var(--color-accent)', 'var(--color-muted)', 'var(--color-text)', 'var(--color-border-strong)']
 const numeric = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value)
 const number = (value: unknown, digits = 0) => numeric(value) ? value.toLocaleString('th-TH', { maximumFractionDigits: digits }) : '—'
 const percent = (value: unknown, digits = 2) => numeric(value) ? `${number(value, digits)}%` : '—'
 const signed = (value: unknown, digits = 2) => numeric(value) ? `${value > 0 ? '+' : ''}${number(value, digits)}` : '—'
-const seriesColor = (row: ChartSeries, index: number) => row.isTotal ? '#233f39' : palette[index % palette.length]
+const seriesColor = (row: ChartSeries, index: number) => row.isTotal ? 'var(--color-text)' : palette[index % palette.length]
+const seriesDash = (row: ChartSeries, index: number) => row.isTotal ? '6 4' : [undefined, '10 4', '2 4', '10 4 2 4'][Math.floor(index / palette.length) % palette.length]
 
 function useChartWidth(ref: RefObject<HTMLDivElement | null>) {
   const [width, setWidth] = useState(640)
@@ -174,7 +175,7 @@ function MatchedScatter({ comparison, onSelectSchool }: { comparison: Comparison
   const X = (value: number) => margin.left + value / max * (width - margin.left - margin.right)
   const Y = (value: number) => height - margin.bottom - value / max * (height - margin.top - margin.bottom)
   const threshold = comparison.change_threshold_pp ?? .5
-  const pointColor = (row: ComparisonSchool) => (row.delta_pp ?? 0) < -threshold ? '#14867f' : (row.delta_pp ?? 0) > threshold ? '#a8322a' : '#839b90'
+  const pointColor = (row: ComparisonSchool) => (row.delta_pp ?? 0) < -threshold ? 'var(--color-success)' : (row.delta_pp ?? 0) > threshold ? 'var(--color-danger)' : 'var(--color-muted)'
   const activeExists = active && rows.some(row => row.school_id === active.school_id)
   return <section className="shp-card">
     <h3>โรงเรียนเดียวกัน สองปี</h3>
@@ -216,11 +217,14 @@ export function SurveyYearComparison({ data, onSelectSchool }: { data: Compariso
 function heatColor(value: Value, metric: 'infection' | 'coverage' | 'share') {
   if (!numeric(value)) return undefined
   if (metric === 'infection') {
-    const colors = value === 0 ? ['#d5dfd8', '#213a2e'] : value < 5 ? ['#b9d3c4', '#213a2e'] : value < 10 ? ['#efd386', '#3e361e'] : value < 20 ? ['#dfaa75', '#432d19'] : ['#ab453b', '#fff']
+    const colors = value === 0 ? ['var(--color-surface-3)', 'var(--color-text)'] : value < 5 ? ['var(--color-selected)', 'var(--color-accent-ink)'] : value < 10 ? ['var(--color-warning-bg)', 'var(--color-warning)'] : value < 20 ? ['var(--color-warning-fill)', 'var(--color-on-accent)'] : ['var(--color-danger-fill)', 'var(--color-on-accent)']
     return { background: colors[0], color: colors[1] }
   }
-  const t = Math.max(0, Math.min(1, value / 100)), mix = (a: number, b: number) => Math.round(a + (b - a) * t)
-  return { background: `rgb(${mix(232, 19)},${mix(241, 108)},${mix(235, 99)})`, color: t > .6 ? '#fff' : '#203c30' }
+  const t = Math.max(0, Math.min(1, value / 100))
+  // Token pairs keep cell text readable at every intensity in either theme.
+  return t > .6
+    ? { background: 'var(--color-accent)', color: 'var(--color-on-accent)' }
+    : { background: t > .3 ? 'var(--color-surface-3)' : 'var(--color-surface-2)', color: 'var(--color-text)' }
 }
 function Heatmap({ years, rows, metric, title, testId }: { years: number[]; rows: ChartSeries[]; metric: 'infection' | 'coverage' | 'share'; title: string; testId: string }) {
   return <div className="shp-heat-scroll" data-testid={testId}><table className="shp-heat"><caption>{title} · หน่วยร้อยละ · — หมายถึงไม่มีข้อมูลหรือไม่มีตัวหารที่ใช้ได้</caption><thead><tr><th scope="col">กลุ่มข้อมูล</th>{years.map(year => <th scope="col" key={year}>{year}</th>)}</tr></thead><tbody>{rows.map(row => <tr className={row.isTotal ? 'shp-heat-total' : undefined} key={row.key}><th scope="row">{row.name}</th>{years.map((year, index) => <td key={year} style={heatColor(row.values[index], metric)} data-missing={!numeric(row.values[index])} data-flagged={row.flaggedYears?.includes(year)} title={`${row.name} ปี ${year}: ${percent(row.values[index])}${row.flaggedYears?.includes(year) ? ' มีข้อสังเกตต้นทาง' : ''}`}>{number(row.values[index], 2)}{row.flaggedYears?.includes(year) && <sup aria-label="มีข้อสังเกตต้นทาง">†</sup>}</td>)}</tr>)}</tbody></table></div>
@@ -250,13 +254,13 @@ function YearLines({ years, rows, title, testId }: { years: number[]; rows: Char
           let pen = false, path = ''
           row.values.forEach((value, position) => { if (!numeric(value)) { pen = false; return } path += `${pen ? 'L' : 'M'}${X(position)} ${Y(value)} `; pen = true })
           const color = seriesColor(row, index)
-          return <g key={row.key} data-series={row.key}><path d={path} fill="none" stroke={color} strokeWidth={row.isTotal ? 3 : 2} strokeDasharray={row.isTotal ? '6 4' : undefined} strokeLinejoin="round"/>{row.values.map((value, position) => numeric(value) && <circle key={years[position]} cx={X(position)} cy={Y(value)} r={position === selectedIndex ? 4.5 : 2.8} fill={color}/>)}</g>
+          return <g key={row.key} data-series={row.key}><path d={path} fill="none" stroke={color} strokeWidth={row.isTotal ? 3 : 2} strokeDasharray={seriesDash(row, index)} strokeLinejoin="round"/>{row.values.map((value, position) => numeric(value) && <circle key={years[position]} cx={X(position)} cy={Y(value)} r={position === selectedIndex ? 4.5 : 2.8} fill={color}/>)}</g>
         })}
         <line className="shp-year-guide" x1={X(selectedIndex)} x2={X(selectedIndex)} y1={margin.top} y2={height - margin.bottom}/>
         {years.map((year, index) => <rect key={year} className="shp-year-hit" x={X(index) - Math.min(17, (width - margin.left - margin.right) / Math.max(1, years.length - 1) / 2)} y={margin.top} width={Math.min(34, (width - margin.left - margin.right) / Math.max(1, years.length - 1))} height={height - margin.top - margin.bottom} fill="transparent" role="button" tabIndex={0} aria-label={`อ่านค่าปี ${year} ใน${title}`} aria-pressed={index === selectedIndex} onFocus={() => setSelectedYear(year)} onClick={() => setSelectedYear(year)} onKeyDown={event => { if (['Enter', ' '].includes(event.key)) { event.preventDefault(); setSelectedYear(year) } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); setSelectedYear(years[Math.max(0, Math.min(years.length - 1, selectedIndex + (event.key === 'ArrowRight' ? 1 : -1)))]) } }}/>) }
       </svg>}
     </div>
-    <div className="shp-legend" role="group" aria-label={`เส้นข้อมูล ${title}`}>{rows.map((row, index) => <button type="button" key={row.key} className={`shp-legend-item ${hidden.has(row.key) ? 'is-hidden' : ''}`} aria-pressed={!hidden.has(row.key)} aria-label={`${hidden.has(row.key) ? 'แสดง' : 'ซ่อน'}เส้น ${row.name} ใน${title}`} onClick={() => toggle(row.key)}><i className="shp-color-dot" style={{ background: seriesColor(row, index) }}/>{row.name}{!!row.flaggedYears?.length && <sup aria-label="มีข้อสังเกตต้นทาง">†</sup>}{!hidden.has(row.key) && <Check size={13}/>}</button>)}</div>
+    <div className="shp-legend" role="group" aria-label={`เส้นข้อมูล ${title}`}>{rows.map((row, index) => <button type="button" key={row.key} className={`shp-legend-item ${hidden.has(row.key) ? 'is-hidden' : ''}`} aria-pressed={!hidden.has(row.key)} aria-label={`${hidden.has(row.key) ? 'แสดง' : 'ซ่อน'}เส้น ${row.name} ใน${title}`} onClick={() => toggle(row.key)}><svg className="shp-series-swatch" viewBox="0 0 32 8" aria-hidden="true"><line x1="0" x2="32" y1="4" y2="4" stroke={seriesColor(row, index)} strokeWidth="3" strokeDasharray={seriesDash(row, index)}/></svg>{row.name}{!!row.flaggedYears?.length && <sup aria-label="มีข้อสังเกตต้นทาง">†</sup>}{!hidden.has(row.key) && <Check size={13}/>}</button>)}</div>
     <div className="shp-tooltip" aria-live="polite" data-testid={`${testId}-values`}><strong>ปี {years[selectedIndex]}</strong><div className="shp-tooltip-grid">{visible.map((row, index) => <span key={row.key}><i className="shp-color-dot" style={{ background: seriesColor(row, rows.findIndex(item => item.key === row.key)) }}/>{row.name}<b>{percent(row.values[selectedIndex])}{row.flaggedYears?.includes(years[selectedIndex]) && <sup aria-label="มีข้อสังเกตต้นทาง">†</sup>}</b><span className="shp-screen-reader-only">ลำดับ {index + 1}</span></span>)}</div>{!visible.length && <span>ซ่อนเส้นทั้งหมดอยู่ เลือกชื่อกลุ่มด้านบนเพื่อแสดงอีกครั้ง</span>}</div>
   </div>
 }

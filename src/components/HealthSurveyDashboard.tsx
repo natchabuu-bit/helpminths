@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { APIError, apiRequest, buildQuery, emptyPlatformSession } from '../platform/api'
 import type { PlatformSession } from '../platform/api'
-import '../styles/health-survey-dashboard.css'
+import '../styles/dashboard.css'
 import SurveyHistoryPanels from './SurveyHistoryPanels'
 import type { ComparisonData, HistoryData } from './SurveyHistoryPanels'
 
@@ -48,14 +48,14 @@ const stamp = (value?: string | null) => value && Number.isFinite(Date.parse(val
 const sameSource = (a?: Source | null, b?: Source | null) => !!a && !!b && ['provider', 'spreadsheet_id', 'worksheet', 'gid', 'format', ...(a.provider === 'uploaded_workbook' ? ['file_name', 'year', 'version'] : [])].every(key => a[key as keyof Source] === b[key as keyof Source])
 function sourceURL(source?: Source) { try { if (source?.provider !== 'google_sheets' || !source.url) return null; const url = new URL(source.url); return url.protocol === 'https:' && url.hostname === 'docs.google.com' && /^\/spreadsheets\/d\/[A-Za-z0-9_-]+(?:\/|$)/.test(url.pathname) ? source.url : null } catch { return null } }
 const bands = [
-  { key: 'none', label: 'ไม่พบ (0%)', color: '#c3d0ca', ink: '#1c2b29' },
-  { key: 'under5', label: 'มากกว่า 0–<5%', color: '#8fb3a6', ink: '#1c2b29' },
-  { key: '5to10', label: '5–<10%', color: '#e2b546', ink: '#1c2b29' },
-  { key: '10to20', label: '10–<20%', color: '#d77f2a', ink: '#1c2b29' },
-  { key: '20plus', label: 'ตั้งแต่ 20%', color: '#a8322a', ink: '#fff' },
+  { key: 'none', label: 'ไม่พบ (0%)', color: 'var(--color-surface-3)', ink: 'var(--color-text)' },
+  { key: 'under5', label: 'มากกว่า 0–<5%', color: 'var(--color-selected)', ink: 'var(--color-accent-ink)' },
+  { key: '5to10', label: '5–<10%', color: 'var(--color-warning-bg)', ink: 'var(--color-warning)' },
+  { key: '10to20', label: '10–<20%', color: 'var(--color-warning-fill)', ink: 'var(--color-on-accent)' },
+  { key: '20plus', label: 'ตั้งแต่ 20%', color: 'var(--color-danger-fill)', ink: 'var(--color-on-accent)' },
 ]
 const bandFor = (value: Count) => bands[!numeric(value) || value === 0 ? 0 : value < 5 ? 1 : value < 10 ? 2 : value < 20 ? 3 : 4]
-const speciesColors: Record<string, string> = { hookworm: '#b2452e', ascaris: '#14867f', trichuris: '#d99a2b', liver_fluke: '#6d4c8f', pinworm: '#4f86a8', tapeworm: '#8a8f3a', medium_intestinal: '#c26b8f', strongyloides: '#6b7a78' }
+const speciesColors: Record<string, string> = { hookworm: 'var(--color-accent)', ascaris: 'var(--color-muted)', trichuris: 'var(--color-text)', liver_fluke: 'var(--color-border-strong)', pinworm: 'var(--color-accent)', tapeworm: 'var(--color-muted)', medium_intestinal: 'var(--color-text)', strongyloides: 'var(--color-border-strong)' }
 const speciesLabels: Record<string, string> = { hookworm: 'ปากขอ', ascaris: 'ไส้เดือน', trichuris: 'แส้ม้า', liver_fluke: 'ใบไม้ตับ', pinworm: 'เข็มหมุด', tapeworm: 'ตืด', medium_intestinal: 'ใบไม้ลำไส้ขนาดกลาง', strongyloides: 'สตรองจิลอยด์' }
 function schoolSpecies(row: Group) {
   if (!row.parasite_counts) return 'ยังไม่มีรายละเอียดชนิด'
@@ -152,7 +152,7 @@ function GroupBars({ rows, dimension, selected, onSelect, title }: { rows: Group
 }
 function SpeciesBars({ rows }: { rows: Parasite[] }) {
   const sorted = [...rows].sort((a, b) => (b.count ?? -1) - (a.count ?? -1)), max = Math.max(1, ...sorted.map(row => row.count ?? 0))
-  return <section className="hd-card hd-c6"><h2>ชนิดพยาธิที่พบ</h2><p className="hd-hint">ความยาวแท่งตามจำนวนที่รายงาน · ร้อยละต่อผู้ส่งตรวจ</p><ul className="hd-bars hsd-parasite-bars">{sorted.map((row, i) => <li key={row.key ?? i}><div className="hd-bar-row"><span className="hd-bar-label">{row.parasite}{(row.flagged_count ?? 0) > 0 && <small className="hd-flag">{number(row.flagged_count)} รายต้องตรวจทาน</small>}{(row.missing_school_count ?? 0) > 0 && <small>ไม่ระบุ {number(row.missing_school_count)} ช่อง</small>}</span><span className="hd-track">{numeric(row.count) && row.count > 0 && <i style={{ width: `${row.count / max * 100}%`, background: speciesColors[row.key ?? ''] ?? '#14867f' }}/>}</span><span className="hd-bar-value">{number(row.count)} <small>{row.unit === 'objects' ? 'วัตถุ' : row.unit === 'positive_tests' ? 'ผลบวก' : 'คน'} · {percent(row.rate_percent, 2)}</small></span></div>{(row.flagged_count ?? 0) > 0 && <p className="hd-species-note">รายงาน {number(row.count)} · สอดคล้องเงื่อนไขตัวเลข {number(row.validated_count)} · ต้องตรวจทาน {number(row.flagged_count)}</p>}</li>)}</ul>{!rows.length && <Empty>รอข้อมูลแยกชนิดที่อ่านได้</Empty>}<p className="hd-hint hd-bottom-note">ผู้ติดพยาธิหลายชนิดอาจนับในหลายกลุ่ม จึงไม่รวมรายชนิดเป็นจำนวนคนทั้งหมด ร้อยละ — หมายถึงยังไม่มีตัวหาร หรือมีจำนวนขัดกัน/ช่องชนิดว่างในหน่วยส่งตรวจ ไม่แทนช่องว่างเป็นศูนย์</p></section>
+  return <section className="hd-card hd-c6"><h2>ชนิดพยาธิที่พบ</h2><p className="hd-hint">ความยาวแท่งตามจำนวนที่รายงาน · ร้อยละต่อผู้ส่งตรวจ</p><ul className="hd-bars hsd-parasite-bars">{sorted.map((row, i) => <li key={row.key ?? i}><div className="hd-bar-row"><span className="hd-bar-label">{row.parasite}{(row.flagged_count ?? 0) > 0 && <small className="hd-flag">{number(row.flagged_count)} รายต้องตรวจทาน</small>}{(row.missing_school_count ?? 0) > 0 && <small>ไม่ระบุ {number(row.missing_school_count)} ช่อง</small>}</span><span className="hd-track">{numeric(row.count) && row.count > 0 && <i style={{ width: `${row.count / max * 100}%`, background: speciesColors[row.key ?? ''] ?? 'var(--color-accent)' }}/>}</span><span className="hd-bar-value">{number(row.count)} <small>{row.unit === 'objects' ? 'วัตถุ' : row.unit === 'positive_tests' ? 'ผลบวก' : 'คน'} · {percent(row.rate_percent, 2)}</small></span></div>{(row.flagged_count ?? 0) > 0 && <p className="hd-species-note">รายงาน {number(row.count)} · สอดคล้องเงื่อนไขตัวเลข {number(row.validated_count)} · ต้องตรวจทาน {number(row.flagged_count)}</p>}</li>)}</ul>{!rows.length && <Empty>รอข้อมูลแยกชนิดที่อ่านได้</Empty>}<p className="hd-hint hd-bottom-note">ผู้ติดพยาธิหลายชนิดอาจนับในหลายกลุ่ม จึงไม่รวมรายชนิดเป็นจำนวนคนทั้งหมด ร้อยละ — หมายถึงยังไม่มีตัวหาร หรือมีจำนวนขัดกัน/ช่องชนิดว่างในหน่วยส่งตรวจ ไม่แทนช่องว่างเป็นศูนย์</p></section>
 }
 function Distribution({ rows, selected, busy, onSelect, pending, zero }: { rows: Band[]; selected: string; busy: boolean; onSelect: (key: string) => void; pending: Count; zero: Count }) {
   const total = rows.reduce((sum, row) => sum + row.school_count, 0)

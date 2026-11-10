@@ -2,7 +2,6 @@ import { BarChart3, Box, ChevronDown, CircleHelp, FileText, FolderOpen, MoreHori
 import { useEffect, useId, useRef, useState } from 'react'
 import type { KeyboardEvent, ReactNode } from 'react'
 import type { PlatformSession } from '../platform/api'
-import '../styles/app-navigation.css'
 
 type Destination = 'scan' | 'atlas' | 'dashboard' | 'work' | 'verification' | 'reports' | 'performance'
 interface NavigationProps {

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, Camera, Check, CheckCheck, ChevronRight, CircleHelp, Crosshair, Expand, Eye, EyeOff, FileImage, ImagePlus, Info, LoaderCircle, Microscope, RefreshCw, ScanLine, ShieldCheck, Sparkles, Upload, X, ZoomIn, ZoomOut } from 'lucide-react';
 import '../styles/scan.css';
-import '../styles/scan-workflow.css';
 import { matchSpeciesLabel } from '../data/species';
 import ImageQualityPanel from './ImageQualityPanel';
 import ReferralPanel from './ReferralPanel';
@@ -51,7 +50,7 @@ interface ScanProps {
 type HealthStatus = 'checking' | 'ready' | 'unavailable' | 'offline';
 const COLORS = ['#47e2b5', '#ffbb69', '#b6a0ff', '#72c9ff', '#ff8fa2'];
 // UI ink colors contrast with light cards; vivid image boxes keep their own palette.
-const RESULT_COLORS = ['#146b55', '#84521a', '#65429a', '#246693', '#a63b50'];
+const RESULT_COLORS = ['var(--color-accent-ink)', 'var(--color-text)', 'var(--color-muted)', 'var(--color-text)', 'var(--color-muted)'];
 const MAX_SIZE = 20 * 1024 * 1024;
 const MAX_PIXELS = 40_000_000;
 

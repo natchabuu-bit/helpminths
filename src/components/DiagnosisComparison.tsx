@@ -1,7 +1,7 @@
 import { Bot, CheckCircle2, Clock3, MessageCircle, ShieldCheck } from 'lucide-react'
 import { formatDate } from '../platform/api'
 import type { ExpertReview, PlatformAnalysis, PlatformDetection } from '../platform/api'
-import '../styles/diagnosis-comparison.css'
+import '../styles/platform.css'
 
 interface ComparisonProps {
   analysis: PlatformAnalysis

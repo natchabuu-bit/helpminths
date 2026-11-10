@@ -2,7 +2,7 @@ import { useId } from 'react';
 import { ArrowUpRight, Focus, Info, Microscope } from 'lucide-react';
 import { strongyloidesEvidenceNote, strongyloidesSources } from '../data/strongyloides';
 import StrongyloidesIllustration from './StrongyloidesIllustration';
-import '../styles/strongyloides.css';
+import '../styles/atlas.css';
 
 interface StrongyloidesGuideProps {
   onSelectGenitalPrimordium: () => void;

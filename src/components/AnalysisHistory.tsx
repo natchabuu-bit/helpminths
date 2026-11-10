@@ -6,7 +6,7 @@ import { AccessState, AnalysisFilterForm, emptyFilters, ErrorNotice, LoadingNoti
 import type { AnalysisFilters } from './PlatformShared'
 import { PrivateReferralImage, ReferralStatusBadge } from './ReferralPanel'
 import type { ReferralStatus } from './ReferralPanel'
-import '../styles/history.css'
+import '../styles/platform.css'
 
 interface HistoryDay { date: string; total: number; completed: number; failed: number }
 interface HistoryDays { items: HistoryDay[]; total_days: number; total_analyses: number; timezone: string }

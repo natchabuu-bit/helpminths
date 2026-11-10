@@ -1,5 +1,4 @@
 import { ArrowRight, Play, ScanLine } from 'lucide-react'
-import '../styles/field-overview.css'
 
 interface FieldOverviewProps {
   onScan: () => void

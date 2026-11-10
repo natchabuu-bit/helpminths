@@ -1,13 +1,12 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import '@fontsource-variable/inter'
 import '@fontsource-variable/noto-sans-thai'
+import './styles/tokens.css'
+import './styles/app.css'
 import App from './App'
-import './styles/global.css'
-import './styles/instrument-panels.css'
-import './styles/instrument-shell.css'
 import { registerOfflineSupport } from './offline'
 
+document.documentElement.dataset.theme = 'light'
 void registerOfflineSupport()
 
 if (window.location.hash === '#admin') window.location.replace('/admin/')

@@ -2,7 +2,7 @@ import { Bell, ChevronLeft, ChevronRight, LoaderCircle, X } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { apiRequest, buildQuery, formatDate } from '../platform/api'
 import type { PlatformSession } from '../platform/api'
-import '../styles/notifications.css'
+import '../styles/account.css'
 
 export interface NotificationTarget { analysis_id: string; referral_id: string; message_id: string }
 interface CaseNotification extends NotificationTarget {

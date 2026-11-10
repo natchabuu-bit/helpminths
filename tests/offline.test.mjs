@@ -244,11 +244,11 @@ test('a first home visit prepares unvisited Atlas, fonts, local images and expli
     }
     const fonts = await page.evaluate(async () => {
       await document.fonts.load('500 16px "Noto Sans Thai Variable"', 'ไข่พยาธิ')
-      await document.fonts.load('500 16px "Inter Variable"', 'HelpMinths')
+      await document.fonts.load('500 16px "Noto Sans Thai Variable"', 'HelpMinths')
       await document.fonts.ready
-      return { thai: document.fonts.check('500 16px "Noto Sans Thai Variable"', 'ไข่พยาธิ'), latin: document.fonts.check('500 16px "Inter Variable"', 'HelpMinths') }
+      return { thai: document.fonts.check('500 16px "Noto Sans Thai Variable"', 'ไข่พยาธิ'), latin: document.fonts.check('500 16px "Noto Sans Thai Variable"', 'HelpMinths') }
     })
-    assert.deepEqual(fonts, { thai: true, latin: true }, 'Both bundled font families must load without a network')
+    assert.deepEqual(fonts, { thai: true, latin: true }, 'Noto Sans Thai must cover Thai and Latin text without a network')
 
     await nav(page, 'ตรวจวิเคราะห์').click()
     await page.getByLabel('เลือกภาพจากอุปกรณ์').setInputFiles({ name: 'private-offline-slide.png', mimeType: 'image/png', buffer: fixtureImage })

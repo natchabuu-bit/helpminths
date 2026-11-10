@@ -11,8 +11,6 @@ import Evaluation from './components/Evaluation'
 import FieldOverview from './components/FieldOverview'
 import { useFeedback } from './hooks/useFeedback'
 import { usePlatformSession } from './platform/api'
-import './styles/platform-shell.css'
-import './styles/home-page.css'
 import { getSpeciesById, groupLabels, matchSpeciesLabel, species } from './data/species'
 
 const Atlas = lazy(() => import('./components/Atlas'))

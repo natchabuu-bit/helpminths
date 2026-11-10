@@ -1,0 +1,372 @@
+{
+  "source": "Local read-only synthetic UI fixtures",
+  "scope": "Rendered HTML text and UI actions; scientific SVG/canvas and WCAG-exempt inactive controls excluded",
+  "screenCount": 36,
+  "textRuns": 2547,
+  "controls": 614,
+  "minimumContrast": 4.69,
+  "minimumControlHeight": 44,
+  "failures": 0,
+  "screens": [
+    {
+      "screen": "1440 Atlas",
+      "textRuns": 155,
+      "controls": 41,
+      "cards": 1,
+      "minimumContrast": 4.69,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "1440 avatar menu",
+      "textRuns": 51,
+      "controls": 17,
+      "cards": 2,
+      "minimumContrast": 4.99,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "1440 dark admin login",
+      "textRuns": 23,
+      "controls": 3,
+      "cards": 1,
+      "minimumContrast": 5.35,
+      "minimumControlHeight": 44.8,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "dark"
+    },
+    {
+      "screen": "1440 dark approved member",
+      "textRuns": 53,
+      "controls": 13,
+      "cards": 1,
+      "minimumContrast": 4.9,
+      "minimumControlHeight": 44.25,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "dark"
+    },
+    {
+      "screen": "1440 dark image archive",
+      "textRuns": 45,
+      "controls": 10,
+      "cards": 1,
+      "minimumContrast": 5.35,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "dark"
+    },
+    {
+      "screen": "1440 dark pending approvals",
+      "textRuns": 52,
+      "controls": 13,
+      "cards": 1,
+      "minimumContrast": 5.35,
+      "minimumControlHeight": 44.25,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "dark"
+    },
+    {
+      "screen": "1440 disease statistics",
+      "textRuns": 149,
+      "controls": 25,
+      "cards": 0,
+      "minimumContrast": 4.9,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "1440 guest home",
+      "textRuns": 47,
+      "controls": 16,
+      "cards": 7,
+      "minimumContrast": 4.99,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "1440 help modal",
+      "textRuns": 61,
+      "controls": 18,
+      "cards": 7,
+      "minimumContrast": 4.99,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "1440 member account",
+      "textRuns": 46,
+      "controls": 15,
+      "cards": 2,
+      "minimumContrast": 4.99,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "1440 model evaluation",
+      "textRuns": 32,
+      "controls": 11,
+      "cards": 3,
+      "minimumContrast": 4.99,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "1440 registration",
+      "textRuns": 34,
+      "controls": 15,
+      "cards": 1,
+      "minimumContrast": 4.99,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "1440 reports and overview",
+      "textRuns": 97,
+      "controls": 19,
+      "cards": 10,
+      "minimumContrast": 4.99,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "1440 saved work",
+      "textRuns": 46,
+      "controls": 23,
+      "cards": 1,
+      "minimumContrast": 4.99,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "1440 scan demo",
+      "textRuns": 82,
+      "controls": 19,
+      "cards": 2,
+      "minimumContrast": 4.99,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "1440 scan unavailable",
+      "textRuns": 47,
+      "controls": 11,
+      "cards": 2,
+      "minimumContrast": 4.99,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "1440 Strongyloides guide",
+      "textRuns": 134,
+      "controls": 30,
+      "cards": 1,
+      "minimumContrast": 4.69,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "1440 SUS",
+      "textRuns": 163,
+      "controls": 8,
+      "cards": 2,
+      "minimumContrast": 4.99,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "375 Atlas",
+      "textRuns": 145,
+      "controls": 41,
+      "cards": 1,
+      "minimumContrast": 4.69,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "375 avatar menu",
+      "textRuns": 47,
+      "controls": 17,
+      "cards": 2,
+      "minimumContrast": 4.99,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "375 dark admin login",
+      "textRuns": 22,
+      "controls": 3,
+      "cards": 1,
+      "minimumContrast": 5.35,
+      "minimumControlHeight": 44.8,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "dark"
+    },
+    {
+      "screen": "375 dark approved member",
+      "textRuns": 52,
+      "controls": 13,
+      "cards": 1,
+      "minimumContrast": 4.9,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "dark"
+    },
+    {
+      "screen": "375 dark image archive",
+      "textRuns": 44,
+      "controls": 10,
+      "cards": 1,
+      "minimumContrast": 5.35,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "dark"
+    },
+    {
+      "screen": "375 dark pending approvals",
+      "textRuns": 51,
+      "controls": 13,
+      "cards": 1,
+      "minimumContrast": 5.35,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "dark"
+    },
+    {
+      "screen": "375 disease statistics",
+      "textRuns": 144,
+      "controls": 25,
+      "cards": 0,
+      "minimumContrast": 4.9,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "375 guest home",
+      "textRuns": 46,
+      "controls": 16,
+      "cards": 7,
+      "minimumContrast": 4.99,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "375 help modal",
+      "textRuns": 60,
+      "controls": 18,
+      "cards": 7,
+      "minimumContrast": 4.99,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "375 member account",
+      "textRuns": 42,
+      "controls": 15,
+      "cards": 2,
+      "minimumContrast": 4.99,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "375 model evaluation",
+      "textRuns": 28,
+      "controls": 11,
+      "cards": 3,
+      "minimumContrast": 4.99,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "375 registration",
+      "textRuns": 33,
+      "controls": 15,
+      "cards": 1,
+      "minimumContrast": 4.99,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "375 reports and overview",
+      "textRuns": 93,
+      "controls": 19,
+      "cards": 10,
+      "minimumContrast": 4.99,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "375 saved work",
+      "textRuns": 42,
+      "controls": 23,
+      "cards": 1,
+      "minimumContrast": 4.99,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "375 scan demo",
+      "textRuns": 80,
+      "controls": 19,
+      "cards": 2,
+      "minimumContrast": 4.99,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "375 scan unavailable",
+      "textRuns": 45,
+      "controls": 11,
+      "cards": 2,
+      "minimumContrast": 4.99,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "375 Strongyloides guide",
+      "textRuns": 124,
+      "controls": 30,
+      "cards": 1,
+      "minimumContrast": 4.69,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    },
+    {
+      "screen": "375 SUS",
+      "textRuns": 132,
+      "controls": 8,
+      "cards": 2,
+      "minimumContrast": 4.99,
+      "minimumControlHeight": 44,
+      "font": "\"Noto Sans Thai Variable\", \"Noto Sans Thai\", sans-serif",
+      "colorScheme": "light"
+    }
+  ]
+}

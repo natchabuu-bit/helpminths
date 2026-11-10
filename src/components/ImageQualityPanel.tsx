@@ -1,6 +1,6 @@
 import { AlertTriangle, CheckCircle2, ClipboardCheck, LoaderCircle, ShieldCheck } from 'lucide-react'
 import type { QualityAssessment } from '../platform/api'
-import '../styles/image-quality.css'
+import '../styles/platform.css'
 
 export default function ImageQualityPanel({ quality, checking, disabled, acknowledged, comment, onCheck, onAcknowledge, onComment }: {
   quality: (QualityAssessment & { notice?: string }) | null; checking: boolean; disabled: boolean;
