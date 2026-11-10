@@ -504,3 +504,8 @@
   .review-decision-actions > button { flex: 1 1 40%; justify-content: center; }
   .review-decision-actions > button.primary { flex-basis: 100%; }
 }
+
+.review-object-decisions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-1); }
+.review-object-decisions [aria-pressed="true"] { color: var(--color-accent-ink); background: var(--color-surface-2); border-color: var(--color-accent); box-shadow: inset 0 0 0 1px var(--color-accent); }
+.review-object-notes, .review-coordinate-details { margin-top: var(--space-2); }
+.review-object-notes > summary, .review-coordinate-details > summary { min-height: var(--control-height); padding-block: var(--space-1); cursor: pointer; }

@@ -243,6 +243,15 @@ test('public expert approval, private request-more images and full confirmation 
     assert.equal(await expertPage.getByRole('button', { name: 'ยืนยันผลและปิดรายการ', exact: true }).isDisabled(), true)
     assert.match(await expertPage.locator('#review-decision-missing').innerText(), /เหลือ 2 วัตถุที่ยังไม่ตรวจ/)
     assert.equal(await expertPage.getByLabel('สถานะการทบทวน', { exact: true }).count(), 0)
+    assert.equal(await expertPage.getByRole('group', { name: 'ผลตรวจวัตถุที่เลือก' }).getByRole('button').count(), 4)
+    assert.equal(await expertPage.getByLabel('การดำเนินการ', { exact: true }).count(), 0)
+    assert.equal(await expertPage.getByLabel('ชนิดที่ตรวจทาน', { exact: true }).count(), 0)
+    await expertPage.getByRole('button', { name: 'แก้ชนิด', exact: true }).click()
+    await expertPage.getByLabel('ชนิดที่ตรวจทาน', { exact: true }).waitFor()
+    assert.equal(await expertPage.getByLabel('x1', { exact: true }).isVisible(), false)
+    await expertPage.getByRole('button', { name: 'ไม่แน่ใจ', exact: true }).click()
+    assert.match(await expertPage.locator('#review-decision-missing').innerText(), /มี 1 วัตถุที่ยังไม่แน่ใจ/)
+    await expertPage.getByRole('button', { name: 'ถูกต้อง', exact: true }).click()
     const requestMore = 'SYNTHETIC REQUEST MORE: please send a second chart image with a wider field.'
     await expertPage.getByLabel('ข้อความถึงผู้ส่ง', { exact: true }).fill(requestMore)
     const asked = expertPage.waitForResponse(response => response.url().endsWith(`/analyses/${analysis.id}/reviews`) && response.request().method() === 'POST')
@@ -281,13 +290,14 @@ test('public expert approval, private request-more images and full confirmation 
     await expertPage.locator('.referral-history > summary').click()
     await expertPage.locator('.referral-attachments img').waitFor()
     assert.equal((await expert.context.request.get(`${baseURL}${attachmentURL}`)).status(), 200, 'The approved expert can inspect the additional private image')
-    await expertPage.getByRole('button', { name: 'ยืนยันกรอบที่ยังไม่ทบทวน', exact: true }).click()
+    await expertPage.getByRole('button', { name: 'ยืนยันกรอบที่ยังไม่ทบทวนทั้งหมด', exact: true }).click()
     const finalReply = 'SYNTHETIC TEST CONFIRMED: original and additional chart regions reviewed for workflow only.'
     await expertPage.getByLabel('ข้อความถึงผู้ส่ง', { exact: true }).fill(finalReply)
     await expertPage.getByRole('checkbox', { name: /ตรวจภาพทั้งภาพแล้ว/ }).check()
     const confirmedResponse = expertPage.waitForResponse(response => response.url().endsWith(`/analyses/${analysis.id}/reviews`) && response.request().method() === 'POST')
     await expertPage.getByRole('button', { name: 'ยืนยันผลและปิดรายการ', exact: true }).click()
-    assert.equal((await confirmedResponse).status(), 201)
+    const finalResponse = await confirmedResponse
+    assert.equal(finalResponse.status(), 201, await finalResponse.text())
     await expertPage.getByText('ยืนยันผลและปิดรายการแล้ว', { exact: true }).waitFor()
     const confirmed = (await (await owner.context.request.get(`${baseURL}/api/platform/analyses/${analysis.id}/referral`)).json()).referral
     assert.equal(confirmed.status, 'confirmed')
