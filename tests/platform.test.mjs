@@ -220,6 +220,7 @@ test('authenticated quality gate, saved predictions, expert decisions, audit, re
     await page.getByText('ยืนยันผลและปิดรายการแล้ว', { exact: true }).waitFor()
     await page.getByRole('tab', { name: 'เสร็จสิ้น', exact: true }).click()
     await page.locator('.expert-referral-card').filter({ hasText: sampleCode }).getByRole('button', { name: 'เปิดภาพและตรวจทาน', exact: true }).click()
+    await page.locator('.review-download-menu > summary').click()
     for (const [button, prefix] of [['รายงาน PDF', '%PDF'], ['ข้อมูล CSV', null]]) {
       const downloadPromise = page.waitForEvent('download', { timeout: 45_000 })
       void downloadPromise.catch(() => {})
