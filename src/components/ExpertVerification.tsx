@@ -145,7 +145,7 @@ function ReviewEditor({ analysis, referral, selectedReferralId, selectedMessageI
     return { key: String(detection.id), detection_id: detection.id, action: reviewed?.action ?? '', bbox: reviewed?.action === 'confirm' ? detection.bbox : reviewed?.bbox ?? detection.bbox, label: reviewed?.action === 'confirm' ? detection.label : reviewed?.label ?? reviewed?.corrected_label ?? detection.label, comment: reviewed?.comment ?? '' }
   }))
   const [missed, setMissed] = useState<DraftAnnotation[]>(() => prior?.annotations.filter(item => ['missed', 'missed_detection'].includes(item.action)).map((item, index) => ({ key: `missed-${index}`, action: item.action, bbox: item.bbox ?? [0, 0, 1, 1], label: item.label ?? '', comment: item.comment ?? '' })) ?? [])
-  const [selected, setSelected] = useState(drafts[0]?.key ?? ''), [comment, setComment] = useState(''), [fullImage, setFullImage] = useState(false)
+  const [selected, setSelected] = useState(drafts[0]?.key ?? ''), [comment, setComment] = useState(prior?.status === 'in_review' ? prior.comment ?? prior.comments ?? '' : ''), [fullImage, setFullImage] = useState(prior?.status === 'in_review' && prior.full_image_reviewed === true)
   const [zoom, setZoom] = useState(1), [boxes, setBoxes] = useState(true), [drawing, setDrawing] = useState(false), [start, setStart] = useState<[number, number] | null>(null), [preview, setPreview] = useState<[number, number, number, number] | null>(null)
   const [working, setWorking] = useState(false), [error, setError] = useState(''), [imageFailed, setImageFailed] = useState(false)
   const svgRef = useRef<SVGSVGElement>(null), decisionRef = useRef<HTMLElement>(null)
