@@ -96,6 +96,7 @@
 
   --control-min-height: 44px;
   --control-height: 48px;
+  --motion-alert-duration: 2.8s;
   --focus-width: 3px;
   --focus-offset: 3px;
   /* Clipped accessibility content uses geometry, not layout spacing. */

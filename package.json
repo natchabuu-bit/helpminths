@@ -25,7 +25,8 @@
     "test:history-dashboard": "node --test tests/history-dashboard.test.mjs",
     "test:profiles": "node --test tests/profiles-notifications.test.mjs",
     "test:scan-efficiency": "node --test tests/scan-efficiency.test.mjs",
-    "test:admin-image-archive": "node --test tests/admin-image-archive.test.mjs"
+    "test:admin-image-archive": "node --test tests/admin-image-archive.test.mjs",
+    "test:notification-alerts": "node --test tests/notification-alerts.test.mjs"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans-thai": "^5.2.8",

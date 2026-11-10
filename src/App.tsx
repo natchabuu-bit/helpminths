@@ -131,7 +131,7 @@ export default function App() {
   return <div className="app-shell platform-shell instrument-shell minimal-navigation-shell">
     <a className="skip-navigation" href="#main-content" onClick={event => { event.preventDefault(); mainRef.current?.focus(); mainRef.current?.scrollIntoView({ block: 'start' }) }}>ข้ามไปเนื้อหาหลัก</a>
     <AppNavigation page={page} session={platform.session} brand={<Brand/>} onHome={() => navigate('home')} onNavigate={target => target === 'scan' ? openScan() : target === 'work' ? openWork() : navigate(target)} onHelp={() => setHelpOpen(true)}>
-      <NotificationMenu key={authIdentity} session={platform.session} onOpenCase={openNotification}/>
+      <NotificationMenu key={authIdentity} session={platform.session} onOpenCase={openNotification} onOpenQueue={() => { setPlatformAnalysisId(undefined); setNotificationTarget(undefined); navigate('verification') }}/>
       <AccountMenu session={platform.session} onSettings={() => openSettings()} onLogout={platform.logout}/>
     </AppNavigation>
     <div className="main-layout">
