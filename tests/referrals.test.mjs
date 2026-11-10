@@ -622,3 +622,143 @@ test('Scan saves a blank-code image, retries a failed expert referral, then keep
     assert.deepEqual(owner.errors, [])
   } finally { await owner.context.close() }
 })
+// Phase E regression. Uses this file's existing localhost fixture helpers only.
+// Its fixed short browser expiry tests UI timeouts without changing backend's
+// real 15-minute authentication rule. Actual backend expiry/ACL is covered by
+// deleting the expert step-up, then attempting a real guarded review request.
+test('expert drafts survive timed and server-triggered reauthentication without rebasing a stale revision', { timeout: 240_000 }, async () => {
+  const owner = await contextForTest(), expert = await contextForTest()
+  try {
+    await registerApproved(owner.context, `expiry_owner_${Date.now()}`)
+    assert.equal((await post(expert.context, '/expert-signin', { username: 'fixture-reviewer', password: staffPassword })).status(), 200)
+    const page = await expert.context.newPage()
+    // Only three browser minutes pass; real renewed backend expiry remains in
+    // the future. A full fake 15 minutes would make valid server dates look old.
+    await page.clock.install({ time: new Date() })
+    const deadline = await page.evaluate(() => new Date(Date.now() + 180_000).toISOString())
+    let shortenExpiry = true
+    await page.route('**/api/platform/expert-session', async route => {
+      if (route.request().method() !== 'GET') return route.fallback()
+      const response = await route.fetch()
+      const body = await response.json()
+      await route.fulfill({ response, json: shortenExpiry && body.verified ? { ...body, verified_until: deadline } : body })
+    })
+    const png = await page.evaluate(() => {
+      const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 384
+      const ctx = canvas.getContext('2d')
+      for (let x = 0; x < 512; x += 16) for (let y = 0; y < 384; y += 16) {
+        ctx.fillStyle = (x / 16 + y / 16) % 2 ? '#b4b4b4' : '#4b4b4b'; ctx.fillRect(x, y, 16, 16)
+      }
+      return canvas.toDataURL('image/png').split(',')[1]
+    })
+    await fixture(owner.context.request)
+    const identity = await session(owner.context)
+    const created = await owner.context.request.post(`${baseURL}/api/platform/analyses`, {
+      headers: { 'X-CSRF-Token': identity.csrf_token },
+      multipart: { image: { name: 'SYNTHETIC_expiry.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64') }, sample_code: `TEST_EXPIRY_${Date.now()}`, acknowledge_quality: 'true', quality_comment: 'SYNTHETIC expiry regression chart only.' },
+    })
+    assert.equal(created.status(), 201, await created.text())
+    const initial = await created.json()
+    assert.equal((await post(owner.context, `/analyses/${initial.id}/referrals`, { expected_revision: initial.revision, reason: 'SYNTHETIC expiry regression request.' })).status(), 201)
+    const original = await (await owner.context.request.get(`${baseURL}/api/platform/analyses/${initial.id}`)).json()
+    await page.goto(`${baseURL}/#verification`, { waitUntil: 'networkidle' })
+    await page.locator('.expert-referral-card').filter({ hasText: original.sample_code }).getByRole('button', { name: 'เปิดภาพและตรวจทาน', exact: true }).click()
+    await page.getByRole('button', { name: 'แก้ชนิด', exact: true }).click()
+    await page.getByLabel('ชนิดที่ตรวจทาน', { exact: true }).fill('SYNTHETIC corrected A retained')
+    await page.locator('.review-object-notes > summary').click()
+    await page.getByLabel('หมายเหตุสำหรับวัตถุนี้', { exact: true }).fill('SYNTHETIC original-object note retained')
+    await page.locator('.platform-object').filter({ hasText: 'TEST FIXTURE object B' }).click()
+    await page.getByRole('button', { name: 'ไม่ใช่ไข่พยาธิ', exact: true }).click()
+    await page.getByRole('button', { name: 'เพิ่มวัตถุที่ตกหล่น', exact: true }).click()
+    const svg = page.getByRole('img', { name: 'ภาพต้นฉบับและกรอบสำหรับตรวจทาน', exact: true })
+    await svg.scrollIntoViewIfNeeded()
+    const bounds = await svg.boundingBox()
+    assert.ok(bounds)
+    await page.mouse.move(bounds.x + bounds.width * .2, bounds.y + bounds.height * .72)
+    await page.mouse.down()
+    await page.mouse.move(bounds.x + bounds.width * .34, bounds.y + bounds.height * .87, { steps: 4 })
+    await page.mouse.up()
+    await page.getByLabel('ชนิดที่ตรวจทาน', { exact: true }).fill('SYNTHETIC missed object retained')
+    await page.locator('.review-object-notes > summary').click()
+    await page.getByLabel('หมายเหตุสำหรับวัตถุนี้', { exact: true }).fill('SYNTHETIC missed-object note retained')
+    await page.getByLabel('ข้อความถึงผู้ส่ง', { exact: true }).fill('SYNTHETIC unsaved reply retained')
+    await page.getByRole('checkbox', { name: 'ตรวจภาพทั้งภาพแล้ว', exact: true }).check()
+    const draftSnapshot = async () => ({
+      selectedObject: await page.locator('.platform-object[aria-pressed="true"]').innerText(),
+      label: await page.getByLabel('ชนิดที่ตรวจทาน', { exact: true }).inputValue(),
+      objectNote: await page.getByLabel('หมายเหตุสำหรับวัตถุนี้', { exact: true }).inputValue(),
+      coordinates: await page.locator('.platform-coordinate-grid input').evaluateAll(inputs => inputs.map(input => input.value)),
+      reply: await page.getByLabel('ข้อความถึงผู้ส่ง', { exact: true }).inputValue(),
+      fullImage: await page.getByRole('checkbox', { name: 'ตรวจภาพทั้งภาพแล้ว', exact: true }).isChecked(),
+    })
+    const draft = await draftSnapshot()
+    assert.equal(draft.coordinates.length, 4)
+    await page.clock.fastForward(61_000)
+    await page.getByRole('button', { name: 'ต่ออายุการยืนยัน', exact: true }).waitFor()
+    assert.equal(await page.getByRole('dialog', { name: 'ยืนยันตัวตนผู้เชี่ยวชาญ', exact: true }).count(), 0, 'Two-minute warning must not interrupt work')
+    await page.clock.fastForward(120_000)
+    const modal = page.getByRole('dialog', { name: 'ยืนยันตัวตนผู้เชี่ยวชาญ', exact: true })
+    await modal.waitFor()
+    assert.equal(await modal.getAttribute('aria-modal'), 'true')
+    assert.equal(await page.locator('.expert-verification-page image[href^="blob:"],.expert-verification-page img[src^="blob:"]').count(), 0, 'Locked views revoke/remove protected image sources')
+    for (const key of [...Array(10).fill('Tab'), ...Array(10).fill('Shift+Tab')]) {
+      await page.keyboard.press(key)
+      assert.equal(await modal.evaluate(element => element.contains(document.activeElement)), true, 'Password modal must trap focus')
+    }
+    await page.keyboard.press('Escape')
+    assert.equal(await modal.isVisible(), true, 'An expired session cannot dismiss the password modal to expose the draft')
+    await modal.getByLabel('รหัสผ่านผู้เชี่ยวชาญ', { exact: true }).fill('wrong-synthetic-password')
+    const wrong = page.waitForResponse(response => response.url().endsWith('/expert-login') && response.request().method() === 'POST')
+    await modal.getByRole('button', { name: 'ยืนยันและเข้าคลังภาพ', exact: true }).click()
+    assert.equal((await wrong).status(), 403)
+    assert.equal(await modal.isVisible(), true)
+    shortenExpiry = false
+    await modal.getByLabel('รหัสผ่านผู้เชี่ยวชาญ', { exact: true }).fill(staffPassword)
+    const renewal = page.waitForResponse(response => response.url().endsWith('/expert-login') && response.request().method() === 'POST')
+    await modal.getByRole('button', { name: 'ยืนยันและเข้าคลังภาพ', exact: true }).click()
+    assert.equal((await renewal).status(), 200)
+    await modal.waitFor({ state: 'hidden' })
+    await svg.waitFor()
+    assert.deepEqual(await draftSnapshot(), draft, 'All unsaved object, coordinate, selection and decision state survives renewal')
+    await page.locator('.platform-object').filter({ hasText: 'TEST FIXTURE object A' }).click()
+    assert.equal(await page.getByRole('button', { name: 'แก้ชนิด', exact: true }).getAttribute('aria-pressed'), 'true')
+    assert.equal(await page.getByLabel('ชนิดที่ตรวจทาน', { exact: true }).inputValue(), 'SYNTHETIC corrected A retained')
+    assert.equal(await page.getByLabel('หมายเหตุสำหรับวัตถุนี้', { exact: true }).inputValue(), 'SYNTHETIC original-object note retained')
+    await page.locator('.platform-object').filter({ hasText: 'SYNTHETIC missed object retained' }).click()
+
+    // Server revocation exercises the actual protected review endpoint, not a
+    // mocked 403 or a frontend-only timeout.
+    assert.equal((await post(expert.context, '/expert-session', {}, 'delete')).status(), 200)
+    const rejected = page.waitForResponse(response => response.url().endsWith(`/analyses/${original.id}/reviews`) && response.request().method() === 'POST')
+    await page.getByRole('button', { name: 'บันทึกร่าง', exact: true }).click()
+    const denied = await rejected
+    assert.equal(denied.status(), 403)
+    assert.equal((await denied.json()).detail.code, 'expert_verification_required')
+    await modal.waitFor()
+    assert.equal(await page.locator('.expert-verification-page image[href^="blob:"],.expert-verification-page img[src^="blob:"]').count(), 0)
+
+    // A separate tab may renew/write while this editor remains locked. The
+    // editor must retain its original revision and expose the real409 later.
+    assert.equal((await post(expert.context, '/expert-login', { password: staffPassword })).status(), 200)
+    const concurrent = await post(expert.context, `/analyses/${original.id}/reviews`, {
+      expected_revision: original.revision, status: 'in_review', full_image_reviewed: false,
+      comments: 'SYNTHETIC concurrent tab writes first', annotations: [],
+    })
+    assert.equal(concurrent.status(), 201, await concurrent.text())
+    assert.ok((await concurrent.json()).revision > original.revision)
+    await modal.getByLabel('รหัสผ่านผู้เชี่ยวชาญ', { exact: true }).fill(staffPassword)
+    const renewedAgain = page.waitForResponse(response => response.url().endsWith('/expert-login') && response.request().method() === 'POST')
+    await modal.getByRole('button', { name: 'ยืนยันและเข้าคลังภาพ', exact: true }).click()
+    assert.equal((await renewedAgain).status(), 200)
+    await modal.waitFor({ state: 'hidden' })
+    assert.deepEqual(await draftSnapshot(), draft, 'A refreshed server revision must not replace an unsaved draft')
+    const stale = page.waitForResponse(response => response.url().endsWith(`/analyses/${original.id}/reviews`) && response.request().method() === 'POST')
+    await page.getByRole('button', { name: 'บันทึกร่าง', exact: true }).click()
+    const conflict = await stale
+    assert.equal(conflict.request().postDataJSON().expected_revision, original.revision, 'Never silently rebase an existing draft on renewal')
+    assert.equal(conflict.status(), 409)
+    await page.getByRole('alert').filter({ hasText: 'ผลนี้เปลี่ยนไปแล้ว' }).waitFor()
+    assert.deepEqual(await draftSnapshot(), draft, 'A conflict keeps the draft available for deliberate resolution')
+    assert.deepEqual(expert.errors, [])
+  } finally { await owner.context.close(); await expert.context.close() }
+})

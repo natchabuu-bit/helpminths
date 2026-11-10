@@ -500,7 +500,7 @@
 .review-decision-actions { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 .review-decision-bar > p { margin: var(--space-1) 0 0; }
 @media (max-width: 680px) {
-  .review-decision-bar { position: sticky; bottom: calc(var(--space-12) + env(safe-area-inset-bottom)); z-index: 20; box-shadow: var(--shadow-md); padding: var(--space-2); }
+  .review-decision-bar { position: sticky; top: max(var(--space-10), calc(100dvh - var(--space-12) - env(safe-area-inset-bottom) - var(--review-decision-height, 400px))); z-index: 20; box-shadow: var(--shadow-md); padding: var(--space-2); }
   .review-decision-actions > button { flex: 1 1 40%; justify-content: center; }
   .review-decision-actions > button.primary { flex-basis: 100%; }
 }
@@ -515,3 +515,6 @@
 .review-download-menu > div { position: absolute; right: 0; top: 100%; z-index: 25; padding: var(--space-1); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); box-shadow: var(--shadow-md); min-width: var(--space-24); display: grid; gap: var(--space-1); }
 .expert-referral-reason { margin-block: var(--space-2); overflow-wrap: anywhere; }
 @media (min-width: 1000px) { .expert-verification-page .platform-review-grid:not(.review-readonly-grid) { grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr); } }
+
+@media (max-width: 680px) { .review-download-menu > div { left: 0; right: auto; } }
+.review-expiry-warning { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap; }
