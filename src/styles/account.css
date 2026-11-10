@@ -166,3 +166,6 @@
   .admin-login-form > button { justify-self: stretch; }
   .admin-access-gate .platform-actions { align-items: stretch; flex-direction: column; }
 }
+
+.platform-definition-grid.account-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 680px) { .platform-definition-grid.account-summary-grid { grid-template-columns: minmax(0, 1fr); } }

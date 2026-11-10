@@ -110,6 +110,10 @@ test('profile dropdown and private per-case expert notifications open the select
     await menu.getByRole('button', { name: 'ตั้งค่า', exact: true }).click()
     assert.equal(new URL(page.url()).hash, '#settings')
     assert.equal(await menu.count(), 0)
+    const summary = page.locator('.account-summary-grid')
+    assert.deepEqual(await summary.locator('span').allTextContents(), ['บทบาท', 'สถานะบัญชี'])
+    assert.equal(await page.locator('.account-preferences').getByLabel('ชื่อ-นามสกุล', { exact: true }).inputValue(), profile.full_name)
+    assert.equal(await page.getByLabel('ชื่อบัญชีที่ต้องการใช้', { exact: true }).inputValue(), username)
 
     const image = await page.evaluate(() => {
       const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 384

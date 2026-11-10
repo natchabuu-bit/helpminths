@@ -84,7 +84,7 @@ export default function PlatformSettings({ session, onSessionChanged, onExpertSi
     <section className="platform-card account-access-card" aria-labelledby="account-access-title">
       <div className="platform-card-heading"><h2 id="account-access-title">{session.user ? 'บัญชีปัจจุบัน' : 'เข้าใช้งาน HelpMinths'}</h2></div>
       {session.user ? <>
-        <div className="platform-definition-grid"><div><span>ชื่อ-นามสกุล</span><strong>{session.user.full_name || session.user.username}</strong></div><div><span>บัญชี</span><strong>{session.user.username}</strong></div><div><span>สถานะ</span><strong>{userRoleName(session.user)} · {approvalNames[session.user.approval_status] ?? 'อนุมัติแล้ว'}</strong></div></div>
+        <div className="platform-definition-grid account-summary-grid"><div><span>บทบาท</span><strong>{userRoleName(session.user)}</strong></div><div><span>สถานะบัญชี</span><strong>{approvalNames[session.user.approval_status] ?? 'อนุมัติแล้ว'}</strong></div></div>
         {session.user.is_super_admin && accountReady && onOpenAdmin && <div className="account-admin-access"><div><h3>หลังบ้าน Super Admin</h3><p>เปิดหน้ารออนุมัติเพื่อพิจารณาคำขอสมัคร และจัดการสิทธิ์สมาชิก</p></div><button className="platform-button primary" onClick={onOpenAdmin}><ShieldCheck size={18}/>เปิดหลังบ้าน</button></div>}
         <div className="account-current-actions"><div className="platform-actions">{onExpertSignedIn && ['reviewer', 'admin'].includes(session.user.role) && <button className="platform-button" onClick={onExpertSignedIn}><ShieldCheck size={17}/>เปิดหน้าผู้เชี่ยวชาญ</button>}<button className="platform-button" disabled={busy} onClick={() => void logout()}><LogOut size={17}/>ออกจากระบบ</button></div></div>
       </> : <>
