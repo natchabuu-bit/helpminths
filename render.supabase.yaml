@@ -1,0 +1,45 @@
+# OPTIONAL Render Free + external PostgreSQL (for example Supabase Free).
+# This file does not create a Supabase project or buy any hosting resources.
+# Existing service: set these environment variables on the existing helpminths
+# service after backing up its private SQLite database and images. Do not create
+# a duplicate service blindly. Use only the application version with PostgreSQL
+# support. Keep the database URI private in Render; never commit its real value.
+# Local uploaded images remain ephemeral unless separately backed by durable media.
+services:
+  - type: web
+    name: helpminths
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: false
+    healthCheckPath: /api/health
+    envVars:
+      # Set HELPMINTHS_SUPER_ADMIN_PASSWORD privately in Render Environment.
+      # Its value is intentionally absent from this public Blueprint.
+      - key: HELPMINTHS_SERVE_WEB
+        value: "1"
+      - key: HELPMINTHS_AUTO_STORAGE
+        value: "1"
+      - key: HELPMINTHS_DATABASE_BACKEND
+        value: "postgres"
+      - key: HELPMINTHS_DATABASE_URL
+        sync: false
+      - key: HELPMINTHS_DASHBOARD_RESTORE_SNAPSHOT
+        value: "1"
+      - key: HELPMINTHS_DASHBOARD_SOURCE
+        value: "snapshot"
+      - key: HELPMINTHS_SHEETS_ENABLED
+        value: "1"
+      - key: HELPMINTHS_SHEETS_ID
+        value: "1pvGSBJEykTf5NUEsd3SqVdOqpYbpibTj07p23yJ5o-8"
+      - key: HELPMINTHS_SHEETS_GID
+        value: ""
+      - key: HELPMINTHS_SHEETS_PUBLIC_AGGREGATES
+        value: "1"
+      - key: HELPMINTHS_SHEETS_COLUMN_MAPPING
+        value: '{"preset":"health2-kpd-school-v1"}'
+      - key: HELPMINTHS_SHEETS_REFRESH_SECONDS
+        value: "30"
+      - key: PORT
+        value: "8000"

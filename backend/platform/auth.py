@@ -309,12 +309,17 @@ def status(request: Request) -> dict[str, Any]:
     store = getattr(request.app.state, "platform_store", None)
     configured = isinstance(store, PlatformStore) and store.configured
     model = getattr(request.app.state, "model_service", None)
-    durable = bool(configured and store.config.storage_durable)
+    images_durable = bool(configured and store.config.storage_durable)
+    database_backend = getattr(store, "database_backend", "sqlite") if configured else None
+    database_durable = bool(configured and (getattr(store, "database_durable", False) or images_durable))
+    durable = database_durable and images_durable
     automatic = bool(configured and store.config.automatic_storage)
     metadata = getattr(model, "metadata", None)
     return {
         "configured": configured,
         "database": "ready" if configured else "not_configured",
+        "database_backend": database_backend,
+        "accounts_persistent": database_durable,
         "authentication": "ready" if configured else "not_configured",
         "administrator_setup_pending": bool(configured and not store.has_users()),
         "registration_enabled": configured,
@@ -323,8 +328,10 @@ def status(request: Request) -> dict[str, Any]:
         "roles": list(ROLES),
         "owner_username": configured_owner_username(), **_owner_metadata(request, store),
         "storage": {"configured": configured, "durable": durable, "automatic": automatic,
-                    "mode": "durable" if durable else "temporary" if configured else "not_configured",
+                    "database_durable": database_durable, "images_durable": images_durable,
+                    "mode": "durable" if durable else "mixed" if database_durable else "temporary" if configured else "not_configured",
                     "notice": "เชื่อมพื้นที่เก็บข้อมูลถาวรตามการตั้งค่าของผู้ดูแลแล้ว ควรสำรองข้อมูลแยกต่างหาก" if durable else
+                              "บัญชีและสถานะอนุมัติเก็บในฐานข้อมูลภายนอกแล้ว แต่ไฟล์ภาพบนโฮสต์ยังเป็นพื้นที่ชั่วคราว" if database_durable else
                               "บัญชีและผลตรวจใช้งานได้ แต่ข้อมูลบนพื้นที่ชั่วคราวอาจหายเมื่อโฮสต์เริ่มใหม่หรือ deploy" if configured else
                               "ยังไม่ได้เปิดฐานข้อมูลและพื้นที่จัดเก็บข้อมูล"},
         "model": {"ready": bool(getattr(model, "ready", False)), "name": getattr(model, "name", None), "message": getattr(model, "message", "Not configured"), "version": getattr(model, "version", None), "sha256": metadata.get("sha256") if isinstance(metadata, dict) else None},

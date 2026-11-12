@@ -437,3 +437,21 @@ Verification:
 - Password-free synthetic screenshots under `/workspace/helpminths-archive-ui/` were visually inspected, including mobile comparison, daily/account archive and a zero-result confirmation. `git diff --check` passes. Model weights, inference settings, image pixel normalization and public survey data are unchanged.
 
 No live deployment or permanent hosted storage was provisioned. Render remains manual-deploy and its Free filesystem remains temporary: this archive cannot guarantee retention across restart/redeploy without durable storage and consistent database/image backups. Files already lost before this feature cannot be reconstructed. Current usage and retention are documented in [Thai archive/results guide](IMAGE-ARCHIVE-AND-RESULTS.th.md).
+
+## External PostgreSQL accounts on Render Free — 12 November 2026
+
+Added an explicit PostgreSQL store selected by `HELPMINTHS_DATABASE_BACKEND=postgres` / private `HELPMINTHS_DATABASE_URL`. The existing account/password/approval and expert-session APIs reuse their original authorization logic. Database outages or missing external configuration never create a replacement local SQLite account store. The server uses a private `helpminths` schema, TLS for remote connections, no client database credentials, transaction-scoped writer serialization, and pooler-compatible transactions without prepared statements.
+
+Accounts, approvals, owner-bootstrap markers, sessions, documents and audit records are external. Local uploaded/archived/supplemental image bytes remain ephemeral on Render Free; `/api/platform/status` separates `accounts_persistent` / `storage.database_durable` from `storage.images_durable` rather than claiming that all storage is durable. The optional free Blueprint and Thai Supabase guide require the owner to create a project and enter the connection string privately; no hosted project, secret, deployment or paid resource was created by this change.
+
+An explicit offline SQLite migration preserves IDs, password hashes, profiles, roles, approvals, documents/revisions/deleted history and append-only audit records. It verifies copied row contents within the same transaction, refuses a nonempty destination, leaves the source read-only and drops usable old login sessions. It does not move image files or recover data already lost from an ephemeral instance.
+
+Validation on disposable localhost PostgreSQL and synthetic identities:
+
+- Full backend suite with the local PostgreSQL integration URL: **543 passed**, with one existing Starlette/httpx deprecation warning.
+- Seven unchanged workflow suites through the opt-in local PostgreSQL plugin: **157 passed, 2 intentionally SQLite-only cases skipped**. This covers registration/approval, expert verification, referrals, revisions, inbox ownership, history, reports and the Super Admin image archive.
+- PostgreSQL-specific regressions explicitly remove the old local media directory and reopen the app with a new directory; original account IDs, credential hashes, profiles, approvals, owner identity and stored result metadata remain. Session expiry still permits a new sign-in with the same account. Expert verification remains 15 minutes.
+- Dialect checks preserve JSON numeric counts and exact Thai midnight boundaries; SQL parameters and private error contents are not interpolated into responses. Migration tests cover rollback and nonempty-target refusal on real PostgreSQL.
+- `npm run typecheck` and `npm run build` passed. Interface, profile/notification and referral browser checks passed **11 / 2 / 7** cases on the guarded localhost fixture. General e2e checks passed **14/14** separately against an unconfigured localhost backend because that suite's inference contract stubs `/api/analyze` rather than the authenticated analysis endpoint. An initial invocation against the configured fixture correctly left anonymous inference disabled; the suite was rerun with its required backend mode, without altering tests or access rules.
+
+No existing UI labels were changed and no existing UI tests were rewritten to hide removed functionality. Models, Atlas assets, the 3D model and frontend API calls were not modified. Production persistence requires the owner-provided Supabase connection and verification after deployment; the tests do not establish public deployment or diagnostic accuracy.

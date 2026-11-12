@@ -4,7 +4,9 @@
 
 ## โครงสร้างและสถานะเริ่มต้น
 
-React19/TypeScript/Vite แสดงเว็บภาษาไทยและ Atlas Three.js; FastAPI/Pillow ตรวจภาพและเรียก optional Ultralytics YOLO; SQLite เก็บบัญชี/ผล/ประวัติ; normalized PNG อยู่ใน private filesystem Docker รวมเว็บและ API บน origin เดียวกัน ไม่มีบริการ AI ภายนอกที่ส่งภาพให้อัตโนมัติ
+React19/TypeScript/Vite แสดงเว็บภาษาไทยและ Atlas Three.js; FastAPI/Pillow ตรวจภาพและเรียก optional Ultralytics YOLO; SQLite หรือ PostgreSQL ภายนอกเก็บบัญชี/ผล/ประวัติ; normalized PNG อยู่ใน private filesystem Docker รวมเว็บและ API บน origin เดียวกัน ไม่มีบริการ AI ภายนอกที่ส่งภาพให้อัตโนมัติ
+
+ตั้งแต่รุ่นเชื่อมฐานข้อมูลภายนอกวันที่ 12 พฤศจิกายน 2569 สามารถใช้ [Supabase Free เพื่อเก็บบัญชีและสถานะอนุมัติ](SUPABASE-ACCOUNTS.th.md) โดยคง Render Free ได้ โหมดนี้ไม่ทำให้ไฟล์ภาพใน private filesystem ถาวร ต้องจัดเก็บภาพแยก และย้ายฐานข้อมูลที่ยังอยู่ก่อน deploy เพื่อไม่ให้บัญชีเดิมสูญหาย
 
 เมนูมีหน้าหลัก Dashboard ตรวจภาพ Atlas ประวัติรายวัน คลังผู้เชี่ยวชาญ รายงาน ประเมินและข้อเสนอแนะ และบัญชี/ตั้งค่า ไม่มีเมนูโครงงานหรือป้ายพื้นที่ทำงาน แบบประเมินการใช้งานยังมี SUS10ข้อ/ช่อง feedback แยกจากข้อผิดพลาดโมเดล
 
@@ -12,7 +14,7 @@ React19/TypeScript/Vite แสดงเว็บภาษาไทยและ A
 | --- | --- |
 | Atlas/คลังอ้างอิง/สาธิต | ใช้ไฟล์จริงใน repo มีเครดิตและป้ายสาธิต |
 | คุณภาพภาพ | Heuristic ทำงานไม่ต้องมี YOLO เกณฑ์ต้องทวนกับอุปกรณ์จริง |
-| บัญชี/ประวัติ/review/report/dashboard | Docker เปิด private directory อัตโนมัติ ใช้งานผ่านบัญชี; พื้นที่ Render Free เป็นแบบชั่วคราว ไม่มีบัญชีหรือข้อมูล seed |
+| บัญชี/ประวัติ/review/report/dashboard | เลือก SQLite ใน private directory หรือ PostgreSQL ภายนอก; filesystem ของ Render Free เป็นแบบชั่วคราว ไม่มีบัญชีหรือข้อมูล seed |
 | AI | Not configured จนติดตั้ง runtime และ trusted weights |
 | แบบฝึกหัดมีคะแนน | รอผู้ตรวจที่ได้รับสิทธิ์อนุมัติภาพ คลังภาพ/บัตรฝึกยังใช้เรียนรู้ได้ |
 | ประเมินโมเดล | Unavailable จนมีผลคำนวณจาก ground truth อิสระที่อนุมัติจริง |

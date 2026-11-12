@@ -9,16 +9,16 @@ import getpass
 
 from fastapi import HTTPException
 
-from .store import PlatformStore
+from .persistence import create_platform_store
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Create the first HelpMinths administrator using a private persistent data directory")
     parser.add_argument("--username", required=True, help="Nonempty operator username: ASCII letters/numbers/spaces/._-, starting with a letter or number")
     args = parser.parse_args()
-    store = PlatformStore()
+    store = create_platform_store()
     if not store.configured:
-        parser.error("Set HELPMINTHS_DATA_DIR to private storage first")
+        parser.error("Configure a private data directory or the external PostgreSQL database first")
     password = getpass.getpass("New administrator password (at least 4 characters): ")
     repeat = getpass.getpass("Repeat password: ")
     if password != repeat:

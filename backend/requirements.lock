@@ -19,6 +19,8 @@ packaging==26.3
 pillow==12.3.0
 pillow-heif==1.8.1
 pluggy==1.7.0
+psycopg==3.3.8
+psycopg-binary==3.3.8
 pydantic==2.14.1
 pydantic_core==2.50.1
 Pygments==2.21.0

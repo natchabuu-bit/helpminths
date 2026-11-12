@@ -24,6 +24,7 @@ from backend.request_limits import RequestBodyLimitMiddleware
 from backend.platform.auth import require_user, router as auth_router
 from backend.platform.admin_archive import create_archive_image, update_archive_image
 from backend.platform.owner_bootstrap import bootstrap_owner
+from backend.platform.persistence import create_platform_store
 from backend.platform.quality import QualityThresholds, assess_quality, enforce_quality, image_work_slot, quality_router
 from backend.platform.store import PlatformStore, utc_now
 
@@ -66,7 +67,7 @@ def create_app(
     platform_dir: str | Path | None = None,
 ) -> FastAPI:
     model_service = service if service is not None else YOLOModelService()
-    store = PlatformStore(platform_dir)
+    store = create_platform_store(platform_dir)
     QualityThresholds.from_environment()  # Reject invalid heuristic configuration at startup.
     serve_web = os.getenv("HELPMINTHS_SERVE_WEB") == "1"
     web_dir = Path(static_dir) if static_dir is not None else Path(__file__).resolve().parents[1] / "dist"

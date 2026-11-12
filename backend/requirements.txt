@@ -3,6 +3,7 @@ uvicorn==0.54.0
 Pillow==12.3.0
 pillow-heif==1.8.1
 python-multipart==0.0.32
+psycopg[binary]==3.3.8
 
 # Unicode Thai reports (Noto Sans Thai fonts are bundled under the SIL OFL).
 fpdf2==2.8.9
