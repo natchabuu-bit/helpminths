@@ -1,0 +1,49 @@
+# ALTERNATE PAID deployment template. The default render.yaml remains Free.
+# Existing service: attach the disk and set these values in its Render Dashboard;
+# do not blindly create a second service from this file.
+# Obtain a consistent private database + image backup BEFORE any restart, plan
+# upgrade, or new disk mount. A fresh mount does not migrate ephemeral files.
+# The owner must review and approve Render instance/disk charges before applying.
+# Starter is the minimum illustration, not a YOLO memory-capacity recommendation.
+services:
+  - type: web
+    name: helpminths
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: false
+    healthCheckPath: /api/health
+    disk:
+      name: helpminths-data
+      mountPath: /var/lib/helpminths
+      sizeGB: 1
+    envVars:
+      # Set HELPMINTHS_SUPER_ADMIN_PASSWORD privately in Render Environment.
+      # Its value is intentionally absent from this public Blueprint.
+      - key: HELPMINTHS_SERVE_WEB
+        value: "1"
+      - key: HELPMINTHS_AUTO_STORAGE
+        value: "0"
+      - key: HELPMINTHS_DATA_DIR
+        value: "/var/lib/helpminths"
+      - key: HELPMINTHS_STORAGE_DURABLE
+        value: "1"
+      - key: HELPMINTHS_DASHBOARD_RESTORE_SNAPSHOT
+        value: "1"
+      - key: HELPMINTHS_DASHBOARD_SOURCE
+        value: "snapshot"
+      - key: HELPMINTHS_SHEETS_ENABLED
+        value: "1"
+      - key: HELPMINTHS_SHEETS_ID
+        value: "1pvGSBJEykTf5NUEsd3SqVdOqpYbpibTj07p23yJ5o-8"
+      - key: HELPMINTHS_SHEETS_GID
+        value: ""
+      - key: HELPMINTHS_SHEETS_PUBLIC_AGGREGATES
+        value: "1"
+      - key: HELPMINTHS_SHEETS_COLUMN_MAPPING
+        value: '{"preset":"health2-kpd-school-v1"}'
+      - key: HELPMINTHS_SHEETS_REFRESH_SECONDS
+        value: "30"
+      - key: PORT
+        value: "8000"
