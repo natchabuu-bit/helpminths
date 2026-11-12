@@ -10,7 +10,7 @@ import os
 import shutil
 import uuid
 from datetime import datetime, timezone
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import unquote, urlsplit, urlunsplit
 
 import pytest
 from fastapi.testclient import TestClient
@@ -205,3 +205,44 @@ def test_postgres_date_filter_excludes_the_next_thai_midnight(external_env, tmp_
         assert response.status_code == 200, response.text
         assert response.json()["total_analyses"] == 2
         assert response.json()["items"] == [{"date": "2026-06-01", "total": 2, "completed": 2, "failed": 0}]
+
+
+def test_separate_database_password_authenticates_and_failure_stays_private(external_env, tmp_path, monkeypatch):
+    """This case needs password authentication, rather than local trust auth."""
+    import psycopg
+    import sqlite3
+
+    parsed = urlsplit(external_env)
+    if not parsed.password:
+        pytest.skip("Use a disposable local PostgreSQL server with password authentication")
+    wrong = "SYNTHETIC deliberately wrong database password"
+    try:
+        with psycopg.connect(external_env, password=wrong, connect_timeout=3):
+            pytest.skip("Local trust authentication cannot verify separate database passwords")
+    except psycopg.OperationalError:
+        pass
+    raw_password = unquote(parsed.password)
+    hostname = f"[{parsed.hostname}]" if ":" in parsed.hostname else parsed.hostname
+    authority = f"{parsed.username}:[YOUR-PASSWORD]@{hostname}" + (f":{parsed.port}" if parsed.port else "")
+    placeholder = urlunsplit(parsed._replace(netloc=authority))
+    monkeypatch.setenv("HELPMINTHS_DATABASE_URL", placeholder)
+    monkeypatch.setenv("HELPMINTHS_DATABASE_PASSWORD", raw_password)
+    store = create_platform_store(tmp_path / "separate-password-media")
+    account = store.create_user("SYNTHETIC separate-password account", PASSWORD)
+    assert store.authenticate(account["username"], PASSWORD)["id"] == account["id"]
+    assert raw_password not in repr(store) and "[YOUR-PASSWORD]" not in store._database_url
+
+    monkeypatch.setenv("HELPMINTHS_DATABASE_PASSWORD", wrong)
+    failed_directory = tmp_path / "rejected-password-media"
+    with pytest.raises(sqlite3.OperationalError) as error:
+        create_platform_store(failed_directory)
+    assert "[DB_AUTH]" in str(error.value)
+    for private_value in (raw_password, wrong, placeholder):
+        assert private_value not in str(error.value)
+    assert not (failed_directory / "helpminths.sqlite3").exists()
+
+    # Complete encoded URIs continue working without the optional variable.
+    monkeypatch.delenv("HELPMINTHS_DATABASE_PASSWORD")
+    monkeypatch.setenv("HELPMINTHS_DATABASE_URL", external_env)
+    reopened = create_platform_store(tmp_path / "legacy-uri-media")
+    assert reopened.authenticate(account["username"], PASSWORD)["id"] == account["id"]

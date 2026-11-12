@@ -8,7 +8,7 @@ import psycopg
 import pytest
 
 from backend.platform.postgres_store import (
-    PostgresRow, _connection_settings, _safe_database_error, translate_sql,
+    PostgresRow, _connection_details, _connection_settings, _safe_database_error, translate_sql,
 )
 
 
@@ -102,3 +102,57 @@ def test_numeric_aggregate_rows_use_json_numbers_instead_of_decimal_strings():
 def test_local_plaintext_is_pinned_to_physical_loopback():
     settings = _connection_settings('postgresql://local@localhost/test?sslmode=disable')
     assert settings['hostaddr'] == '127.0.0.1'
+
+
+def test_optional_password_uses_raw_secret_and_discards_uri_password():
+    raw = 'SYNTHETIC only:@#?/%[] space ไทย'
+    for old in ['[YOUR-PASSWORD]', '[OLD-PASSWORD]', 'old%40encoded', 'old@raw#?/password']:
+        uri = f'postgresql://postgres.example:{old}@example.invalid:5432/postgres?sslmode=require'
+        normalized, settings = _connection_details(uri, raw)
+        assert normalized == 'postgresql://postgres.example@example.invalid:5432/postgres?sslmode=require'
+        assert settings['password'] == raw
+        assert settings['sslmode'] == 'require'
+        assert settings['prepare_threshold'] is None
+        assert raw not in normalized and old not in normalized
+
+
+def test_without_password_override_the_uri_and_legacy_settings_are_unchanged():
+    uri = 'postgresql://user:encoded%40password@example.invalid/postgres'
+    normalized, settings = _connection_details(uri)
+    assert normalized == uri
+    assert 'password' not in settings
+    assert settings == _connection_settings(uri)
+
+
+def test_password_override_preserves_hostname_and_at_sign_in_query_values():
+    uri = 'postgresql://postgres.project:[YOUR-PASSWORD]@example.invalid:5432/postgres?application_name=owner@example.invalid/path&sslmode=require'
+    normalized, settings = _connection_details(uri, 'SYNTHETIC raw password')
+    assert normalized == 'postgresql://postgres.project@example.invalid:5432/postgres?application_name=owner@example.invalid/path&sslmode=require'
+    assert psycopg.conninfo.conninfo_to_dict(normalized)['host'] == 'example.invalid'
+    assert settings['password'] == 'SYNTHETIC raw password'
+
+
+def test_password_override_keeps_ipv6_loopback_target_and_tls_policy():
+    normalized, settings = _connection_details('postgresql://test:[YOUR-PASSWORD]@[::1]:5432/test', 'SYNTHETIC raw password')
+    assert normalized == 'postgresql://test@[::1]:5432/test'
+    assert settings['hostaddr'] == '::1'
+
+
+@pytest.mark.parametrize('password', ['', '\x00SYNTHETIC SECRET'])
+def test_empty_or_nul_password_override_is_refused_without_secret(password):
+    with pytest.raises(RuntimeError) as error:
+        _connection_details('postgresql://user@example.invalid/postgres', password)
+    assert '[DB_PASSWORD_INPUT]' in str(error.value)
+    assert 'SYNTHETIC SECRET' not in str(error.value)
+
+
+@pytest.mark.parametrize('uri', [
+    'https://example.invalid', 'postgresql://example.invalid/postgres',
+    'psql postgresql://user@example.invalid/postgres',
+    'postgresql://user@example.invalid/postgres?sslmode=disable',
+    'postgresql://user@localhost/postgres?host=example.invalid&sslmode=disable',
+])
+def test_password_override_does_not_allow_invalid_uris_or_disable_remote_tls(uri):
+    with pytest.raises(RuntimeError) as error:
+        _connection_details(uri, 'SYNTHETIC do not print')
+    assert 'SYNTHETIC do not print' not in str(error.value)

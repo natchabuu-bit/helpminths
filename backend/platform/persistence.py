@@ -10,7 +10,7 @@ from .store import PlatformStore
 def create_platform_store(data_dir: str | Path | None = None) -> PlatformStore:
     """Keep SQLite compatibility; an external URL opts into PostgreSQL.
 
-    The URL is a backend hosting secret. Never include it in error messages,
+    The URL and optional separate password are backend hosting secrets. Never include them in error messages,
     public status, frontend configuration, or a failed-connection fallback.
     ``data_dir`` remains the private image directory in PostgreSQL mode.
     """

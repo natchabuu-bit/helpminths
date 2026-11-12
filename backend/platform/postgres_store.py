@@ -21,6 +21,7 @@ import psycopg
 from fastapi import HTTPException
 
 from .config import PlatformConfig
+from .database_diagnostics import connection_failure_message
 from .store import PlatformStore, SCHEMA_VERSION
 
 # Shared by every application writer and initializer, including concurrent
@@ -324,13 +325,42 @@ def _connection_settings(database_url: str) -> dict[str, Any]:
         raise RuntimeError("ตั้งค่า HELPMINTHS_DATABASE_URL ให้เป็น PostgreSQL URL ที่ถูกต้องและใช้ TLS สำหรับฐานข้อมูลภายนอก") from None
 
 
+def _connection_details(database_url: str, database_password: str | None = None) -> tuple[str, dict[str, Any]]:
+    """Optionally supply a raw host secret without URI password escaping.
+
+    When the optional secret is present, only the username and destination are
+    taken from the URI. Its old/placeholder password is discarded before URI
+    parsing; the real password is passed as a libpq keyword argument. Existing
+    single-URI deployments keep exactly their previous behaviour.
+    """
+    if database_password is None:
+        return database_url, _connection_settings(database_url)
+    if not database_password or "\x00" in database_password:
+        raise RuntimeError("[DB_PASSWORD_INPUT] ใส่รหัสผ่านฐานข้อมูลจริงใน HELPMINTHS_DATABASE_PASSWORD หรือเอาตัวแปรนี้ออกเมื่อใช้รหัสผ่านใน URI")
+    scheme, delimiter, remainder = database_url.partition("://")
+    # Select the user-info delimiter before a host/port/database destination,
+    # rather than the last '@' anywhere (which could belong to a query value).
+    parts = re.fullmatch(
+        r"(?P<credentials>.+?)@(?P<destination>(?:\[[^\]\r\n]+\]|[^/@?#:\s]+)(?::[0-9]+)?/.*)",
+        remainder, flags=re.DOTALL,
+    )
+    username = parts["credentials"].partition(":")[0] if parts else ""
+    if not delimiter or scheme.lower() not in {"postgres", "postgresql"} or not username:
+        raise RuntimeError("[DB_URL_FORMAT] คัดลอก PostgreSQL URI ที่มีชื่อผู้ใช้ทั้งหมดจาก Supabase Connect > Session pooler")
+    connection_url = f"{scheme.lower()}://{username}@{parts['destination']}"
+    settings = _connection_settings(connection_url)
+    settings["password"] = database_password  # Preserve special characters verbatim.
+    return connection_url, settings
+
+
 class PostgresPlatformStore(PlatformStore):
     database_backend = "postgres"
     database_durable = True
 
     def __init__(self, data_dir: str | Path | None = None, *, database_url: str) -> None:
-        self._connection_kwargs = _connection_settings(database_url)
-        self._database_url = database_url
+        self._database_url, self._connection_kwargs = _connection_details(
+            database_url, os.getenv("HELPMINTHS_DATABASE_PASSWORD"),
+        )
         self.config = PlatformConfig.from_environment(data_dir)
         if self.config.data_dir is None:
             # External accounts may be enabled without a mounted media volume.
@@ -375,9 +405,9 @@ class PostgresPlatformStore(PlatformStore):
         try:
             raw = psycopg.connect(self._database_url, **self._connection_kwargs)
             return PostgresConnection(raw)
-        except psycopg.Error:
-            # Never log a DSN, credentials, provider hostname or private query.
-            raise sqlite3.OperationalError("เชื่อมต่อฐานข้อมูลภายนอกไม่ได้ กรุณาตรวจค่าบนโฮสต์และสถานะฐานข้อมูล") from None
+        except psycopg.Error as error:
+            # Diagnose using finite static hints; never expose provider text.
+            raise sqlite3.OperationalError(connection_failure_message(error)) from None
 
     @contextmanager
     def connection(self) -> Iterator[PostgresConnection]:

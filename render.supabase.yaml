@@ -25,6 +25,9 @@ services:
         value: "postgres"
       - key: HELPMINTHS_DATABASE_URL
         sync: false
+      # Raw database password; avoids escaping special characters inside the URI.
+      - key: HELPMINTHS_DATABASE_PASSWORD
+        sync: false
       - key: HELPMINTHS_DASHBOARD_RESTORE_SNAPSHOT
         value: "1"
       - key: HELPMINTHS_DASHBOARD_SOURCE
