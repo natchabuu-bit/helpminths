@@ -46,7 +46,7 @@ test('the home page keeps three clear sections and two hero actions across scree
       assert.equal(await hero.locator('.field-intro').count(), 1)
       assert.equal(await hero.locator('.field-intro br').count(), 0)
       assert.ok((await hero.locator('.field-intro').innerText()).trim().length > 0)
-      assert.equal(await hero.getByRole('button').count(), 2)
+      assert.equal(await hero.locator('.field-actions').getByRole('button').count(), 2)
       const start = hero.getByRole('button', { name: 'เริ่มตรวจวิเคราะห์', exact: true })
       const demo = hero.getByRole('button', { name: 'ดูตัวอย่าง', exact: true })
       assert.equal(await start.isVisible(), true)
@@ -63,6 +63,61 @@ test('the home page keeps three clear sections and two hero actions across scree
       assert.equal(await page.locator('main').getByRole('button', { name: 'วิเคราะห์ภาพ', exact: true }).count(), 0)
       await assertNoDecorativeCopy(page)
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Home must not overflow at ${width}px`)
+      assert.deepEqual(fixture.mutations, [])
+      assert.deepEqual(errors, [])
+    } finally { await page.close() }
+  }
+})
+
+test('anonymous visitors can play and seek the public introduction on desktop and phones without signing up', { timeout: 90_000 }, async () => {
+  for (const width of [320, 375, 1440]) {
+    const page = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: 'reduce', serviceWorkers: 'block' })
+    const errors = [], movieRequests = []
+    page.on('pageerror', error => errors.push(error.message))
+    page.on('request', request => { if (new URL(request.url()).pathname.endsWith('.mp4')) movieRequests.push(request.url()) })
+    const fixture = await mockAccount(page, account(null))
+    try {
+      await page.goto(baseURL, { waitUntil: 'networkidle' })
+      const disclosure = page.locator('.intro-video > summary')
+      assert.equal(await disclosure.isVisible(), true)
+      assert.match(await disclosure.innerText(), /ดูวิดีโอแนะนำ.*30 วินาที/)
+      assert.equal(await page.locator('.intro-video-player').count(), 0)
+      assert.deepEqual(movieRequests, [], 'The homepage must not download an unopened optional movie')
+      await disclosure.focus()
+      await page.keyboard.press('Enter')
+      const video = page.locator('.intro-video-player')
+      await video.waitFor({ state: 'visible' })
+      assert.equal(await video.getAttribute('preload'), 'none')
+      assert.equal(await video.evaluate(element => element.controls && element.playsInline && !element.autoplay), true)
+      assert.equal(await video.getAttribute('poster'), '/media/helpminths-introduction-poster.jpg')
+      assert.equal(await video.locator('track[srclang="th"][kind="captions"]').count(), 1)
+      await video.evaluate(element => element.play())
+      await page.waitForFunction(() => {
+        const movie = document.querySelector('.intro-video-player')
+        return movie?.readyState >= 2 && movie.currentTime > 0 && !movie.paused
+      })
+      assert.equal(await video.evaluate(element => element.duration), 30)
+      await video.evaluate(element => { element.currentTime = 24 })
+      await page.waitForFunction(() => {
+        const movie = document.querySelector('.intro-video-player')
+        return movie.currentTime >= 24 && !movie.seeking
+      })
+      await video.evaluate(element => { element.pause(); element.textTracks[0].mode = 'hidden' })
+      await page.waitForFunction(() => document.querySelector('video').textTracks[0].cues?.length === 8)
+      const range = await page.request.get(new URL('/media/helpminths-introduction-30s.mp4', baseURL).href, { headers: { Range: 'bytes=0-1023' } })
+      assert.equal(range.status(), 206, 'Unauthenticated streaming must support byte ranges')
+      assert.match(range.headers()['content-type'], /video\/mp4/)
+      assert.match(range.headers()['content-range'], /^bytes 0-1023\/\d+$/)
+      assert.equal((await range.body()).length, 1024)
+      await page.locator('.intro-video-transcript > summary').click()
+      assert.equal(await page.locator('.intro-video-transcript li').count(), 8)
+      assert.equal(await page.locator('.intro-video-links a').count(), 2)
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Public video must not overflow at ${width}px`)
+      const bounds = await video.boundingBox()
+      assert.ok(Math.abs(bounds.width / bounds.height - 16 / 9) < 0.02)
+      await disclosure.click()
+      await video.waitFor({ state: 'detached' })
+      assert.deepEqual(fixture.privateReads, [], 'Viewing the introduction must not request a member image or analysis')
       assert.deepEqual(fixture.mutations, [])
       assert.deepEqual(errors, [])
     } finally { await page.close() }

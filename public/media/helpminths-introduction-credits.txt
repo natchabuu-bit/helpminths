@@ -1,0 +1,26 @@
+HelpMinths video introduction — 14 November 2026
+
+Interface and brand:
+HelpMinths repository https://github.com/natchabuu-bit/helpminths
+Reference source commit c3292c9098000a03a4c5f1d65aa7ce5d608c2f7d
+UI screenshots from an isolated synthetic test environment; no production accounts or patient images used.
+Atlas motion captured from the actual application renderer in the same isolated environment.
+
+Microscopy image appearing in the Atlas scene:
+Thomas P. Buckelew, Ph.D. — Parasitology Educational Archive
+Ascaris eggs fertilized and unfertilized
+https://github.com/tombuckelew/parasitology-images/blob/901b77d18f847eedc36e9c653bddb121224ff1c8/site/Buckelew/images/Ascaris%20eggs%20fertilized%20and%20unfertilized.jpg
+CC BY-NC 4.0 https://creativecommons.org/licenses/by-nc/4.0/
+The web interface is cropped, scaled and animated for presentation. No original photo retouching or diagnostic annotations were added to the micrograph.
+Attribution is also visible during the Atlas segment. This educational material retains the source's noncommercial license conditions.
+
+Music:
+Original instrumental composition generated for this HelpMinths introduction.
+104 BPM, D major, soft piano/pads/bass/rhythm; source audio/generator_music.py.
+No third-party song or recorded voice is included.
+
+Typography:
+Noto Sans / Noto Sans Thai. SIL Open Font License; see source/fonts/LICENSE-Noto.txt.
+
+Production:
+30-second 1080p motion graphics, original music, real interface screenshots and captured 3D renderer.

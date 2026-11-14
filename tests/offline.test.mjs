@@ -87,6 +87,7 @@ test('offline navigation keeps the dark admin entry separate from the public app
     assert.equal((await waitForReady(page)).ready, true)
     const paths = await cachedPaths(page)
     assert.ok(paths.includes('/admin/index.html'), 'The separate static admin entry must be available')
+    assert.ok(!paths.some(path => path.endsWith('.mp4')), 'Optional introduction movies must stream on demand rather than enter the offline precache')
     assert.ok(!paths.some(path => /^\/api(?:\/|$)/.test(path)), 'Private account and clinical APIs must never enter static caches')
     await context.setOffline(true)
     await page.goto(new URL('/admin/', baseURL).href, { waitUntil: 'networkidle' })

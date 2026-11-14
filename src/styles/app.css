@@ -716,6 +716,45 @@ input::placeholder, textarea::placeholder { color: var(--color-placeholder); opa
   font-size: .9375rem;
   line-height: 1.85;
 }
+.intro-video { margin-top: var(--space-3); color: var(--color-text); }
+.intro-video > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--control-height);
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-accent-ink);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+.intro-video > summary::-webkit-details-marker { display: none; }
+.intro-video > summary:hover { background: var(--color-hover); }
+.intro-video > summary > svg { flex-shrink: 0; }
+.intro-video-duration { color: var(--color-muted); font-weight: 400; }
+.intro-video-content { max-width: 960px; margin-top: var(--space-2); }
+.intro-video-player {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-image-bg);
+}
+.intro-video-links { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); margin-top: var(--space-1); }
+.intro-video-links a { display: inline-flex; align-items: center; min-height: var(--control-height); color: var(--color-link); text-underline-offset: .2em; }
+.intro-video-transcript { margin-top: var(--space-1); color: var(--color-muted); }
+.intro-video-transcript > summary { min-height: var(--control-height); padding: var(--space-1) 0; cursor: pointer; }
+.intro-video-transcript ol { margin: 0; padding-left: var(--space-3); }
+.intro-video-transcript p, .intro-video-error { margin: var(--space-1) 0 0; }
+.intro-video-error { color: var(--color-danger); }
+.intro-video summary:focus-visible, .intro-video a:focus-visible, .intro-video-player:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
 @media (max-width: 680px) {
   .field-overview { margin-bottom: var(--space-4); padding: var(--space-3) var(--space-2); border-radius: var(--radius-md); }
   .field-intro { font-size: 1rem; }

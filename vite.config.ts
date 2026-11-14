@@ -23,6 +23,9 @@ function offlinePrecache(): Plugin {
       }
       const filenames = (await filesIn(output))
         .filter(filename => path.relative(output, filename) !== 'sw.js')
+        // Stream optional videos on demand. Precaching them would eagerly fetch
+        // the entire movie and intercept native players' byte-range requests.
+        .filter(filename => path.extname(filename).toLowerCase() !== '.mp4')
         .sort()
       const template = await readFile(path.resolve(config.publicDir, 'sw.js'), 'utf8')
       const version = createHash('sha256')

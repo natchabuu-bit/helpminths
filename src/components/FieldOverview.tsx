@@ -1,4 +1,5 @@
 import { ArrowRight, Play, ScanLine } from 'lucide-react'
+import IntroVideo from './IntroVideo'
 
 interface FieldOverviewProps {
   onScan: () => void
@@ -14,5 +15,6 @@ export default function FieldOverview({ onScan, onDemo }: FieldOverviewProps) {
       <button type="button" className="field-demo-button" onClick={onDemo}><Play size={18} aria-hidden="true"/>ดูตัวอย่าง</button>
     </div>
     <p className="research-note">ผล AI ต้องได้รับการทบทวนโดยผู้เชี่ยวชาญ</p>
+    <IntroVideo/>
   </section>
 }
